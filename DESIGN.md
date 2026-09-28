@@ -1,12 +1,12 @@
 # Sistema de diseño de Mova
 
-Inspirado en el sistema de Linear: interfaz sobria, densa y rápida, sin sombras. La profundidad se consigue con capas de superficie y bordes de 1px. Los tokens viven en `src/app/globals.css`: la paleta por defecto de Tailwind está desactivada, así que solo se pueden usar los tokens de este documento.
+Inspirado en el sistema de Linear, en versión monocromática: interfaz sobria, densa y rápida, sin sombras. La profundidad se consigue con capas de superficie y bordes de 1px. Los tokens viven en `src/app/globals.css`: la paleta por defecto de Tailwind está desactivada, así que solo se pueden usar los tokens de este documento.
 
 ## Principios
 
 1. **Una acción principal por pantalla.** Solo un botón `primary` visible a la vez.
 2. **Cada pantalla vacía dice qué hacer.** Siempre con un `EmptyState` que explica el siguiente paso.
-3. **El color comunica, no decora.** El acento se reserva para la acción principal, el foco y el estado activo.
+3. **Jerarquía por contraste, no por color.** El máximo contraste (acento) se reserva para la acción principal y el foco.
 4. **Sin sombras.** Capas de superficie + bordes `line`. La única sombra es `shadow-popover` para elementos flotantes.
 
 ## Tipografía
@@ -29,22 +29,25 @@ Base de 14px. Interlineado siempre en múltiplos de 4px. Tracking negativo que c
 
 ## Color
 
+**Monocromático:** solo grises neutros, sin tinte. El acento es el propio texto principal (blanco en oscuro, casi negro en claro). No hay colores de estado: errores y confirmaciones se distinguen por su icono. La única excepción es el logo de Google, que su guía de marca obliga a mostrar en color.
+
 Claro y oscuro automáticos según el sistema del usuario.
 
 | Token | Oscuro | Claro | Uso |
 |---|---|---|---|
-| `canvas` | `#0c0d0e` | `#fdfdfd` | Fondo de la app |
-| `surface-1` | `#0f1011` | `#ffffff` | Panel de contenido, inputs |
-| `surface-2` | `#17181a` | `#f4f5f6` | Hover, avisos |
-| `surface-3` | `#1f2023` | `#ebecee` | Estado activo |
-| `line` | `#23252a` | `#e6e7ea` | Bordes |
-| `line-strong` | `#34343a` | `#d4d6da` | Bordes en hover |
-| `fg` | `#f7f8f8` | `#1b1c1f` | Texto principal |
-| `fg-2` | `#d0d6e0` | `#3c3f45` | Etiquetas |
-| `fg-3` | `#8a8f98` | `#6b6f76` | Texto secundario, iconos |
-| `fg-4` | `#62666d` | `#9b9ea5` | Placeholders, deshabilitado |
-| `accent` | `#5e6ad2` | `#5e6ad2` | Acción principal, foco |
-| `success` / `warning` / `danger` | `#4cb782` / `#f2994a` / `#eb5757` | `#1f9d55` / `#d97a1e` / `#d93b3b` | Estados |
+| `canvas` | `#0c0c0c` | `#fdfdfd` | Fondo de la app |
+| `surface-1` | `#0f0f0f` | `#ffffff` | Panel de contenido, inputs |
+| `surface-2` | `#171717` | `#f4f4f4` | Hover, avisos |
+| `surface-3` | `#1f1f1f` | `#ebebeb` | Estado activo |
+| `line` | `#242424` | `#e6e6e6` | Bordes |
+| `line-strong` | `#333333` | `#d4d4d4` | Bordes en hover |
+| `fg` | `#f5f5f5` | `#171717` | Texto principal |
+| `fg-2` | `#d4d4d4` | `#3d3d3d` | Etiquetas |
+| `fg-3` | `#8f8f8f` | `#6e6e6e` | Texto secundario, iconos |
+| `fg-4` | `#636363` | `#9e9e9e` | Placeholders, deshabilitado |
+| `accent` | `#f5f5f5` | `#171717` | Acción principal, foco, logo |
+| `accent-hover` | `#d4d4d4` | `#3d3d3d` | Hover de la acción principal |
+| `on-accent` | `#0c0c0c` | `#ffffff` | Texto sobre el acento |
 
 ## Espaciado, radios y alturas
 

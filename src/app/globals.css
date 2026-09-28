@@ -2,53 +2,48 @@
 
 /*
  * Sistema de diseño de Mova. Inspirado en Linear. Referencia completa en DESIGN.md.
+ * Paleta monocromática: solo grises neutros. Los estados se distinguen con iconos, no con color.
  * Los valores de color viven en variables para cambiar de tema sin tocar componentes.
  */
 
 :root {
   --canvas: #fdfdfd;
   --surface-1: #ffffff;
-  --surface-2: #f4f5f6;
-  --surface-3: #ebecee;
-  --line: #e6e7ea;
-  --line-strong: #d4d6da;
-  --fg: #1b1c1f;
-  --fg-2: #3c3f45;
-  --fg-3: #6b6f76;
-  --fg-4: #9b9ea5;
-  --accent: #5e6ad2;
-  --accent-hover: #4e59c2;
+  --surface-2: #f4f4f4;
+  --surface-3: #ebebeb;
+  --line: #e6e6e6;
+  --line-strong: #d4d4d4;
+  --fg: #171717;
+  --fg-2: #3d3d3d;
+  --fg-3: #6e6e6e;
+  --fg-4: #9e9e9e;
+  --accent: #171717;
+  --accent-hover: #3d3d3d;
   --on-accent: #ffffff;
-  --success: #1f9d55;
-  --warning: #d97a1e;
-  --danger: #d93b3b;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0c0d0e;
-    --surface-1: #0f1011;
-    --surface-2: #17181a;
-    --surface-3: #1f2023;
-    --line: #23252a;
-    --line-strong: #34343a;
-    --fg: #f7f8f8;
-    --fg-2: #d0d6e0;
-    --fg-3: #8a8f98;
-    --fg-4: #62666d;
-    --accent: #5e6ad2;
-    --accent-hover: #7078e0;
-    --on-accent: #ffffff;
-    --success: #4cb782;
-    --warning: #f2994a;
-    --danger: #eb5757;
+    --canvas: #0c0c0c;
+    --surface-1: #0f0f0f;
+    --surface-2: #171717;
+    --surface-3: #1f1f1f;
+    --line: #242424;
+    --line-strong: #333333;
+    --fg: #f5f5f5;
+    --fg-2: #d4d4d4;
+    --fg-3: #8f8f8f;
+    --fg-4: #636363;
+    --accent: #f5f5f5;
+    --accent-hover: #d4d4d4;
+    --on-accent: #0c0c0c;
     color-scheme: dark;
   }
 }
 
 @theme inline {
-  /* Color: solo tokens semánticos, sin la paleta por defecto de Tailwind. */
+  /* Color: solo tokens semánticos en escala de grises, sin la paleta por defecto de Tailwind. */
   --color-*: initial;
   --color-canvas: var(--canvas);
   --color-surface-1: var(--surface-1);
@@ -63,9 +58,6 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-on-accent: var(--on-accent);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
 
   /* Tipografía: Geist, solo Regular (400) y Medium (500). */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
