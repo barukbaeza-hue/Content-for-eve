@@ -19,8 +19,8 @@
 De tu negocio a tus vídeos publicados, a tu ritmo, sin perder horas:
 
 1. **Mova te conoce:** conectas tus redes y aprende cómo hablas, de qué hablas y qué te funciona.
-2. **Ideas desde tu negocio:** preguntas de clientes, objeciones, historias y lo que sabes de tu sector.
-3. **Grabas fuera de Mova, como siempre.** Subes los vídeos y Mova los edita (Scribe) y les escribe el copy.
+2. **Ideas y guiones desde tu negocio:** preguntas de clientes, objeciones, historias y lo que sabes de tu sector, convertidas en guiones con tu forma de hablar. Si quieres, los afinas tú.
+3. **Solo grabar va fuera de Mova.** Subes los vídeos y Mova los edita (Scribe) y les escribe el copy.
 4. **Tu banco de vídeos se publica solo** en Instagram y TikTok, según tu plan.
 5. **Tu comunidad no se queda sin respuesta:** comentarios atendidos y conversaciones que acaban en clientes.
 
@@ -35,8 +35,8 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 | # | Pilar | Qué hace | Qué aporta a la memoria |
 |---|---|---|---|
 | 1 | **Conocer** | Quién eres, cómo hablas, tu negocio (oferta, clientes, preguntas y objeciones) y tu contenido pasado | La base de todo |
-| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona. Plan semanal con equilibrio de temas | El plan de contenido |
-| 3 | **Editar** | Subes tus vídeos grabados: Scribe los edita (silencios, ruido, subtítulos) y Mova escribe el copy (descripción y hashtags). Guion y grabación se hacen fuera de Mova | Vídeos listos en el banco |
+| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). Plan semanal con equilibrio de temas | El plan y los guiones |
+| 3 | **Editar** | Subes tus vídeos grabados: Scribe los edita (silencios, ruido, subtítulos) y Mova escribe el copy (descripción y hashtags). Solo la grabación se hace fuera de Mova | Vídeos listos en el banco |
 | 4 | **Publicar** | Banco de vídeos, calendario y publicación en Instagram y TikTok a la mejor hora | Qué salió y cuándo |
 | 5 | **Conversar** | Bandeja única de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat. Por ejemplo, alguien comenta "INFO" y recibe un mensaje privado con tu enlace | Leads, dudas frecuentes y lo que pide la audiencia |
 | 6 | **Aprender** | Qué vídeos traen alcance, conversaciones y clientes | Qué funciona, y vuelve al pilar 1 |
@@ -73,8 +73,9 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 | Fase | Pilar | Qué incluye | Estado |
 |---|---|---|---|
 | 0 · Base | | Web, login (Google y correo), sistema de diseño, Mi marca manual | Hecho |
-| 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables | Hecho |
+| 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables y guion breve | Hecho |
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Mi negocio" | Siguiente |
+| 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
 | 3 · Banco y edición | Editar | Subida por lotes, edición con Scribe en cola, copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco y publicación automática en Instagram y TikTok | |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
