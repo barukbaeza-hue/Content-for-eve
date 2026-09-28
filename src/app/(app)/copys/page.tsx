@@ -1,8 +1,15 @@
+import { PenLine } from "lucide-react";
+import { Page } from "@/components/shell/page";
+import { EmptyState } from "@/components/ui/empty-state";
+
 export default function CopysPage() {
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Copys</h1>
-      <p className="mt-1 text-neutral-500">Descripciones y hashtags para Instagram y TikTok.</p>
-    </section>
+    <Page title="Copys">
+      <EmptyState
+        icon={PenLine}
+        title="Aún no hay copys"
+        description="Elige una idea y Mova escribirá la descripción y los hashtags para cada red."
+      />
+    </Page>
   );
 }

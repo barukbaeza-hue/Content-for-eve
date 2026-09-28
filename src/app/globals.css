@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Sistema de diseño de Mova. Inspirado en Linear. Referencia completa en DESIGN.md.
+ * Los valores de color viven en variables para cambiar de tema sin tocar componentes.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --canvas: #fcfcfd;
+  --surface-1: #ffffff;
+  --surface-2: #f4f5f6;
+  --surface-3: #ebecee;
+  --line: #e6e7ea;
+  --line-strong: #d4d6da;
+  --fg: #1b1c1f;
+  --fg-2: #3c3f45;
+  --fg-3: #6b6f76;
+  --fg-4: #9b9ea5;
+  --accent: #5e6ad2;
+  --accent-hover: #4e59c2;
+  --on-accent: #ffffff;
+  --success: #1f9d55;
+  --warning: #d97a1e;
+  --danger: #d93b3b;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #08090a;
+    --surface-1: #0f1011;
+    --surface-2: #17181a;
+    --surface-3: #1f2023;
+    --line: #23252a;
+    --line-strong: #34343a;
+    --fg: #f7f8f8;
+    --fg-2: #d0d6e0;
+    --fg-3: #8a8f98;
+    --fg-4: #62666d;
+    --accent: #5e6ad2;
+    --accent-hover: #7078e0;
+    --on-accent: #ffffff;
+    --success: #4cb782;
+    --warning: #f2994a;
+    --danger: #eb5757;
+    color-scheme: dark;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  /* Color: solo tokens semánticos, sin la paleta por defecto de Tailwind. */
+  --color-*: initial;
+  --color-canvas: var(--canvas);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  /* Tipografía: Geist, solo Regular (400) y Medium (500). */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --font-weight-*: initial;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+
+  /*
+   * Escala tipográfica. Base 14px, interlineado en múltiplos de 4px y tracking
+   * negativo que crece con el tamaño (texto pequeño casi neutro para legibilidad).
+   */
+  --text-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+
+  --text-2xs: 0.6875rem;                /* 11px  badges, atajos */
+  --text-2xs--line-height: 1rem;        /* 16px */
+  --text-2xs--letter-spacing: -0.003em;
+
+  --text-xs: 0.75rem;                   /* 12px  metadatos, ayudas */
+  --text-xs--line-height: 1rem;         /* 16px */
+  --text-xs--letter-spacing: -0.006em;
+
+  --text-sm: 0.8125rem;                 /* 13px  navegación, etiquetas, botones */
+  --text-sm--line-height: 1.25rem;      /* 20px */
+  --text-sm--letter-spacing: -0.009em;
+
+  --text-base: 0.875rem;                /* 14px  cuerpo por defecto */
+  --text-base--line-height: 1.25rem;    /* 20px */
+  --text-base--letter-spacing: -0.011em;
+
+  --text-md: 1rem;                      /* 16px  cuerpo destacado */
+  --text-md--line-height: 1.5rem;       /* 24px */
+  --text-md--letter-spacing: -0.013em;
+
+  --text-lg: 1.125rem;                  /* 18px  títulos de sección */
+  --text-lg--line-height: 1.75rem;      /* 28px */
+  --text-lg--letter-spacing: -0.016em;
+
+  --text-xl: 1.25rem;                   /* 20px  títulos de tarjeta / modal */
+  --text-xl--line-height: 1.75rem;      /* 28px */
+  --text-xl--letter-spacing: -0.018em;
+
+  --text-2xl: 1.5rem;                   /* 24px  títulos de página */
+  --text-2xl--line-height: 2rem;        /* 32px */
+  --text-2xl--letter-spacing: -0.021em;
+
+  --text-3xl: 2rem;                     /* 32px  display (login, vacíos) */
+  --text-3xl--line-height: 2.5rem;      /* 40px */
+  --text-3xl--letter-spacing: -0.025em;
+
+  /* Radios. */
+  --radius-*: initial;
+  --radius-sm: 4px;   /* badges, chips */
+  --radius-md: 6px;   /* botones, inputs, items de menú */
+  --radius-lg: 8px;   /* tarjetas, popovers */
+  --radius-xl: 12px;  /* paneles, modales */
+
+  /* Sin sombras: la profundidad se da con superficies y bordes de 1px. */
+  --shadow-*: initial;
+  --shadow-popover: 0 0 0 1px var(--line), 0 8px 24px rgb(0 0 0 / 0.16);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-base text-fg;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 1px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
 }

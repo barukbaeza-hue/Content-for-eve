@@ -1,8 +1,15 @@
+import { CalendarDays } from "lucide-react";
+import { Page } from "@/components/shell/page";
+import { EmptyState } from "@/components/ui/empty-state";
+
 export default function CalendarioPage() {
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Calendario</h1>
-      <p className="mt-1 text-neutral-500">Programa tus publicaciones.</p>
-    </section>
+    <Page title="Calendario">
+      <EmptyState
+        icon={CalendarDays}
+        title="Tu calendario está vacío"
+        description="Programa tus publicaciones y aquí verás qué sale cada día."
+      />
+    </Page>
   );
 }

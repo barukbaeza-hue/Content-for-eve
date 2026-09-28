@@ -1,14 +1,9 @@
-import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/login/actions";
-
-const NAV = [
-  { href: "/ideas", label: "Ideas" },
-  { href: "/copys", label: "Copys" },
-  { href: "/calendario", label: "Calendario" },
-  { href: "/marca", label: "Mi marca" },
-];
+import { Logo } from "@/components/shell/logo";
+import { Nav, TabBar } from "@/components/shell/nav";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
@@ -16,22 +11,35 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (!data?.claims) redirect("/login");
 
   return (
-    <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="flex items-center gap-4 border-b border-neutral-200 px-4 py-3 md:w-56 md:flex-col md:items-stretch md:border-b-0 md:border-r md:py-6 dark:border-neutral-800">
-        <span className="text-xl font-semibold">Mova</span>
-        <nav className="flex flex-1 gap-3 overflow-x-auto text-sm md:flex-col md:gap-1">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href}
-              className="rounded-md px-2 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-900">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <form action={logout}>
-          <button className="text-sm text-neutral-500 hover:text-foreground">Salir</button>
+    <div className="flex h-dvh flex-col md:flex-row">
+      <aside className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2 md:w-60 md:flex-col md:items-stretch md:gap-4 md:border-b-0 md:px-3 md:py-3">
+        <div className="flex h-7 items-center gap-2 px-1">
+          <Logo />
+          <span className="text-sm font-medium">Mova</span>
+        </div>
+
+        <div className="hidden flex-1 md:block">
+          <Nav />
+        </div>
+
+        <form action={logout} className="flex items-center gap-2 md:border-t md:border-line md:pt-3">
+          <span className="hidden min-w-0 flex-1 truncate px-1 text-xs text-fg-3 md:block">
+            {data.claims.email}
+          </span>
+          <button aria-label="Salir" title="Salir"
+            className="flex size-7 items-center justify-center rounded-md text-fg-3 transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
+            <LogOut className="size-4" strokeWidth={1.75} />
+          </button>
         </form>
       </aside>
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+
+      <main className="flex min-h-0 min-w-0 flex-1 pb-14 md:py-2 md:pr-2 md:pb-2">
+        <div className="flex flex-1 overflow-y-auto bg-surface-1 md:rounded-xl md:border md:border-line">
+          {children}
+        </div>
+      </main>
+
+      <TabBar />
     </div>
   );
 }
