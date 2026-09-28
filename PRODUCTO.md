@@ -35,17 +35,26 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 | # | Pilar | Qué hace | Qué aporta a la memoria |
 |---|---|---|---|
 | 1 | **Conocer** | Quién eres, cómo hablas, tu negocio (oferta, clientes, preguntas y objeciones) y tu contenido pasado | La base de todo |
-| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). **Banco de ideas de la competencia:** vídeos de tu nicho y de tus referentes dentro de Mova, para sacar ideas. Plan semanal con equilibrio de temas | El plan, los guiones y las referencias |
+| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). **Inspiración:** ideas que salen de tu competencia y de las tendencias de tu nicho, más ideas nuevas creadas con el agente desde tu negocio. Plan semanal con equilibrio de temas | El plan, los guiones y la inspiración |
 | 3 | **Editar** | Subes tus vídeos grabados y Mova los edita automáticamente en cola (cortar silencios, limpiar el audio, subtítulos) y escribe el copy (descripción y hashtags). Solo la grabación se hace fuera de Mova. **El método de edición está por redefinir** | Vídeos listos en el banco |
 | 4 | **Publicar** | Banco de vídeos, calendario y publicación en Instagram y TikTok a la mejor hora | Qué salió y cuándo |
 | 5 | **Conversar** | Bandeja única de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat. Por ejemplo, alguien comenta "INFO" y recibe un mensaje privado con tu enlace | Leads, dudas frecuentes y lo que pide la audiencia |
 | 6 | **Aprender** | Qué vídeos traen alcance, conversaciones y clientes | Qué funciona, y vuelve al pilar 1 |
 
-## Banco de ideas de la competencia
+## Inspiración
 
-Es una parte clave del pilar Idear y **hay que hacerla**. El método técnico está por definir.
+Es una parte clave del pilar Idear y **hay que hacerla**. Mezcla dos fuentes de ideas en un mismo lugar:
 
-**Qué es:** un feed dentro de Mova, estilo TikTok, con vídeos reales de Instagram y TikTok de tu nicho y de las cuentas que tomas como referencia. Mova los recomienda según lo que tú haces. No hace falta ir a buscarlos.
+1. **Ideas de fuera:** vídeos de tu competencia, de tus referentes y de las tendencias de tu nicho (hashtags, formatos y temas que están funcionando).
+2. **Ideas nuevas:** las que creas con el agente a partir de tu negocio, tus clientes y lo que te funciona. Es el chat de ideas actual.
+
+Las dos acaban en el mismo banco de ideas, y de ahí van a guion.
+
+### Feed de referencias
+
+El método técnico para conseguir el contenido de las redes está por definir.
+
+**Qué es:** un feed dentro de Mova, estilo TikTok, con vídeos reales de Instagram y TikTok de tu nicho, de tus referentes y de las tendencias. Mova los recomienda según lo que tú haces. No hace falta ir a buscarlos.
 
 **Cómo se usa:**
 - Tocas un vídeo y se abre el reproductor.
@@ -99,7 +108,7 @@ TikTok no ofrece una API oficial de descubrimiento de contenido para uso comerci
 | 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables y guion breve | Hecho |
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Mi negocio" | Siguiente |
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
-| 2c · Banco de la competencia | Idear | Feed de vídeos de referencia con chat lateral para sacar ideas. Método por definir | |
+| 2c · Inspiración | Idear | Feed de competencia y tendencias con chat lateral para sacar ideas, unido al chat de ideas nuevas. Método de obtención por definir | |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (enfoque por redefinir), copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco y publicación automática en Instagram y TikTok | |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
