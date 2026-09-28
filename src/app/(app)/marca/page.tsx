@@ -6,7 +6,7 @@ export default async function MiMarcaPage() {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("brand_profiles")
-    .select("niche, audience, tone, topics, offer, ideal_customer, customer_questions, objections, stories, call_to_action")
+    .select("niche, audience, tone, topics, building, story, expertise, opinions, audience_questions, call_to_action")
     .maybeSingle();
 
   return (
@@ -15,7 +15,7 @@ export default async function MiMarcaPage() {
         <div className="mb-8">
           <h2 className="text-xl font-medium">Cuéntale a Mova quién eres</h2>
           <p className="mt-1 text-base text-fg-3">
-            Con esto, las ideas y los copys que te proponga sonarán a ti. Puedes cambiarlo cuando quieras.
+            Tu marca personal es tu forma de llegar a la gente y ganarte su confianza. Con esto, las ideas y los guiones sonarán a ti.
           </p>
         </div>
         <BrandForm profile={profile} />

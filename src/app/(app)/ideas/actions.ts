@@ -28,7 +28,7 @@ export async function sendMessage(text: string): Promise<SendResult> {
   const [{ data: brand }, { data: recent }, { data: saved }] = await Promise.all([
     supabase
       .from("brand_profiles")
-      .select("niche, audience, tone, topics, offer, ideal_customer, customer_questions, objections, stories, call_to_action")
+      .select("niche, audience, tone, topics, building, story, expertise, opinions, audience_questions, call_to_action")
       .maybeSingle(),
     supabase
       .from("chat_messages")

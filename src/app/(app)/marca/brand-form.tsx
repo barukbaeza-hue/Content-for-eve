@@ -13,30 +13,30 @@ export type BrandProfile = {
   audience: string | null;
   tone: string | null;
   topics: string[];
-  offer: string | null;
-  ideal_customer: string | null;
-  customer_questions: string | null;
-  objections: string | null;
-  stories: string | null;
+  building: string | null;
+  story: string | null;
+  expertise: string | null;
+  opinions: string | null;
+  audience_questions: string | null;
   call_to_action: string | null;
 };
 
-type BusinessField = keyof Pick<BrandProfile,
-  "offer" | "ideal_customer" | "customer_questions" | "objections" | "stories" | "call_to_action">;
+type StoryField = keyof Pick<BrandProfile,
+  "building" | "story" | "expertise" | "opinions" | "audience_questions" | "call_to_action">;
 
-const BUSINESS_FIELDS: { name: BusinessField; label: string; placeholder: string; rows: number }[] = [
-  { name: "offer", label: "¿Qué vendes?", rows: 2,
-    placeholder: "Ej.: asesorías de imagen y un curso online de armario cápsula" },
-  { name: "ideal_customer", label: "¿Quién es tu cliente ideal?", rows: 2,
-    placeholder: "Ej.: mujeres profesionales de 28 a 40 años sin tiempo para pensar qué ponerse" },
-  { name: "customer_questions", label: "¿Qué te preguntan tus clientes?", rows: 4,
-    placeholder: "Una por línea. Ej.: ¿Cuánto cuesta la asesoría? ¿Sirve si tengo poco presupuesto?" },
-  { name: "objections", label: "¿Qué les frena a comprarte?", rows: 3,
-    placeholder: "Ej.: creen que es caro, que es solo para gente con mucho estilo…" },
-  { name: "stories", label: "Historias de tu negocio", rows: 4,
-    placeholder: "Cómo empezaste, un cliente que cambió, un error que te enseñó algo…" },
-  { name: "call_to_action", label: "¿Qué quieres que hagan después de ver tus vídeos?", rows: 2,
-    placeholder: "Ej.: escribirme “INFO” por mensaje privado para reservar una asesoría" },
+const STORY_FIELDS: { name: StoryField; label: string; placeholder: string; rows: number }[] = [
+  { name: "building", label: "¿Qué estás construyendo?", rows: 2,
+    placeholder: "Ej.: una marca de ropa sostenible que quiero llevar a tienda física este año" },
+  { name: "story", label: "Tu historia", rows: 4,
+    placeholder: "Cómo empezaste, momentos clave, errores que te enseñaron algo…" },
+  { name: "expertise", label: "¿Qué sabes que otros quieren aprender?", rows: 3,
+    placeholder: "Ej.: producir en pequeñas cantidades, encontrar proveedores, vender por Instagram" },
+  { name: "opinions", label: "¿En qué piensas distinto a la mayoría?", rows: 3,
+    placeholder: "Ej.: no hace falta invertir en publicidad para vender tus primeras 100 prendas" },
+  { name: "audience_questions", label: "¿Qué te pregunta tu audiencia?", rows: 3,
+    placeholder: "Una por línea. Ej.: ¿Cómo encontraste tu primer proveedor?" },
+  { name: "call_to_action", label: "¿A dónde quieres llevar a tu audiencia?", rows: 2,
+    placeholder: "Ej.: a mi newsletter, a escribirme por mensaje privado, a mi web" },
 ];
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -64,7 +64,7 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
 
   return (
     <form action={formAction} className="space-y-12">
-      <Group title="Tu marca">
+      <Group title="Tu marca personal">
         <div className="space-y-2">
           <Label htmlFor="niche">¿De qué trata tu contenido?</Label>
           <Input id="niche" name="niche" defaultValue={profile?.niche ?? ""}
@@ -105,8 +105,8 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         </div>
       </Group>
 
-      <Group title="Tu negocio">
-        {BUSINESS_FIELDS.map((field) => (
+      <Group title="Tu historia y tu visión">
+        {STORY_FIELDS.map((field) => (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
             <Textarea id={field.name} name={field.name} rows={field.rows}

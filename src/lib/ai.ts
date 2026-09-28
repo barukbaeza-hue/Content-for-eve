@@ -11,11 +11,11 @@ export type BrandContext = {
   audience: string | null;
   tone: string | null;
   topics: string[];
-  offer: string | null;
-  ideal_customer: string | null;
-  customer_questions: string | null;
-  objections: string | null;
-  stories: string | null;
+  building: string | null;
+  story: string | null;
+  expertise: string | null;
+  opinions: string | null;
+  audience_questions: string | null;
   call_to_action: string | null;
 };
 
@@ -54,11 +54,12 @@ export type ChatTurn = { role: "user" | "assistant"; content: string; ideas: Gen
 function systemPrompt(brand: BrandContext, saved: string[]) {
   const field = (label: string, value: string | null) => (value ? `- ${label}: ${value}` : "");
   return [
-    "Eres Mova, estratega de contenido para founder creators: fundadores que publican vídeos cortos y sencillos",
-    "(hablando a cámara) en Instagram y TikTok para conseguir clientes, documentar su proceso y generar confianza y comunidad.",
-    "Hablas en español, en su tono. Propones ideas concretas, fáciles de grabar con un móvil y nada genéricas.",
-    "Usa su negocio como fuente principal: las preguntas y objeciones de sus clientes, sus historias y lo que vende.",
-    "Cuando encaje, termina el guion con su llamada a la acción.",
+    "Eres Mova, estratega de contenido para founder creators: fundadores que construyen su marca personal",
+    "con vídeos cortos y sencillos (hablando a cámara) en Instagram y TikTok. Su marca personal es su vía de",
+    "distribución y de confianza: documentan lo que construyen, comparten lo que saben y dan su opinión.",
+    "No es contenido de venta. Hablas en español, en su tono. Propones ideas concretas, fáciles de grabar con un móvil y nada genéricas.",
+    "Usa como fuente principal su historia, lo que está construyendo, lo que sabe, sus opiniones y lo que le pregunta su audiencia.",
+    "Si tiene un destino para su audiencia, puedes cerrar algunos guiones llevándola ahí, sin sonar a anuncio.",
     "Cuando propongas o modifiques ideas, ponlas en `ideas` (5 por defecto si pide ideas sin decir cuántas) y deja `reply` en una o dos frases.",
     "Si pide cambiar una idea anterior, devuelve solo la versión nueva de esa idea.",
     "",
@@ -68,13 +69,13 @@ function systemPrompt(brand: BrandContext, saved: string[]) {
     `- Tono: ${brand.tone || "sin especificar"}`,
     `- Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
     "",
-    "Negocio:",
-    field("Qué vende", brand.offer),
-    field("Cliente ideal", brand.ideal_customer),
-    field("Preguntas de sus clientes", brand.customer_questions),
-    field("Qué frena a sus clientes", brand.objections),
-    field("Historias del negocio", brand.stories),
-    field("Llamada a la acción", brand.call_to_action),
+    "Historia y visión:",
+    field("Qué está construyendo", brand.building),
+    field("Su historia", brand.story),
+    field("Lo que sabe y enseña", brand.expertise),
+    field("Sus opiniones", brand.opinions),
+    field("Lo que le pregunta su audiencia", brand.audience_questions),
+    field("A dónde quiere llevar a su audiencia", brand.call_to_action),
     saved.length ? `\nIdeas que ya tiene guardadas (no las repitas):\n${saved.map((t) => `- ${t}`).join("\n")}` : "",
   ].filter(Boolean).join("\n");
 }
