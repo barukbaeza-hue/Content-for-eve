@@ -8,19 +8,12 @@ import type { SocialVideo } from "./social";
 const MODEL = "claude-sonnet-5";
 
 export type BrandContext = {
-  offer: string | null;
-  voice: string | null;
-  insights: string | null;
   niche: string | null;
   audience: string | null;
   tone: string | null;
   topics: string[];
-  building: string | null;
-  story: string | null;
-  expertise: string | null;
-  opinions: string | null;
-  audience_questions: string | null;
-  call_to_action: string | null;
+  // Todo lo demás: cómo habla, su oferta, qué construye, su historia, qué le funciona…
+  description: string | null;
 };
 
 export type GeneratedIdea = {
@@ -56,7 +49,6 @@ const ChatSchema = z.object({
 export type ChatTurn = { role: "user" | "assistant"; content: string; ideas: GeneratedIdea[] };
 
 function systemPrompt(brand: BrandContext, saved: string[]) {
-  const field = (label: string, value: string | null) => (value ? `- ${label}: ${value}` : "");
   return [
     "Eres Mova, estratega de contenido para founder creators: fundadores que publican vídeos cortos y sencillos",
     "(hablando a cámara) en Instagram y TikTok con tres objetivos: distribuir su oferta, generar confianza y",
@@ -67,22 +59,12 @@ function systemPrompt(brand: BrandContext, saved: string[]) {
     "Cuando propongas o modifiques ideas, ponlas en `ideas` (5 por defecto si pide ideas sin decir cuántas) y deja `reply` en una o dos frases.",
     "Si pide cambiar una idea anterior, devuelve solo la versión nueva de esa idea.",
     "",
-    "Marca personal:",
+    "Su perfil:",
     `- Nicho: ${brand.niche || "sin especificar"}`,
     `- Público: ${brand.audience || "sin especificar"}`,
     `- Tono: ${brand.tone || "sin especificar"}`,
-    field("Cómo habla", brand.voice),
-    `- Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
-    "",
-    "Oferta, historia y visión:",
-    field("Qué ofrece", brand.offer),
-    field("Qué está construyendo", brand.building),
-    field("Su historia", brand.story),
-    field("Lo que sabe y enseña", brand.expertise),
-    field("Sus opiniones", brand.opinions),
-    field("Lo que le pregunta su audiencia", brand.audience_questions),
-    field("A dónde quiere llevar a su audiencia", brand.call_to_action),
-    field("Qué le funciona", brand.insights),
+    `- Temas: ${brand.topics.join(", ") || "sin especificar"}`,
+    brand.description ? `\nDescripción (cómo habla, su oferta, su historia, qué le funciona…):\n${brand.description}` : "",
     saved.length ? `\nIdeas que ya tiene guardadas (no las repitas):\n${saved.map((t) => `- ${t}`).join("\n")}` : "",
   ].filter(Boolean).join("\n");
 }
@@ -155,16 +137,13 @@ const ProfileSchema = z.object({
   niche: z.string().describe("De qué trata su contenido, en una frase."),
   audience: z.string().describe("A quién le habla: edad, intereses y qué busca."),
   tone: z.string().describe("Tono en 2 a 4 adjetivos separados por comas."),
-  voice: z.string().describe("Cómo habla: expresiones y muletillas reales que repite, cómo empieza y cómo cierra sus vídeos."),
-  topics: z.array(z.string()).describe("Sus 3 a 6 pilares de contenido."),
-  offer: z.string().describe("Qué ofrece o vende, si se deduce. Vacío si no se ve."),
-  building: z.string().describe("Qué está construyendo. Vacío si no se ve."),
-  story: z.string().describe("Lo que cuenta de su historia: origen, hitos, errores. Vacío si no se ve."),
-  expertise: z.string().describe("Lo que sabe y enseña."),
-  opinions: z.string().describe("Opiniones propias o poco comunes que defiende. Vacío si no se ven."),
-  audience_questions: z.string().describe("Preguntas que le hace su audiencia, una por línea. Vacío si no hay comentarios."),
-  call_to_action: z.string().describe("A dónde lleva a su audiencia (enlace, mensaje privado, newsletter…). Vacío si no lo hace."),
-  insights: z.string().describe("Qué le funciona mejor según las métricas: temas, formatos y ganchos de sus vídeos con más alcance."),
+  topics: z.array(z.string()).describe("Sus 3 a 6 temas o pilares de contenido."),
+  description: z.string().describe(
+    "Descripción larga en segunda persona, en párrafos cortos, con todo lo que se deduzca de sus vídeos: " +
+      "cómo habla (expresiones y muletillas reales, cómo empieza y cierra), qué ofrece, qué está construyendo, " +
+      "su historia, lo que sabe y enseña, sus opiniones, lo que le pregunta su audiencia, a dónde la lleva " +
+      "y qué le funciona mejor según las métricas. Omite lo que no se vea en los vídeos.",
+  ),
 });
 
 export type ProfileDraft = z.infer<typeof ProfileSchema>;

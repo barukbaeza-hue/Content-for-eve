@@ -20,5 +20,4 @@ export type Format = keyof typeof FORMATS;
 export type Status = keyof typeof STATUSES;
 
 // Columnas del perfil de marca que usan la IA y la pantalla "Mi marca".
-export const PROFILE_FIELDS =
-  "niche, audience, tone, voice, topics, offer, building, story, expertise, opinions, audience_questions, call_to_action, insights";
+export const PROFILE_FIELDS = "niche, audience, tone, topics, description";

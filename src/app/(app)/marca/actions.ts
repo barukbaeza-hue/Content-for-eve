@@ -7,10 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SaveState = { ok: boolean; message: string } | null;
 
-const TEXT_FIELDS = [
-  "niche", "audience", "tone", "voice", "offer", "building", "story",
-  "expertise", "opinions", "audience_questions", "call_to_action", "insights",
-] as const;
+const TEXT_FIELDS = ["niche", "audience", "tone", "description"] as const;
 
 export async function saveBrandProfile(_prev: SaveState, formData: FormData): Promise<SaveState> {
   const supabase = await createClient();

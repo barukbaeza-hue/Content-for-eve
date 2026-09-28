@@ -9,40 +9,12 @@ import { Notice } from "@/components/ui/notice";
 import { saveBrandProfile } from "./actions";
 
 export type BrandProfile = {
-  offer: string | null;
-  voice: string | null;
-  insights: string | null;
   niche: string | null;
   audience: string | null;
   tone: string | null;
   topics: string[];
-  building: string | null;
-  story: string | null;
-  expertise: string | null;
-  opinions: string | null;
-  audience_questions: string | null;
-  call_to_action: string | null;
+  description: string | null;
 };
-
-type StoryField = keyof Pick<BrandProfile,
-  "offer" | "building" | "story" | "expertise" | "opinions" | "audience_questions" | "call_to_action">;
-
-const STORY_FIELDS: { name: StoryField; label: string; placeholder: string; rows: number }[] = [
-  { name: "offer", label: "Tu oferta", rows: 2,
-    placeholder: "Ej.: asesorías de imagen y un curso online de armario cápsula" },
-  { name: "building", label: "¿Qué estás construyendo?", rows: 2,
-    placeholder: "Ej.: una marca de ropa sostenible que quiero llevar a tienda física este año" },
-  { name: "story", label: "Tu historia", rows: 4,
-    placeholder: "Cómo empezaste, momentos clave, errores que te enseñaron algo…" },
-  { name: "expertise", label: "¿Qué sabes que otros quieren aprender?", rows: 3,
-    placeholder: "Ej.: producir en pequeñas cantidades, encontrar proveedores, vender por Instagram" },
-  { name: "opinions", label: "¿En qué piensas distinto a la mayoría?", rows: 3,
-    placeholder: "Ej.: no hace falta invertir en publicidad para vender tus primeras 100 prendas" },
-  { name: "audience_questions", label: "¿Qué te pregunta tu audiencia?", rows: 3,
-    placeholder: "Una por línea. Ej.: ¿Cómo encontraste tu primer proveedor?" },
-  { name: "call_to_action", label: "¿A dónde quieres llevar a tu audiencia?", rows: 2,
-    placeholder: "Ej.: a mi newsletter, a escribirme por mensaje privado, a mi web" },
-];
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -103,11 +75,6 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
             placeholder="Elige arriba o escríbelo a tu manera" />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="voice">Cómo hablas</Label>
-          <Textarea id="voice" name="voice" rows={3} defaultValue={profile?.voice ?? ""}
-            placeholder="Tus expresiones, cómo empiezas y cómo cierras tus vídeos" />
-        </div>
 
         <div className="space-y-2">
           <Label htmlFor="topics">¿De qué temas hablas?</Label>
@@ -116,21 +83,11 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         </div>
       </Group>
 
-      <Group title="Tu oferta y tu historia">
-        {STORY_FIELDS.map((field) => (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>{field.label}</Label>
-            <Textarea id={field.name} name={field.name} rows={field.rows}
-              defaultValue={profile?.[field.name] ?? ""} placeholder={field.placeholder} />
-          </div>
-        ))}
-      </Group>
-
-      <Group title="Qué te funciona">
+      <Group title="Descripción">
         <div className="space-y-2">
-          <Label htmlFor="insights">Temas, formatos y ganchos con más alcance</Label>
-          <Textarea id="insights" name="insights" rows={4} defaultValue={profile?.insights ?? ""}
-            placeholder="Mova lo completa al analizar tus vídeos" />
+          <Label htmlFor="description">Todo lo demás sobre ti</Label>
+          <Textarea id="description" name="description" rows={12} defaultValue={profile?.description ?? ""}
+            placeholder={"Cómo hablas y tus expresiones, qué ofreces, qué estás construyendo, tu historia, lo que sabes, tus opiniones, lo que te pregunta tu audiencia, a dónde la llevas y qué te funciona."} />
         </div>
       </Group>
 
