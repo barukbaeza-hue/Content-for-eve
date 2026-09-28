@@ -6,7 +6,7 @@
  */
 
 :root {
-  --canvas: #fcfcfd;
+  --canvas: #fdfdfd;
   --surface-1: #ffffff;
   --surface-2: #f4f5f6;
   --surface-3: #ebecee;
@@ -27,7 +27,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #08090a;
+    --canvas: #0c0d0e;
     --surface-1: #0f1011;
     --surface-2: #17181a;
     --surface-3: #1f2023;

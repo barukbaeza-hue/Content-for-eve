@@ -33,7 +33,7 @@ Claro y oscuro automáticos según el sistema del usuario.
 
 | Token | Oscuro | Claro | Uso |
 |---|---|---|---|
-| `canvas` | `#08090a` | `#fcfcfd` | Fondo de la app |
+| `canvas` | `#0c0d0e` | `#fdfdfd` | Fondo de la app |
 | `surface-1` | `#0f1011` | `#ffffff` | Panel de contenido, inputs |
 | `surface-2` | `#17181a` | `#f4f5f6` | Hover, avisos |
 | `surface-3` | `#1f2023` | `#ebecee` | Estado activo |
