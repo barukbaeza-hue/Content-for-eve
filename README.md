@@ -13,3 +13,23 @@ Mova es una plataforma todo en uno para creadores de contenido en redes sociales
 - **Métricas:** rendimiento del contenido publicado.
 
 El objetivo es que el creador deje de saltar entre herramientas y gestione todo su contenido, de la idea a la publicación, desde un solo sitio.
+
+## Desarrollo
+
+Stack: Next.js 16 (App Router) + Supabase (base de datos, auth y almacenamiento) + Tailwind.
+
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Abre http://localhost:3000, crea una cuenta y confirma el correo.
+
+### Estructura
+
+- `src/proxy.ts`: refresca la sesión y redirige a `/login` si no hay usuario.
+- `src/lib/supabase/`: clientes de Supabase para servidor y navegador.
+- `src/app/login`: inicio de sesión y registro.
+- `src/app/(app)`: zona privada (Ideas, Copys, Calendario, Mi marca).
+- `supabase/migrations`: esquema de la base de datos.
