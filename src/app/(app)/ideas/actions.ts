@@ -35,7 +35,10 @@ export async function generate(_prev: GenerateState, formData: FormData): Promis
     );
     if (error) return { error: "No se pudieron guardar las ideas. Inténtalo de nuevo." };
   } catch (error) {
-    if (error instanceof AiError) return { error: AI_ERRORS[error.reason] };
+    if (error instanceof AiError) {
+      const code = error.code && error.reason === "fallo" ? ` (código: ${error.code})` : "";
+      return { error: AI_ERRORS[error.reason] + code };
+    }
     throw error;
   }
 

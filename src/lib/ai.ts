@@ -2,7 +2,10 @@ import { ApiError, GoogleGenAI } from "@google/genai";
 import { FORMATS, type Format } from "./content";
 
 // Gemini (plan gratuito de Google AI Studio). Solo se usa en el servidor.
-const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+// Se prueban en orden: si un modelo no está disponible para la clave, se pasa al siguiente.
+const MODELS = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.5-flash-lite"].filter(
+  (m): m is string => Boolean(m),
+);
 
 export type BrandContext = {
   niche: string | null;
@@ -19,9 +22,24 @@ export type GeneratedIdea = {
 };
 
 export class AiError extends Error {
-  constructor(public reason: "sin-clave" | "clave-invalida" | "limite" | "fallo") {
+  constructor(
+    public reason: "sin-clave" | "clave-invalida" | "limite" | "fallo",
+    public code?: string,
+  ) {
     super(reason);
   }
+}
+
+function toAiError(error: unknown): AiError {
+  if (error instanceof AiError) return error;
+  if (error instanceof ApiError) {
+    if (error.status === 429) return new AiError("limite", "429");
+    if (error.status === 401 || error.status === 403 || error.message.includes("API_KEY_INVALID")) {
+      return new AiError("clave-invalida", String(error.status));
+    }
+    return new AiError("fallo", String(error.status));
+  }
+  return new AiError("fallo", error instanceof SyntaxError ? "json" : "desconocido");
 }
 
 const IDEAS_SCHEMA = {
@@ -66,33 +84,36 @@ export async function generateIdeas(
       : "",
   ].filter(Boolean).join("\n");
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: {
-        systemInstruction:
-          "Eres estratega de contenido para redes sociales. Escribes en español, con el tono de la creadora. " +
-          "Las ideas son concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
-        responseMimeType: "application/json",
-        responseJsonSchema: IDEAS_SCHEMA,
-        temperature: 1,
-      },
-    });
+  let lastError: AiError | undefined;
 
-    const parsed = JSON.parse(response.text ?? "{}") as { ideas?: GeneratedIdea[] };
-    const ideas = (parsed.ideas ?? []).filter(
-      (i) => i.title && i.hook && i.script && i.format in FORMATS,
-    );
-    if (ideas.length === 0) throw new AiError("fallo");
-    return ideas;
-  } catch (error) {
-    if (error instanceof AiError) throw error;
-    if (error instanceof ApiError && error.status === 429) throw new AiError("limite");
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403 || error.message.includes("API_KEY_INVALID"))) {
-      throw new AiError("clave-invalida");
+  for (const model of MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          systemInstruction:
+            "Eres estratega de contenido para redes sociales. Escribes en español, con el tono de la creadora. " +
+            "Las ideas son concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
+          responseMimeType: "application/json",
+          responseJsonSchema: IDEAS_SCHEMA,
+          temperature: 1,
+        },
+      });
+
+      const parsed = JSON.parse(response.text ?? "{}") as { ideas?: GeneratedIdea[] };
+      const ideas = (parsed.ideas ?? []).filter(
+        (i) => i.title && i.hook && i.script && i.format in FORMATS,
+      );
+      if (ideas.length === 0) throw new AiError("fallo", "vacio");
+      return ideas;
+    } catch (error) {
+      console.error(`Error de Gemini (${model}):`, error);
+      lastError = toAiError(error);
+      // Con la clave mal no sirve probar otro modelo.
+      if (lastError.reason === "clave-invalida") break;
     }
-    console.error("Error de Gemini:", error);
-    throw new AiError("fallo");
   }
+
+  throw lastError ?? new AiError("fallo");
 }
