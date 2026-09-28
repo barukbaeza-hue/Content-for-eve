@@ -17,10 +17,6 @@ export type BrandProfile = {
 
 const TONES = ["Cercano", "Divertido", "Inspirador", "Directo", "Profesional", "Educativo"];
 
-function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-fg-3">{children}</p>;
-}
-
 export function BrandForm({ profile }: { profile: BrandProfile | null }) {
   const [state, formAction, pending] = useActionState(saveBrandProfile, null);
   const [tone, setTone] = useState(profile?.tone ?? "");
@@ -39,14 +35,12 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         <Label htmlFor="niche">¿De qué trata tu contenido?</Label>
         <Input id="niche" name="niche" defaultValue={profile?.niche ?? ""}
           placeholder="Ej.: moda sostenible y consejos de estilo" />
-        <Hint>Tu nicho, en una frase.</Hint>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="audience">¿Para quién creas?</Label>
         <Textarea id="audience" name="audience" rows={3} defaultValue={profile?.audience ?? ""}
           placeholder="Ej.: mujeres de 20 a 35 años que quieren vestir bien sin gastar mucho" />
-        <Hint>Edad, intereses y qué buscan cuando te ven.</Hint>
       </div>
 
       <div className="space-y-2">
@@ -74,7 +68,6 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         <Label htmlFor="topics">¿De qué temas hablas?</Label>
         <Input id="topics" name="topics" defaultValue={profile?.topics.join(", ") ?? ""}
           placeholder="Ej.: outfits, compras de segunda mano, cuidado de la ropa" />
-        <Hint>Sepáralos con comas.</Hint>
       </div>
 
       <div className="space-y-4 border-t border-line pt-6">
