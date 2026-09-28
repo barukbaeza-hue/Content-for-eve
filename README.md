@@ -18,10 +18,10 @@ El objetivo es que el creador deje de saltar entre herramientas y gestione todo 
 
 ## Desarrollo
 
-Stack: Next.js 16 (App Router) + Supabase (base de datos, auth y almacenamiento) + Tailwind.
+Stack: Next.js 16 (App Router) + Supabase (base de datos, auth y almacenamiento) + Tailwind + Gemini (plan gratuito) para la IA.
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env.local   # y añade GEMINI_API_KEY
 npm install
 npm run dev
 ```
@@ -32,6 +32,7 @@ Abre http://localhost:3000 y entra con Google o con correo y contraseña.
 
 - `src/proxy.ts`: refresca la sesión y redirige a `/login` si no hay usuario.
 - `src/lib/supabase/`: clientes de Supabase para servidor y navegador.
+- `src/lib/ai.ts`: generación de ideas con Gemini.
 - `src/app/login`: inicio de sesión con Google o con correo.
 - `src/app/(app)`: zona privada (Ideas, Copys, Calendario, Mi marca).
 - `supabase/migrations`: esquema de la base de datos.
