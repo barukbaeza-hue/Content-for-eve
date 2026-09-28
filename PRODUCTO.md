@@ -1,14 +1,14 @@
 # Mova · Producto
 
-**Crea. Mueve. Crece.** El sistema operativo de contenido para fundadores.
+**Crea. Mueve. Crece.** El sistema operativo de contenido para founder creators.
 
 ## ICP
 
-**Fundadores que crean su propio contenido (founder-creators).** Dueños de negocios pequeños o medianos que publican vídeos cortos en Instagram y TikTok para conseguir clientes. Son vídeos sencillos: hablan a cámara y editan poco.
+**Founder creators.** Fundadores y dueños de negocios pequeños o medianos que publican vídeos cortos en Instagram y TikTok para conseguir clientes. Son vídeos sencillos: hablan a cámara y editan poco.
 
 - **Qué les duele:** no tienen tiempo, no saben qué contar, les cuesta la cámara y no son constantes.
 - **Qué quieren:** que el contenido les traiga clientes sin que les coma el día.
-- **Por qué los elegimos a ellos y no a los creadores freelance:**
+- **Por qué los founder creators y no los creadores freelance:**
   - Pagan más y abandonan menos.
   - Casi nadie resuelve el vídeo corto para fundadores; las herramientas para fundadores se centran en LinkedIn.
   - Encajan de lleno con Scribe: vídeos hablando a cámara con poca edición.
