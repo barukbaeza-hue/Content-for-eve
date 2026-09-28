@@ -13,18 +13,18 @@ Inspirado en el sistema de Linear, en versión monocromática: interfaz sobria, 
 
 Geist. Solo dos pesos: **Regular (400)** para texto y **Medium (500)** para títulos, etiquetas y botones. `font-semibold` y `font-bold` no existen en el sistema.
 
-Base de 14px. Interlineado siempre en múltiplos de 4px. Tracking negativo que crece con el tamaño; el texto pequeño es casi neutro para que se lea bien.
+Base de 15px. Interlineado siempre en múltiplos de 4px. Tracking negativo que crece con el tamaño; el texto pequeño es casi neutro para que se lea bien.
 
 | Clase | Tamaño | Interlineado | Tracking | Uso |
 |---|---|---|---|---|
 | `text-2xs` | 11px | 16px | -0.003em | Badges, pestañas móviles |
 | `text-xs` | 12px | 16px | -0.006em | Metadatos, textos de ayuda |
-| `text-sm` | 13px | 20px | -0.009em | Navegación, etiquetas, botones, cabeceras de página |
-| `text-base` | 14px | 20px | -0.011em | Cuerpo por defecto, inputs |
-| `text-md` | 16px | 24px | -0.013em | Títulos de estados vacíos, cuerpo destacado |
+| `text-sm` | 14px | 20px | -0.011em | Navegación, etiquetas, botones, cabeceras de página |
+| `text-base` | 15px | 24px | -0.012em | Cuerpo por defecto, inputs en escritorio |
+| `text-md` | 16px | 24px | -0.013em | Títulos de estados vacíos, inputs en móvil (evita el zoom de iOS) |
 | `text-lg` | 18px | 28px | -0.016em | Títulos de sección |
-| `text-xl` | 20px | 28px | -0.018em | Títulos de tarjeta y modal |
-| `text-2xl` | 24px | 32px | -0.021em | Títulos de página grandes |
+| `text-xl` | 22px | 28px | -0.019em | Títulos de sección de página, tarjetas y modales |
+| `text-2xl` | 26px | 32px | -0.022em | Títulos grandes (login) |
 | `text-3xl` | 32px | 40px | -0.025em | Display |
 
 ## Color
