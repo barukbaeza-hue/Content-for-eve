@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Mova: el sistema operativo de contenido para founder creators.">
+<title>Mova</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: la estructura de la app Mova. Barra lateral de navegación sobre el fondo y el documento en un panel con borde. */
+  :root {
+    /* Color: tokens monocromáticos de Mova (claro) */
+    --canvas: #fdfdfd;
+    --surface-1: #ffffff;
+    --surface-2: #f4f4f4;
+    --surface-3: #ebebeb;
+    --line: #e6e6e6;
+    --fg: #171717;
+    --fg-2: #3d3d3d;
+    --fg-3: #6e6e6e;
+    --fg-4: #9e9e9e;
+    --accent: #171717;
+    --on-accent: #ffffff;
+
+    /* Tipo: Geist, solo 400 y 500 */
+    --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --regular: 400;
+    --medium: 500;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #0c0c0c; --surface-1: #0f0f0f; --surface-2: #171717; --surface-3: #1f1f1f;
+      --line: #242424; --fg: #f5f5f5; --fg-2: #d4d4d4; --fg-3: #8f8f8f; --fg-4: #636363;
+      --accent: #f5f5f5; --on-accent: #0c0c0c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #0c0c0c; --surface-1: #0f0f0f; --surface-2: #171717; --surface-3: #1f1f1f;
+    --line: #242424; --fg: #f5f5f5; --fg-2: #d4d4d4; --fg-3: #8f8f8f; --fg-4: #636363;
+    --accent: #f5f5f5; --on-accent: #0c0c0c;
+    color-scheme: dark;
+  }
+
+  /* Escala tipográfica de Mova: tamaño / interlineado / tracking */
+  .t-2xs { font-size: 11px; line-height: 16px; letter-spacing: -0.003em; }
+  .t-xs  { font-size: 12px; line-height: 16px; letter-spacing: -0.006em; }
+  .t-sm  { font-size: 14px; line-height: 20px; letter-spacing: -0.011em; }
+  .t-base{ font-size: 15px; line-height: 24px; letter-spacing: -0.012em; }
+  .t-lg  { font-size: 18px; line-height: 28px; letter-spacing: -0.016em; }
+  .t-xl  { font-size: 22px; line-height: 28px; letter-spacing: -0.019em; }
+  .t-3xl { font-size: 32px; line-height: 40px; letter-spacing: -0.025em; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-weight: var(--regular);
+    font-size: 15px; line-height: 24px; letter-spacing: -0.012em;
+  }
+  strong { font-weight: var(--medium); color: var(--fg); }
+  a { color: inherit; text-decoration: underline; text-decoration-color: var(--fg-4); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--fg); }
+  :focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; border-radius: 4px; }
+  h1, h2, h3 { font-weight: var(--medium); margin: 0; text-wrap: balance; }
+  p, ul, ol { margin: 0; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* Barra lateral */
+  .sidebar {
+    width: 240px; flex-shrink: 0; padding: 12px;
+    position: sticky; top: env(safe-area-inset-top, 0px); align-self: flex-start;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; height: 28px; padding-inline: 4px; }
+  .logo {
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+    display: grid; place-items: center;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 12px; font-weight: var(--medium);
+  }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav a {
+    display: flex; align-items: center; height: 28px; padding-inline: 8px; border-radius: 6px;
+    color: var(--fg-3); text-decoration: none; font-weight: var(--medium);
+    transition: background-color .15s, color .15s;
+  }
+  .nav a:hover { background: var(--surface-2); color: var(--fg); }
+  .nav a.active { background: var(--surface-3); color: var(--fg); }
+  .nav-label { padding-inline: 8px; color: var(--fg-4); }
+
+  /* Panel */
+  .main { flex: 1; min-width: 0; padding: 8px 8px 8px 0; }
+  .panel { background: var(--surface-1); border: 1px solid var(--line); border-radius: 12px; min-height: calc(100vh - 16px); }
+  .panel-header {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding-inline: 16px; border-bottom: 1px solid var(--line);
+  }
+  .panel-header .meta { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+
+  .doc { max-width: 680px; margin-inline: auto; padding: 56px 24px 96px; display: flex; flex-direction: column; gap: 56px; }
+
+  .hero { display: flex; flex-direction: column; gap: 8px; }
+  .hero .tagline { color: var(--fg-3); }
+  .hero .tagline strong { color: var(--fg-2); }
+
+  section { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 24px; }
+  .section-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .badge {
+    border: 1px solid var(--line); border-radius: 4px; padding: 0 6px;
+    color: var(--fg-3); font-weight: var(--medium); white-space: nowrap;
+  }
+
+  .lead { color: var(--fg-2); }
+  .lead strong { color: var(--fg); }
+
+  /* Listas con viñeta discreta */
+  .list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .list li { position: relative; padding-left: 20px; color: var(--fg-2); }
+  .list li::before {
+    content: ""; position: absolute; left: 4px; top: 11px;
+    width: 4px; height: 4px; border-radius: 50%; background: var(--fg-4);
+  }
+
+  /* Idea central */
+  .callout {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px 20px; color: var(--fg-2);
+  }
+
+  /* Pilares: el orden es un ciclo real, por eso van numerados */
+  .pillars { list-style: none; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .pillars li {
+    display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px;
+    padding: 14px 16px; color: var(--fg-2);
+  }
+  .pillars li + li { border-top: 1px solid var(--line); }
+  .pillars .n { font-family: var(--font-mono); color: var(--fg-4); font-variant-numeric: tabular-nums; }
+
+  .sub { display: flex; flex-direction: column; gap: 14px; }
+  .sub h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+  .sub h3 .note { font-weight: var(--regular); color: var(--fg-3); }
+
+  .prose { color: var(--fg-2); }
+
+  .original { display: flex; flex-direction: column; gap: 20px; }
+  .rule { height: 1px; background: var(--line); border: 0; margin: 0; }
+  .original p { color: var(--fg-3); }
+
+
+  /* Figuras explicativas */
+  figure.fig {
+    margin: 4px 0 0; padding: 20px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface-1); display: flex; flex-direction: column; gap: 16px; color: var(--fg);
+  }
+  figure.fig svg { display: block; width: 100%; max-width: 100%; height: auto; margin-inline: auto; }
+  figure.fig figcaption { color: var(--fg-3); }
+  .svg-text { font-family: var(--font-sans); fill: currentColor; }
+  .svg-muted { fill: var(--fg-3); }
+  .svg-faint { fill: var(--fg-4); }
+  .svg-box { fill: var(--surface-1); stroke: var(--line); }
+  .svg-line { stroke: var(--fg-4); fill: none; }
+
+  /* 1 · Recorrido */
+  .flow { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .flow li:nth-child(3)::after { display: none; }
+  .flow li {
+    position: relative; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface-1); display: flex; flex-direction: column; gap: 6px;
+    animation: step-on 9s infinite; animation-delay: calc(var(--i) * 1.5s);
+  }
+  .flow li.outside { border-style: dashed; background: transparent; }
+  .flow .who { color: var(--fg-4); font-weight: var(--medium); }
+  .flow .what { color: var(--fg-2); }
+  .flow li:not(:last-child)::after {
+    content: ""; position: absolute; right: -8px; top: 50%; width: 8px; height: 1px; background: var(--fg-4);
+  }
+  @keyframes step-on {
+    0%, 20%, 100% { border-color: var(--line); box-shadow: none; }
+    4%, 14% { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg) inset; }
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; color: var(--fg-3); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 10px; border: 1px solid var(--fg-4); border-radius: 3px; display: inline-block; }
+  .legend i.dashed { border-style: dashed; }
+
+  /* 2 · Ciclo */
+  .pillar-node rect { fill: var(--surface-1); stroke: var(--fg-4); animation: node-on 12s infinite; }
+  @keyframes node-on {
+    0%, 14%, 100% { stroke: var(--fg-4); fill: var(--surface-1); }
+    2%, 10% { stroke: var(--fg); fill: var(--surface-3); }
+  }
+
+  /* 3 · Personas y agentes */
+  .flowline { stroke: var(--fg-4); fill: none; stroke-dasharray: 4 6; animation: dash 1.2s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -20; } }
+
+  /* 4 · Banco */
+  .belt { animation: belt 2.4s linear infinite; }
+  @keyframes belt { from { transform: translateX(0); } to { transform: translateX(58px); } }
+  .level { animation: level 14s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; }
+  @keyframes level { 0% { transform: scaleX(1); } 85% { transform: scaleX(0.2); } 100% { transform: scaleX(1); } }
+
+  @media (max-width: 599px) {
+    .flow { grid-template-columns: minmax(0, 1fr); }
+    .flow li:not(:last-child)::after { right: auto; left: 20px; top: auto; bottom: -8px; width: 1px; height: 8px; }
+    .flow li:nth-child(3)::after { display: block; }
+    figure.fig { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow li, .pillar-node rect, .flowline, .belt, .level { animation: none !important; }
+    .moving-dot { display: none; }
+  }
+
+  /* Móvil: la barra lateral pasa arriba */
+  @media (max-width: 767px) {
+    .app { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1; width: 100%;
+      flex-direction: row; align-items: center; gap: 12px; padding: 8px 16px;
+      background: var(--canvas); border-bottom: 1px solid var(--line); overflow-x: auto;
+    }
+    .nav { flex-direction: row; }
+    .nav a { white-space: nowrap; }
+    .nav-label { display: none; }
+    .brand .name { display: none; }
+    .main { padding: 0; }
+    .panel { border: 0; border-radius: 0; min-height: 0; }
+    .panel-header { display: none; }
+    .doc { padding: 32px 16px 64px; gap: 44px; }
+    .t-3xl { font-size: 26px; line-height: 32px; letter-spacing: -0.022em; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">M</span>
+      <span class="name t-sm" style="font-weight: var(--medium)">Mova</span>
+    </div>
+    <nav class="nav t-sm" aria-label="Secciones">
+      <span class="nav-label t-xs">Documento</span>
+      <a href="#icp" class="active">ICP</a>
+      <a href="#pilares">Pilares</a>
+      <a href="#descripcion">Descripción</a>
+      <a href="#idea-original">Idea original</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="panel">
+      <header class="panel-header t-sm">
+        <span style="font-weight: var(--medium)">Mova</span>
+        <span class="meta t-xs">Notion · 28 sep 2026</span>
+      </header>
+
+      <article class="doc">
+        <div class="hero">
+          <h1 class="t-3xl">Mova</h1>
+          <p class="tagline t-lg"><strong>Crea. Mueve. Crece.</strong> — El sistema operativo de contenido para founder creators.</p>
+        </div>
+
+        <section id="icp">
+          <div class="section-head">
+            <h2 class="t-xl">ICP</h2>
+            <span class="badge t-2xs">Decidido</span>
+          </div>
+          <p class="lead"><strong>Founder creators:</strong> fundadores y dueños de negocio que publican vídeos cortos y sencillos (hablando a cámara, poca edición) en Instagram y TikTok para conseguir clientes, documentar el proceso y generar confiaza y comunidad.</p>
+          <ul class="list">
+            <li><strong>Qué les duele:</strong> no tienen tiempo, no saben qué contar, les cuesta la cámara y no son constantes.</li>
+            <li><strong>Por qué ellos:</strong> pagan más, hay un hueco en vídeo corto (la competencia se centra en LinkedIn) y sus vídeos sencillos son ideales para editar de forma automática.</li>
+            <li><strong>Propuesta:</strong> de tu negocio a tus vídeos, con tu forma de hablar. Mova aprende de tus vídeos → ideas desde tu negocio → guion en tu voz → grabas → Mova edita automáticamente → copy y publicación.</li>
+            <li><strong>Reglas:</strong> solo vías oficiales. Cada usuario conecta sus cuentas por OAuth; no se extrae contenido de otras cuentas con scraping.</li>
+            <li>Evelyn es la primera usuaria de prueba.</li>
+            <li>Hoja de ruta completa en el repo: <a href="https://github.com/barukbaeza-hue/Content-for-eve/blob/claude/friendly-euler-8atx28/PRODUCTO.md" target="_blank" rel="noopener">PRODUCTO.md</a></li>
+          </ul>
+          <figure class="fig">
+            <ol class="flow" aria-label="Recorrido de un vídeo en Mova">
+              <li style="--i:0"><span class="who t-2xs">Mova</span><span class="what t-sm">Aprende de tus vídeos</span></li>
+              <li style="--i:1"><span class="who t-2xs">Mova</span><span class="what t-sm">Ideas desde tu negocio</span></li>
+              <li style="--i:2"><span class="who t-2xs">Mova</span><span class="what t-sm">Guion en tu voz</span></li>
+              <li class="outside" style="--i:3"><span class="who t-2xs">Tú</span><span class="what t-sm">Grabas</span></li>
+              <li style="--i:4"><span class="who t-2xs">Mova</span><span class="what t-sm">Edita automáticamente</span></li>
+              <li style="--i:5"><span class="who t-2xs">Mova</span><span class="what t-sm">Copy y publicación</span></li>
+            </ol>
+            <div class="legend t-xs"><span><i></i>Lo hace Mova</span><span><i class="dashed"></i>Lo haces tú, fuera de Mova</span></div>
+            <figcaption class="t-sm">Del negocio al vídeo publicado. Todo el recorrido pasa por Mova; lo único que haces fuera es grabar.</figcaption>
+          </figure>
+        </section>
+
+        <section id="pilares">
+          <div class="section-head">
+            <h2 class="t-xl">Pilares</h2>
+            <span class="badge t-2xs">Decididos</span>
+          </div>
+
+          <p class="callout"><strong>Idea central:</strong> Mova es un agente con una memoria única del founder. Todas las partes leen de ella y escriben en ella.</p>
+
+          <ol class="pillars">
+            <li><span class="n t-sm">1</span><span><strong>Conocer:</strong> quién eres, cómo hablas, tu negocio y tu contenido pasado.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Idear:</strong> ideas desde tu negocio y lo que funciona, con guion en tu voz (lo puedes afinar tú); plan semanal.</span></li>
+            <li><span class="n t-sm">3</span><span><strong>Editar:</strong> subes tus vídeos grabados (solo la grabación va fuera de Mova); Mova los edita automáticamente en cola y escribe el copy. El método de edición está por redefinir.</span></li>
+            <li><span class="n t-sm">4</span><span><strong>Publicar:</strong> banco de vídeos, calendario y publicación en Instagram y TikTok.</span></li>
+            <li><span class="n t-sm">5</span><span><strong>Conversar:</strong> bandeja de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat.</span></li>
+            <li><span class="n t-sm">6</span><span><strong>Aprender:</strong> qué funciona; vuelve al pilar 1.</span></li>
+          </ol>
+          <figure class="fig">
+            <svg viewBox="0 0 400 400" role="img" aria-label="Los seis pilares forman un ciclo alrededor de la memoria del founder; Aprender vuelve a Conocer.">
+              <circle cx="200" cy="200" r="140" class="svg-line"/>
+              <line x1="200" y1="200" x2="200.0" y2="60.0" class="svg-line" stroke-dasharray="2 4"/><line x1="200" y1="200" x2="321.2" y2="130.0" class="svg-line" stroke-dasharray="2 4"/><line x1="200" y1="200" x2="321.2" y2="270.0" class="svg-line" stroke-dasharray="2 4"/><line x1="200" y1="200" x2="200.0" y2="340.0" class="svg-line" stroke-dasharray="2 4"/><line x1="200" y1="200" x2="78.8" y2="270.0" class="svg-line" stroke-dasharray="2 4"/><line x1="200" y1="200" x2="78.8" y2="130.0" class="svg-line" stroke-dasharray="2 4"/>
+              <polygon points="-5,-4 5,0 -5,4" transform="translate(270.0 78.8) rotate(30)" fill="currentColor" opacity="0.55"/><polygon points="-5,-4 5,0 -5,4" transform="translate(340.0 200.0) rotate(90)" fill="currentColor" opacity="0.55"/><polygon points="-5,-4 5,0 -5,4" transform="translate(270.0 321.2) rotate(150)" fill="currentColor" opacity="0.55"/><polygon points="-5,-4 5,0 -5,4" transform="translate(130.0 321.2) rotate(210)" fill="currentColor" opacity="0.55"/><polygon points="-5,-4 5,0 -5,4" transform="translate(60.0 200.0) rotate(270)" fill="currentColor" opacity="0.55"/><polygon points="-5,-4 5,0 -5,4" transform="translate(130.0 78.8) rotate(330)" fill="currentColor" opacity="0.55"/>
+              <circle cx="200" cy="200" r="60" fill="var(--surface-2)" stroke="var(--fg)"/>
+              <text x="200" y="196" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">Memoria</text>
+              <text x="200" y="214" text-anchor="middle" class="svg-text svg-muted" font-size="12">del founder</text>
+              <g class="pillar-node"><rect x="150.0" y="43.0" width="100" height="34" rx="8" style="animation-delay:-0.2s"/><text x="200.0" y="64.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">1 · Conocer</text></g><g class="pillar-node"><rect x="271.2" y="113.0" width="100" height="34" rx="8" style="animation-delay:1.8s"/><text x="321.2" y="134.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">2 · Idear</text></g><g class="pillar-node"><rect x="271.2" y="253.0" width="100" height="34" rx="8" style="animation-delay:3.8s"/><text x="321.2" y="274.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">3 · Editar</text></g><g class="pillar-node"><rect x="150.0" y="323.0" width="100" height="34" rx="8" style="animation-delay:5.8s"/><text x="200.0" y="344.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">4 · Publicar</text></g><g class="pillar-node"><rect x="28.8" y="253.0" width="100" height="34" rx="8" style="animation-delay:7.8s"/><text x="78.8" y="274.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">5 · Conversar</text></g><g class="pillar-node"><rect x="28.8" y="113.0" width="100" height="34" rx="8" style="animation-delay:9.8s"/><text x="78.8" y="134.5" text-anchor="middle" class="svg-text" font-size="13" font-weight="500">6 · Aprender</text></g>
+              <text x="112" y="46" text-anchor="end" class="svg-text svg-muted" font-size="11">cierra el ciclo</text>
+              <circle r="4.5" fill="currentColor" class="moving-dot"><animateMotion dur="12s" repeatCount="indefinite" path="M200,60 A140,140 0 1,1 199.99,60"/></circle>
+            </svg>
+            <figcaption class="t-sm">Los seis pilares giran en ciclo. Cada uno lee de la memoria del founder y escribe en ella (líneas punteadas), y lo que se aprende en el pilar 6 vuelve al pilar 1.</figcaption>
+          </figure>
+
+          <div class="sub">
+            <h3 class="t-lg">Inspiración <span class="note t-sm">(hay que hacerla; el método para obtener el contenido de las redes está por definir)</span></h3>
+            <ul class="list">
+              <li>Mezcla dos fuentes en un mismo banco de ideas: <strong>ideas de fuera</strong> (competencia, referentes y tendencias del nicho) e <strong>ideas nuevas</strong> creadas con el agente desde tu negocio (el chat de ideas).</li>
+              <li>Feed estilo TikTok dentro de Mova con vídeos reales de Instagram y TikTok de tu nicho, tus referentes y las tendencias, recomendados según lo que haces.</li>
+              <li>Al tocar un vídeo se abre el reproductor y, al lado, un chat con ese vídeo como contexto para sacar ideas y guiones.</li>
+              <li>Métodos candidatos: Instagram Business Discovery API y Hashtag Search API (oficiales), oEmbed para reproducir vídeos, "Guardar en Mova" (extensión o compartir desde el móvil) y proveedores de terceros (riesgo por condiciones de uso). TikTok no tiene API oficial de descubrimiento para uso comercial: es el punto más difícil.</li>
+            </ul>
+          </div>
+
+          <div class="sub">
+            <h3 class="t-lg">Principios</h3>
+            <ul class="list">
+              <li><strong>Hecho para personas y para agentes:</strong> el humano decide y el agente ejecuta. Todo se puede hacer desde la interfaz o pidiéndoselo al agente ("calendarízame los últimos vídeos para esta semana"). Autonomía por niveles: sugiere, prepara, ejecuta o automático.</li>
+              <li><strong>Banco de vídeos:</strong> los vídeos listos entran en una cola que se vacía al publicar. Mova muestra cuántos días de contenido te quedan.</li>
+              <li><strong>Alto volumen y rapidez:</strong> 1 o 2 vídeos al día como mínimo; todo por lotes y el trabajo pesado en segundo plano.</li>
+            </ul>
+          <figure class="fig">
+            <svg viewBox="0 0 420 190" role="img" aria-label="La misma acción de calendarizar se puede lanzar desde la interfaz o pidiéndosela al agente en el chat.">
+              <rect x="10" y="14" width="170" height="56" rx="8" class="svg-box"/>
+              <text x="24" y="37" class="svg-text" font-size="13" font-weight="500">Interfaz</text>
+              <text x="24" y="56" class="svg-text svg-muted" font-size="12">Arrastras los vídeos</text>
+              <rect x="10" y="118" width="170" height="56" rx="8" class="svg-box"/>
+              <text x="24" y="141" class="svg-text" font-size="13" font-weight="500">Chat con el agente</text>
+              <text x="24" y="160" class="svg-text svg-muted" font-size="12">“Calendarízame la semana”</text>
+              <path d="M180,42 C215,42 215,94 250,94" class="flowline"/>
+              <path d="M180,146 C215,146 215,94 250,94" class="flowline"/>
+              <polygon points="-5,-4 5,0 -5,4" transform="translate(252 94)" fill="currentColor" opacity="0.55"/>
+              <rect x="258" y="66" width="152" height="56" rx="8" fill="var(--surface-2)" stroke="var(--fg)"/>
+              <text x="272" y="89" class="svg-text" font-size="13" font-weight="500">Calendarizar</text>
+              <text x="272" y="108" class="svg-text svg-muted" font-size="12">Mismo resultado</text>
+              <text x="334" y="54" text-anchor="middle" class="svg-text svg-faint" font-size="11">el agente ejecuta</text>
+              <text x="95" y="98" text-anchor="middle" class="svg-text svg-faint" font-size="11">tú decides</text>
+            </svg>
+            <figcaption class="t-sm">Hecho para personas y para agentes. Lo haces con la interfaz o se lo pides al agente, y el resultado es el mismo.</figcaption>
+          </figure>
+          <figure class="fig">
+            <svg viewBox="0 0 420 170" role="img" aria-label="Los vídeos editados entran en el banco, se publican uno o dos al día y el banco se va vaciando.">
+              <defs><clipPath id="belt-clip"><rect x="21" y="41" width="378" height="78" rx="7"/></clipPath></defs>
+              <text x="20" y="28" class="svg-text svg-muted" font-size="12">Entran vídeos editados →</text>
+              <text x="400" y="28" text-anchor="end" class="svg-text svg-muted" font-size="12">→ Se publican, 1–2 al día</text>
+              <rect x="20" y="40" width="380" height="80" rx="8" fill="none" stroke="var(--fg-4)"/>
+              <g clip-path="url(#belt-clip)"><g class="belt"><g transform="translate(30 48)"><g transform="translate(-58 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(0 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(58 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(116 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(174 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(232 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(290 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g><g transform="translate(348 0)"><rect x="0" y="0" width="44" height="64" rx="6" fill="var(--surface-2)" stroke="var(--fg-4)"/><polygon points="17,24 29,32 17,40" fill="currentColor" opacity="0.6"/></g></g></g></g>
+              <rect x="20" y="138" width="380" height="6" rx="3" fill="var(--surface-3)"/>
+              <rect x="20" y="138" width="380" height="6" rx="3" fill="currentColor" class="level"/>
+              <text x="20" y="164" class="svg-text svg-muted" font-size="12">Banco de vídeos</text>
+              <text x="400" y="164" text-anchor="end" class="svg-text" font-size="12" font-weight="500">Te quedan 5 días de contenido</text>
+            </svg>
+            <figcaption class="t-sm">El banco de vídeos. Los vídeos listos esperan en cola, salen a medida que se publican y Mova te avisa antes de que el banco se vacíe.</figcaption>
+          </figure>
+          </div>
+        </section>
+
+        <section id="descripcion">
+          <div class="section-head"><h2 class="t-xl">Descripción</h2></div>
+          <p class="prose">Mova es una plataforma todo en uno para creadores de contenido en redes sociales. Reúne en un solo lugar todo el proceso de trabajo de un creador: encontrar ideas, crear el contenido, editarlo, programarlo, publicarlo y medir sus resultados. La plataforma analiza el nicho del creador y a su competencia para mostrarle qué está funcionando y darle ideas de contenido relevantes. Con inteligencia artificial, genera ideas y copys, y edita los videos siguiendo el estilo de marca del creador. Los videos se pueden dejar editándose en cola, sin tener que procesarlos uno por uno. Con el calendario, el creador programa sus publicaciones y la plataforma las sube automáticamente a sus redes, con la descripción y los hashtags que se añaden ahí mismo. Además, muestra las métricas del contenido publicado, para saber qué funciona y qué no. El objetivo es que el creador deje de saltar entre varias herramientas y gestione todo su contenido, de la idea a la publicación, desde un solo sitio.</p>
+        </section>
+
+        <section id="idea-original">
+          <div class="section-head"><h2 class="t-xl">Idea original</h2></div>
+          <div class="original">
+            <hr class="rule">
+            <p>Una plataforma que sea para gestionar contenido, crear contenido, calendarizar contenido, medir metricas y espiar a la competencia y encontrar ideas de contenido segun mi nicho, y competencia. usar ia para la generacion de ideas, copys y la edicion de video segun tu estilo de marca. opcion de edicion de videos en cola. La calendarizacion debe subir los videos a las redes y ademas hay mismo se puede poner la descripcion y hashtags. esta es la idea base.</p>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Marca en la barra lateral la sección visible.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".nav a"));
+    var sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+    if (!("IntersectionObserver" in window)) return;
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + entry.target.id); });
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    sections.forEach(function (s) { if (s) observer.observe(s); });
+  })();
+</script>
+</body>
+</html>
