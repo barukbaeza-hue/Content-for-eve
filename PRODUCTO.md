@@ -10,7 +10,7 @@
 - **Qué quieren:** que el contenido les traiga clientes sin que les coma el día.
 - **Por qué los founder creators y no los creadores freelance:**
   - Pagan más y abandonan menos.
-  - Casi nadie resuelve el vídeo corto para fundadores; las herramientas para fundadores se centran en LinkedIn.
+  - Casi nadie resuelve el vídeo corto para founder creators; las herramientas para fundadores se centran en LinkedIn.
   - Encajan de lleno con Scribe: vídeos hablando a cámara con poca edición.
 - Evelyn es la primera usuaria de prueba. Casi todo lo que se construye vale para los dos perfiles.
 
