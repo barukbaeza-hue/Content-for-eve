@@ -2,7 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 
-export function SubmitButton() {
+export function GoogleButton() {
   const { pending } = useFormStatus();
 
   return (
