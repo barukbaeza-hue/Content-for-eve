@@ -26,12 +26,12 @@ npm install
 npm run dev
 ```
 
-Abre http://localhost:3000, crea una cuenta y confirma el correo.
+Abre http://localhost:3000 y entra con Google.
 
 ### Estructura
 
 - `src/proxy.ts`: refresca la sesión y redirige a `/login` si no hay usuario.
 - `src/lib/supabase/`: clientes de Supabase para servidor y navegador.
-- `src/app/login`: inicio de sesión y registro.
+- `src/app/login`: inicio de sesión con Google.
 - `src/app/(app)`: zona privada (Ideas, Copys, Calendario, Mi marca).
 - `supabase/migrations`: esquema de la base de datos.

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-// Destino del enlace de confirmación de correo.
+// Google redirige aquí tras iniciar sesión.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -12,5 +12,5 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}/ideas`);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=confirmacion`);
+  return NextResponse.redirect(`${origin}/login?error=sesion`);
 }
