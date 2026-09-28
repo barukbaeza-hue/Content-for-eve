@@ -35,11 +35,34 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 | # | Pilar | Qué hace | Qué aporta a la memoria |
 |---|---|---|---|
 | 1 | **Conocer** | Quién eres, cómo hablas, tu negocio (oferta, clientes, preguntas y objeciones) y tu contenido pasado | La base de todo |
-| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). Plan semanal con equilibrio de temas | El plan y los guiones |
+| 2 | **Idear** | Ideas a partir de tu negocio y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). **Banco de ideas de la competencia:** vídeos de tu nicho y de tus referentes dentro de Mova, para sacar ideas. Plan semanal con equilibrio de temas | El plan, los guiones y las referencias |
 | 3 | **Editar** | Subes tus vídeos grabados y Mova los edita automáticamente en cola (cortar silencios, limpiar el audio, subtítulos) y escribe el copy (descripción y hashtags). Solo la grabación se hace fuera de Mova. **El método de edición está por redefinir** | Vídeos listos en el banco |
 | 4 | **Publicar** | Banco de vídeos, calendario y publicación en Instagram y TikTok a la mejor hora | Qué salió y cuándo |
 | 5 | **Conversar** | Bandeja única de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat. Por ejemplo, alguien comenta "INFO" y recibe un mensaje privado con tu enlace | Leads, dudas frecuentes y lo que pide la audiencia |
 | 6 | **Aprender** | Qué vídeos traen alcance, conversaciones y clientes | Qué funciona, y vuelve al pilar 1 |
+
+## Banco de ideas de la competencia
+
+Es una parte clave del pilar Idear y **hay que hacerla**. El método técnico está por definir.
+
+**Qué es:** un feed dentro de Mova, estilo TikTok, con vídeos reales de Instagram y TikTok de tu nicho y de las cuentas que tomas como referencia. Mova los recomienda según lo que tú haces. No hace falta ir a buscarlos.
+
+**Cómo se usa:**
+- Tocas un vídeo y se abre el reproductor.
+- Al lado se abre un chat con el agente, que tiene ese vídeo como contexto. Le puedes preguntar por qué funciona, o pedirle que lo adapte a tu marca y te dé el guion.
+- Las ideas que salen de ahí se guardan como cualquier otra.
+
+**Métodos candidatos** (hay que investigarlos y decidir; lo ideal es combinar varios):
+
+| Método | Qué da | Estado legal |
+|---|---|---|
+| Instagram Business Discovery API | Publicaciones, textos y métricas públicas de otras cuentas profesionales, indicando su usuario | Oficial. Requiere la aprobación de Meta |
+| Instagram Hashtag Search API | Publicaciones más populares y más recientes de un hashtag. Límite de 30 hashtags por semana | Oficial. Requiere la aprobación de Meta |
+| oEmbed de Instagram y TikTok | Reproducir dentro de Mova cualquier vídeo público a partir de su enlace | Oficial |
+| "Guardar en Mova" (extensión de navegador o compartir desde el móvil) | El founder guarda vídeos que ve en la app y Mova los analiza y los usa para recomendar | Oficial. Lo aporta el usuario |
+| Proveedores de datos de terceros (scraping) | Descubrir contenido de TikTok y búsquedas amplias | Va contra las condiciones de las plataformas. Solo si se asume el riesgo |
+
+TikTok no ofrece una API oficial de descubrimiento de contenido para uso comercial: su Research API es solo académica. Es el punto más difícil.
 
 ## Principios
 
@@ -76,6 +99,7 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 | 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables y guion breve | Hecho |
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Mi negocio" | Siguiente |
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
+| 2c · Banco de la competencia | Idear | Feed de vídeos de referencia con chat lateral para sacar ideas. Método por definir | |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (enfoque por redefinir), copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco y publicación automática en Instagram y TikTok | |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
