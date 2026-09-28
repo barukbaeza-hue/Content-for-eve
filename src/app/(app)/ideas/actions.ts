@@ -10,6 +10,7 @@ export type GenerateState = { error: string } | null;
 const AI_ERRORS: Record<AiError["reason"], string> = {
   "sin-clave": "La IA aún no está configurada. Falta la clave de Gemini en Vercel.",
   "clave-invalida": "La clave de Gemini no es válida. Revísala en Vercel.",
+  saturada: "La IA de Google está saturada ahora mismo. Prueba de nuevo en un minuto.",
   limite: "Se alcanzó el límite gratuito de la IA por ahora. Prueba de nuevo en unos minutos.",
   fallo: "La IA no pudo generar ideas esta vez. Inténtalo de nuevo.",
 };

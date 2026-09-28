@@ -15,10 +15,15 @@ function version(name: string) {
 
 // Estables antes que previews, versiones nuevas antes que viejas, Flash antes que Flash-Lite.
 export function rankModels(names: string[]): string[] {
-  const rank = (n: string) => [/preview|exp/.test(n) ? 1 : 0, -version(n), n.includes("lite") ? 1 : 0];
+  const rank = (n: string) => [
+    /preview|exp/.test(n) ? 1 : 0,
+    -version(n),
+    n.includes("lite") ? 1 : 0,
+  ];
   return [...names].sort((a, b) => {
     const [ra, rb] = [rank(a), rank(b)];
-    for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i];
+    for (let i = 0; i < ra.length; i++)
+      if (ra[i] !== rb[i]) return ra[i] - rb[i];
     return a.localeCompare(b);
   });
 }
@@ -65,7 +70,12 @@ export type GeneratedIdea = {
 
 export class AiError extends Error {
   constructor(
-    public reason: "sin-clave" | "clave-invalida" | "limite" | "fallo",
+    public reason:
+      | "sin-clave"
+      | "clave-invalida"
+      | "limite"
+      | "saturada"
+      | "fallo",
     public code?: string,
   ) {
     super(reason);
@@ -76,12 +86,21 @@ function toAiError(error: unknown): AiError {
   if (error instanceof AiError) return error;
   if (error instanceof ApiError) {
     if (error.status === 429) return new AiError("limite", "429");
-    if (error.status === 401 || error.status === 403 || error.message.includes("API_KEY_INVALID")) {
+    if (error.status === 500 || error.status === 503)
+      return new AiError("saturada", String(error.status));
+    if (
+      error.status === 401 ||
+      error.status === 403 ||
+      error.message.includes("API_KEY_INVALID")
+    ) {
       return new AiError("clave-invalida", String(error.status));
     }
     return new AiError("fallo", String(error.status));
   }
-  return new AiError("fallo", error instanceof SyntaxError ? "json" : "desconocido");
+  return new AiError(
+    "fallo",
+    error instanceof SyntaxError ? "json" : "desconocido",
+  );
 }
 
 const IDEAS_SCHEMA = {
@@ -92,10 +111,21 @@ const IDEAS_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          title: { type: "string", description: "Título corto de la idea, máximo 70 caracteres." },
-          hook: { type: "string", description: "Gancho de los primeros 3 segundos, tal cual se diría o se leería." },
+          title: {
+            type: "string",
+            description: "Título corto de la idea, máximo 70 caracteres.",
+          },
+          hook: {
+            type: "string",
+            description:
+              "Gancho de los primeros 3 segundos, tal cual se diría o se leería.",
+          },
           format: { type: "string", enum: Object.keys(FORMATS) },
-          script: { type: "string", description: "Guion breve en 3 a 5 pasos, separados por saltos de línea." },
+          script: {
+            type: "string",
+            description:
+              "Guion breve en 3 a 5 pasos, separados por saltos de línea.",
+          },
         },
         required: ["title", "hook", "format", "script"],
       },
@@ -120,41 +150,55 @@ export async function generateIdeas(
     `Público: ${brand.audience || "sin especificar"}`,
     `Tono: ${brand.tone || "sin especificar"}`,
     `Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
-    options.topic ? `Esta vez, las ideas deben tratar sobre: ${options.topic}` : "",
+    options.topic
+      ? `Esta vez, las ideas deben tratar sobre: ${options.topic}`
+      : "",
     options.avoid.length
       ? `No repitas estas ideas que ya tiene:\n${options.avoid.map((t) => `- ${t}`).join("\n")}`
       : "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   let lastError: AiError | undefined;
 
   for (const model of await candidateModels(ai)) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          systemInstruction:
-            "Eres estratega de contenido para redes sociales. Escribes en español, con el tono de la creadora. " +
-            "Las ideas son concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
-          responseMimeType: "application/json",
-          responseJsonSchema: IDEAS_SCHEMA,
-          temperature: 1,
-        },
-      });
+    // Los 500/503 del plan gratuito suelen ser saturación momentánea: se reintenta con espera.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 1500));
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction:
+              "Eres estratega de contenido para redes sociales. Escribes en español, con el tono de la creadora. " +
+              "Las ideas son concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
+            responseMimeType: "application/json",
+            responseJsonSchema: IDEAS_SCHEMA,
+            temperature: 1,
+          },
+        });
 
-      const parsed = JSON.parse(response.text ?? "{}") as { ideas?: GeneratedIdea[] };
-      const ideas = (parsed.ideas ?? []).filter(
-        (i) => i.title && i.hook && i.script && i.format in FORMATS,
-      );
-      if (ideas.length === 0) throw new AiError("fallo", "vacio");
-      return ideas;
-    } catch (error) {
-      console.error(`Error de Gemini (${model}):`, error);
-      lastError = toAiError(error);
-      // Con la clave mal no sirve probar otro modelo.
-      if (lastError.reason === "clave-invalida") break;
+        const parsed = JSON.parse(response.text ?? "{}") as {
+          ideas?: GeneratedIdea[];
+        };
+        const ideas = (parsed.ideas ?? []).filter(
+          (i) => i.title && i.hook && i.script && i.format in FORMATS,
+        );
+        if (ideas.length === 0) throw new AiError("fallo", "vacio");
+        return ideas;
+      } catch (error) {
+        console.error(
+          `Error de Gemini (${model}, intento ${attempt + 1}):`,
+          error,
+        );
+        lastError = toAiError(error);
+        if (lastError.reason !== "saturada") break;
+      }
     }
+    // Con la clave mal no sirve probar otro modelo.
+    if (lastError?.reason === "clave-invalida") break;
   }
 
   throw lastError ?? new AiError("fallo");
