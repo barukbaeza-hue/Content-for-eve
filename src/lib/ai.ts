@@ -2,10 +2,52 @@ import { ApiError, GoogleGenAI } from "@google/genai";
 import { FORMATS, type Format } from "./content";
 
 // Gemini (plan gratuito de Google AI Studio). Solo se usa en el servidor.
-// Se prueban en orden: si un modelo no está disponible para la clave, se pasa al siguiente.
-const MODELS = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.5-flash-lite"].filter(
-  (m): m is string => Boolean(m),
-);
+// Google retira modelos con frecuencia, así que no se fija un nombre: se consulta qué
+// modelos Flash tiene disponibles la clave y se prueban en orden, del más reciente al más antiguo.
+const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"];
+const EXCLUDED = /image|tts|audio|live|embedding|robotics|computer|thinking/;
+
+let discovered: string[] | undefined;
+
+function version(name: string) {
+  return Number(name.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
+}
+
+// Estables antes que previews, versiones nuevas antes que viejas, Flash antes que Flash-Lite.
+export function rankModels(names: string[]): string[] {
+  const rank = (n: string) => [/preview|exp/.test(n) ? 1 : 0, -version(n), n.includes("lite") ? 1 : 0];
+  return [...names].sort((a, b) => {
+    const [ra, rb] = [rank(a), rank(b)];
+    for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i];
+    return a.localeCompare(b);
+  });
+}
+
+async function candidateModels(ai: GoogleGenAI): Promise<string[]> {
+  if (!discovered) {
+    try {
+      const found: string[] = [];
+      for await (const model of await ai.models.list()) {
+        const name = model.name?.replace(/^models\//, "");
+        if (
+          name?.startsWith("gemini-") &&
+          name.includes("flash") &&
+          !EXCLUDED.test(name) &&
+          model.supportedActions?.includes("generateContent")
+        ) {
+          found.push(name);
+        }
+      }
+      if (found.length > 0) discovered = rankModels(found).slice(0, 3);
+    } catch (error) {
+      console.error("No se pudo listar los modelos de Gemini:", error);
+    }
+  }
+
+  return [process.env.GEMINI_MODEL, ...(discovered ?? FALLBACK_MODELS)].filter(
+    (m, i, all): m is string => Boolean(m) && all.indexOf(m) === i,
+  );
+}
 
 export type BrandContext = {
   niche: string | null;
@@ -86,7 +128,7 @@ export async function generateIdeas(
 
   let lastError: AiError | undefined;
 
-  for (const model of MODELS) {
+  for (const model of await candidateModels(ai)) {
     try {
       const response = await ai.models.generateContent({
         model,
