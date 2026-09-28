@@ -26,7 +26,10 @@ export async function sendMessage(text: string): Promise<SendResult> {
 
   const supabase = await createClient();
   const [{ data: brand }, { data: recent }, { data: saved }] = await Promise.all([
-    supabase.from("brand_profiles").select("niche, audience, tone, topics").maybeSingle(),
+    supabase
+      .from("brand_profiles")
+      .select("niche, audience, tone, topics, offer, ideal_customer, customer_questions, objections, stories, call_to_action")
+      .maybeSingle(),
     supabase
       .from("chat_messages")
       .select("role, content, ideas")

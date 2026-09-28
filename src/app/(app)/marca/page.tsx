@@ -6,7 +6,7 @@ export default async function MiMarcaPage() {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("brand_profiles")
-    .select("niche, audience, tone, topics")
+    .select("niche, audience, tone, topics, offer, ideal_customer, customer_questions, objections, stories, call_to_action")
     .maybeSingle();
 
   return (

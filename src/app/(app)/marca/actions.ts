@@ -22,6 +22,12 @@ export async function saveBrandProfile(_prev: SaveState, formData: FormData): Pr
     audience: text("audience"),
     tone: text("tone"),
     topics,
+    offer: text("offer"),
+    ideal_customer: text("ideal_customer"),
+    customer_questions: text("customer_questions"),
+    objections: text("objections"),
+    stories: text("stories"),
+    call_to_action: text("call_to_action"),
     updated_at: new Date().toISOString(),
   });
 

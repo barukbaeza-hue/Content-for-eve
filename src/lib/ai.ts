@@ -11,6 +11,12 @@ export type BrandContext = {
   audience: string | null;
   tone: string | null;
   topics: string[];
+  offer: string | null;
+  ideal_customer: string | null;
+  customer_questions: string | null;
+  objections: string | null;
+  stories: string | null;
+  call_to_action: string | null;
 };
 
 export type GeneratedIdea = {
@@ -30,7 +36,7 @@ export class AiError extends Error {
 }
 
 const ChatSchema = z.object({
-  reply: z.string().describe("Tu respuesta a la creadora, breve y en su tono. Sin repetir el contenido de las ideas."),
+  reply: z.string().describe("Tu respuesta al founder, breve y en su tono. Sin repetir el contenido de las ideas."),
   ideas: z
     .array(
       z.object({
@@ -46,17 +52,29 @@ const ChatSchema = z.object({
 export type ChatTurn = { role: "user" | "assistant"; content: string; ideas: GeneratedIdea[] };
 
 function systemPrompt(brand: BrandContext, saved: string[]) {
+  const field = (label: string, value: string | null) => (value ? `- ${label}: ${value}` : "");
   return [
-    "Eres Mova, estratega de contenido para redes sociales (Instagram y TikTok). Hablas en español, en el tono de la creadora.",
-    "Ayudas a pensar ideas concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
+    "Eres Mova, estratega de contenido para founder creators: fundadores que publican vídeos cortos y sencillos",
+    "(hablando a cámara) en Instagram y TikTok para conseguir clientes, documentar su proceso y generar confianza y comunidad.",
+    "Hablas en español, en su tono. Propones ideas concretas, fáciles de grabar con un móvil y nada genéricas.",
+    "Usa su negocio como fuente principal: las preguntas y objeciones de sus clientes, sus historias y lo que vende.",
+    "Cuando encaje, termina el guion con su llamada a la acción.",
     "Cuando propongas o modifiques ideas, ponlas en `ideas` (5 por defecto si pide ideas sin decir cuántas) y deja `reply` en una o dos frases.",
     "Si pide cambiar una idea anterior, devuelve solo la versión nueva de esa idea.",
     "",
-    "Marca de la creadora:",
+    "Marca personal:",
     `- Nicho: ${brand.niche || "sin especificar"}`,
     `- Público: ${brand.audience || "sin especificar"}`,
     `- Tono: ${brand.tone || "sin especificar"}`,
     `- Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
+    "",
+    "Negocio:",
+    field("Qué vende", brand.offer),
+    field("Cliente ideal", brand.ideal_customer),
+    field("Preguntas de sus clientes", brand.customer_questions),
+    field("Qué frena a sus clientes", brand.objections),
+    field("Historias del negocio", brand.stories),
+    field("Llamada a la acción", brand.call_to_action),
     saved.length ? `\nIdeas que ya tiene guardadas (no las repitas):\n${saved.map((t) => `- ${t}`).join("\n")}` : "",
   ].filter(Boolean).join("\n");
 }
