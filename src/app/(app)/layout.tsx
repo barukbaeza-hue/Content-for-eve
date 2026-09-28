@@ -10,6 +10,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login");
 
+  const { data: profile } = await supabase.from("brand_profiles").select("onboarded_at").maybeSingle();
+  if (!profile?.onboarded_at) redirect("/bienvenida");
+
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       <aside className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2 md:w-60 md:flex-col md:items-stretch md:gap-4 md:border-b-0 md:px-3 md:py-3">

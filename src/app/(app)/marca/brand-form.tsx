@@ -9,6 +9,9 @@ import { Notice } from "@/components/ui/notice";
 import { saveBrandProfile } from "./actions";
 
 export type BrandProfile = {
+  offer: string | null;
+  voice: string | null;
+  insights: string | null;
   niche: string | null;
   audience: string | null;
   tone: string | null;
@@ -22,9 +25,11 @@ export type BrandProfile = {
 };
 
 type StoryField = keyof Pick<BrandProfile,
-  "building" | "story" | "expertise" | "opinions" | "audience_questions" | "call_to_action">;
+  "offer" | "building" | "story" | "expertise" | "opinions" | "audience_questions" | "call_to_action">;
 
 const STORY_FIELDS: { name: StoryField; label: string; placeholder: string; rows: number }[] = [
+  { name: "offer", label: "Tu oferta", rows: 2,
+    placeholder: "Ej.: asesorías de imagen y un curso online de armario cápsula" },
   { name: "building", label: "¿Qué estás construyendo?", rows: 2,
     placeholder: "Ej.: una marca de ropa sostenible que quiero llevar a tienda física este año" },
   { name: "story", label: "Tu historia", rows: 4,
@@ -99,13 +104,19 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="voice">Cómo hablas</Label>
+          <Textarea id="voice" name="voice" rows={3} defaultValue={profile?.voice ?? ""}
+            placeholder="Tus expresiones, cómo empiezas y cómo cierras tus vídeos" />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="topics">¿De qué temas hablas?</Label>
           <Input id="topics" name="topics" defaultValue={profile?.topics.join(", ") ?? ""}
             placeholder="Ej.: outfits, compras de segunda mano, cuidado de la ropa" />
         </div>
       </Group>
 
-      <Group title="Tu historia y tu visión">
+      <Group title="Tu oferta y tu historia">
         {STORY_FIELDS.map((field) => (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name}>{field.label}</Label>
@@ -115,12 +126,20 @@ export function BrandForm({ profile }: { profile: BrandProfile | null }) {
         ))}
       </Group>
 
+      <Group title="Qué te funciona">
+        <div className="space-y-2">
+          <Label htmlFor="insights">Temas, formatos y ganchos con más alcance</Label>
+          <Textarea id="insights" name="insights" rows={4} defaultValue={profile?.insights ?? ""}
+            placeholder="Mova lo completa al analizar tus vídeos" />
+        </div>
+      </Group>
+
       <div className="space-y-4 border-t border-line pt-6">
         {state && (
           <Notice tone={state.ok ? "success" : "danger"}>
             {state.ok ? (
               <span className="flex flex-wrap items-center gap-x-1">
-                Guardado. Mova ya conoce tu marca.
+                Guardado.
                 <Link href="/ideas" className="inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline">
                   Ir a Ideas <ArrowRight className="size-3.5" strokeWidth={1.75} />
                 </Link>

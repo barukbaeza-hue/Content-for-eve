@@ -1,23 +1,31 @@
 import { Page } from "@/components/shell/page";
+import { PROFILE_FIELDS } from "@/lib/content";
 import { createClient } from "@/lib/supabase/server";
-import { BrandForm } from "./brand-form";
+import { BrandForm, type BrandProfile } from "./brand-form";
+import { ConnectPanel } from "./connect-panel";
 
 export default async function MiMarcaPage() {
   const supabase = await createClient();
-  const { data: profile } = await supabase
+  const { data } = await supabase
     .from("brand_profiles")
-    .select("niche, audience, tone, topics, building, story, expertise, opinions, audience_questions, call_to_action")
+    .select(`${PROFILE_FIELDS}, source, analyzed_videos, analyzed_at`)
     .maybeSingle();
+  const profile = data as (BrandProfile & { source: string; analyzed_videos: number; analyzed_at: string | null }) | null;
+
+  const analyzed = profile?.analyzed_at
+    ? { source: profile.source, videos: profile.analyzed_videos, at: profile.analyzed_at }
+    : null;
 
   return (
     <Page title="Mi marca">
-      <div className="mx-auto w-full max-w-xl px-6 py-10">
-        <div className="mb-8">
-          <h2 className="text-xl font-medium">Cuéntale a Mova quién eres</h2>
+      <div className="mx-auto w-full max-w-xl space-y-10 px-6 py-10">
+        <div>
+          <h2 className="text-xl font-medium">Tu perfil de founder creator</h2>
           <p className="mt-1 text-base text-fg-3">
-            Tu marca personal es tu forma de llegar a la gente y ganarte su confianza. Con esto, las ideas y los guiones sonarán a ti.
+            Mova lo crea a partir de tus vídeos. Lo usa para que tus ideas, guiones y copys suenen a ti.
           </p>
         </div>
+        <ConnectPanel analyzed={analyzed} />
         <BrandForm profile={profile} />
       </div>
     </Page>

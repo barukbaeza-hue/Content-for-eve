@@ -2,11 +2,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { FORMATS, type Format } from "./content";
+import type { SocialVideo } from "./social";
 
 // Claude Sonnet 5 vía la API de Anthropic. Solo se usa en el servidor.
 const MODEL = "claude-sonnet-5";
 
 export type BrandContext = {
+  offer: string | null;
+  voice: string | null;
+  insights: string | null;
   niche: string | null;
   audience: string | null;
   tone: string | null;
@@ -54,12 +58,12 @@ export type ChatTurn = { role: "user" | "assistant"; content: string; ideas: Gen
 function systemPrompt(brand: BrandContext, saved: string[]) {
   const field = (label: string, value: string | null) => (value ? `- ${label}: ${value}` : "");
   return [
-    "Eres Mova, estratega de contenido para founder creators: fundadores que construyen su marca personal",
-    "con vídeos cortos y sencillos (hablando a cámara) en Instagram y TikTok. Su marca personal es su vía de",
-    "distribución y de confianza: documentan lo que construyen, comparten lo que saben y dan su opinión.",
-    "No es contenido de venta. Hablas en español, en su tono. Propones ideas concretas, fáciles de grabar con un móvil y nada genéricas.",
-    "Usa como fuente principal su historia, lo que está construyendo, lo que sabe, sus opiniones y lo que le pregunta su audiencia.",
-    "Si tiene un destino para su audiencia, puedes cerrar algunos guiones llevándola ahí, sin sonar a anuncio.",
+    "Eres Mova, estratega de contenido para founder creators: fundadores que publican vídeos cortos y sencillos",
+    "(hablando a cámara) en Instagram y TikTok con tres objetivos: distribuir su oferta, generar confianza y",
+    "documentar su proceso, sus aprendizajes y sus consejos. Hablas en español, en su tono y con sus expresiones.",
+    "Propones ideas concretas, fáciles de grabar con un móvil y nada genéricas. Equilibra los tres objetivos:",
+    "la mayoría aportan valor o documentan; la oferta aparece con naturalidad, sin sonar a anuncio.",
+    "Si tiene un destino para su audiencia, puedes cerrar algunos guiones llevándola ahí.",
     "Cuando propongas o modifiques ideas, ponlas en `ideas` (5 por defecto si pide ideas sin decir cuántas) y deja `reply` en una o dos frases.",
     "Si pide cambiar una idea anterior, devuelve solo la versión nueva de esa idea.",
     "",
@@ -67,15 +71,18 @@ function systemPrompt(brand: BrandContext, saved: string[]) {
     `- Nicho: ${brand.niche || "sin especificar"}`,
     `- Público: ${brand.audience || "sin especificar"}`,
     `- Tono: ${brand.tone || "sin especificar"}`,
+    field("Cómo habla", brand.voice),
     `- Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
     "",
-    "Historia y visión:",
+    "Oferta, historia y visión:",
+    field("Qué ofrece", brand.offer),
     field("Qué está construyendo", brand.building),
     field("Su historia", brand.story),
     field("Lo que sabe y enseña", brand.expertise),
     field("Sus opiniones", brand.opinions),
     field("Lo que le pregunta su audiencia", brand.audience_questions),
     field("A dónde quiere llevar a su audiencia", brand.call_to_action),
+    field("Qué le funciona", brand.insights),
     saved.length ? `\nIdeas que ya tiene guardadas (no las repitas):\n${saved.map((t) => `- ${t}`).join("\n")}` : "",
   ].filter(Boolean).join("\n");
 }
@@ -137,6 +144,64 @@ export async function chat(
         format: (idea.format.toLowerCase() in FORMATS ? idea.format.toLowerCase() : "reel") as Format,
       })),
     };
+  } catch (error) {
+    console.error("Error de Claude:", error);
+    throw toAiError(error);
+  }
+}
+
+// Perfil creado a partir de los vídeos propios del founder.
+const ProfileSchema = z.object({
+  niche: z.string().describe("De qué trata su contenido, en una frase."),
+  audience: z.string().describe("A quién le habla: edad, intereses y qué busca."),
+  tone: z.string().describe("Tono en 2 a 4 adjetivos separados por comas."),
+  voice: z.string().describe("Cómo habla: expresiones y muletillas reales que repite, cómo empieza y cómo cierra sus vídeos."),
+  topics: z.array(z.string()).describe("Sus 3 a 6 pilares de contenido."),
+  offer: z.string().describe("Qué ofrece o vende, si se deduce. Vacío si no se ve."),
+  building: z.string().describe("Qué está construyendo. Vacío si no se ve."),
+  story: z.string().describe("Lo que cuenta de su historia: origen, hitos, errores. Vacío si no se ve."),
+  expertise: z.string().describe("Lo que sabe y enseña."),
+  opinions: z.string().describe("Opiniones propias o poco comunes que defiende. Vacío si no se ven."),
+  audience_questions: z.string().describe("Preguntas que le hace su audiencia, una por línea. Vacío si no hay comentarios."),
+  call_to_action: z.string().describe("A dónde lleva a su audiencia (enlace, mensaje privado, newsletter…). Vacío si no lo hace."),
+  insights: z.string().describe("Qué le funciona mejor según las métricas: temas, formatos y ganchos de sus vídeos con más alcance."),
+});
+
+export type ProfileDraft = z.infer<typeof ProfileSchema>;
+
+export async function analyzeProfile(videos: SocialVideo[]): Promise<ProfileDraft> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new AiError("sin-clave");
+  if (videos.length === 0) throw new AiError("fallo", "sin-videos");
+
+  const client = new Anthropic({ apiKey });
+  const list = videos
+    .map((v, i) =>
+      [
+        `### Vídeo ${i + 1} (${v.platform}${v.postedAt ? `, ${v.postedAt.slice(0, 10)}` : ""})`,
+        `Métricas: ${v.views ?? "?"} vistas, ${v.likes ?? "?"} me gusta, ${v.comments ?? "?"} comentarios`,
+        `Descripción: ${v.caption || "(sin descripción)"}`,
+        v.transcript ? `Lo que dice: ${v.transcript}` : "",
+        v.topComments?.length ? `Comentarios: ${v.topComments.join(" | ")}` : "",
+      ].filter(Boolean).join("\n"),
+    )
+    .join("\n\n");
+
+  try {
+    const response = await client.messages.parse({
+      model: MODEL,
+      max_tokens: 16000,
+      system:
+        "Analizas los vídeos de un founder creator para crear el perfil de su marca personal. " +
+        "Escribe en español y en segunda persona (\"hablas…\", \"tu audiencia…\"). " +
+        "Básate solo en lo que aparece en los vídeos: no inventes datos. Cita expresiones reales cuando describas cómo habla.",
+      messages: [{ role: "user", content: `Estos son sus vídeos más recientes:\n\n${list}` }],
+      output_config: { effort: "medium", format: zodOutputFormat(ProfileSchema) },
+    });
+
+    if (response.stop_reason === "refusal") throw new AiError("fallo", "rechazo");
+    if (!response.parsed_output) throw new AiError("fallo", "vacio");
+    return response.parsed_output;
   } catch (error) {
     console.error("Error de Claude:", error);
     throw toAiError(error);

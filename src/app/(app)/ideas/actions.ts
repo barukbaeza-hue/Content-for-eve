@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { AiError, chat } from "@/lib/ai";
-import { STATUSES, type Status } from "@/lib/content";
+import { PROFILE_FIELDS, STATUSES, type Status } from "@/lib/content";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatIdea, ChatMessage } from "./types";
 
@@ -28,7 +28,7 @@ export async function sendMessage(text: string): Promise<SendResult> {
   const [{ data: brand }, { data: recent }, { data: saved }] = await Promise.all([
     supabase
       .from("brand_profiles")
-      .select("niche, audience, tone, topics, building, story, expertise, opinions, audience_questions, call_to_action")
+      .select(PROFILE_FIELDS)
       .maybeSingle(),
     supabase
       .from("chat_messages")
