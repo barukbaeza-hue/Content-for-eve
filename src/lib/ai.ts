@@ -29,20 +29,46 @@ export class AiError extends Error {
   }
 }
 
-const IdeasSchema = z.object({
-  ideas: z.array(
-    z.object({
-      title: z.string().describe("Título corto de la idea, máximo 70 caracteres."),
-      hook: z.string().describe("Gancho de los primeros 3 segundos, tal cual se diría o se leería."),
-      format: z.string().describe(`Formato: uno de ${Object.keys(FORMATS).join(", ")}.`),
-      script: z.string().describe("Guion breve en 3 a 5 pasos, separados por saltos de línea."),
-    }),
-  ),
+const ChatSchema = z.object({
+  reply: z.string().describe("Tu respuesta a la creadora, breve y en su tono. Sin repetir el contenido de las ideas."),
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().describe("Título corto de la idea, máximo 70 caracteres."),
+        hook: z.string().describe("Gancho de los primeros 3 segundos, tal cual se diría o se leería."),
+        format: z.string().describe(`Formato: uno de ${Object.keys(FORMATS).join(", ")}.`),
+        script: z.string().describe("Guion breve en 3 a 5 pasos, separados por saltos de línea."),
+      }),
+    )
+    .describe("Ideas nuevas o modificadas que propones en este mensaje. Vacío si solo conversas."),
 });
 
-const SYSTEM =
-  "Eres estratega de contenido para redes sociales. Escribes en español, con el tono de la creadora. " +
-  "Las ideas son concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.";
+export type ChatTurn = { role: "user" | "assistant"; content: string; ideas: GeneratedIdea[] };
+
+function systemPrompt(brand: BrandContext, saved: string[]) {
+  return [
+    "Eres Mova, estratega de contenido para redes sociales (Instagram y TikTok). Hablas en español, en el tono de la creadora.",
+    "Ayudas a pensar ideas concretas, variadas en formato y fáciles de grabar con un móvil. Nada genérico.",
+    "Cuando propongas o modifiques ideas, ponlas en `ideas` (5 por defecto si pide ideas sin decir cuántas) y deja `reply` en una o dos frases.",
+    "Si pide cambiar una idea anterior, devuelve solo la versión nueva de esa idea.",
+    "",
+    "Marca de la creadora:",
+    `- Nicho: ${brand.niche || "sin especificar"}`,
+    `- Público: ${brand.audience || "sin especificar"}`,
+    `- Tono: ${brand.tone || "sin especificar"}`,
+    `- Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
+    saved.length ? `\nIdeas que ya tiene guardadas (no las repitas):\n${saved.map((t) => `- ${t}`).join("\n")}` : "",
+  ].filter(Boolean).join("\n");
+}
+
+// Las ideas de turnos anteriores se envían como texto para que pueda referirse a ellas ("la 2").
+function toApiMessage(turn: ChatTurn): Anthropic.MessageParam {
+  if (turn.role === "user" || turn.ideas.length === 0) return { role: turn.role, content: turn.content };
+  const ideas = turn.ideas
+    .map((i, n) => `${n + 1}. [${FORMATS[i.format]}] ${i.title}\n   Gancho: ${i.hook}\n   Guion: ${i.script.replace(/\n/g, " / ")}`)
+    .join("\n");
+  return { role: "assistant", content: `${turn.content}\n\nIdeas:\n${ideas}` };
+}
 
 function toAiError(error: unknown): AiError {
   if (error instanceof AiError) return error;
@@ -61,45 +87,37 @@ function toAiError(error: unknown): AiError {
   return new AiError("fallo", "desconocido");
 }
 
-export async function generateIdeas(
+export async function chat(
   brand: BrandContext,
-  options: { topic?: string; avoid: string[]; count: number },
-): Promise<GeneratedIdea[]> {
+  history: ChatTurn[],
+  saved: string[],
+): Promise<{ reply: string; ideas: GeneratedIdea[] }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new AiError("sin-clave");
 
   const client = new Anthropic({ apiKey });
 
-  const prompt = [
-    `Propón ${options.count} ideas de contenido para Instagram y TikTok de esta creadora.`,
-    "",
-    `Nicho: ${brand.niche || "sin especificar"}`,
-    `Público: ${brand.audience || "sin especificar"}`,
-    `Tono: ${brand.tone || "sin especificar"}`,
-    `Temas habituales: ${brand.topics.join(", ") || "sin especificar"}`,
-    options.topic ? `Esta vez, las ideas deben tratar sobre: ${options.topic}` : "",
-    options.avoid.length
-      ? `No repitas estas ideas que ya tiene:\n${options.avoid.map((t) => `- ${t}`).join("\n")}`
-      : "",
-  ].filter(Boolean).join("\n");
-
   try {
     const response = await client.messages.parse({
       model: MODEL,
       max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: "user", content: prompt }],
-      // Esfuerzo bajo: tarea creativa sencilla; mantiene el coste en ~1-2 céntimos por llamada.
-      output_config: { effort: "low", format: zodOutputFormat(IdeasSchema) },
+      system: systemPrompt(brand, saved),
+      messages: history.map(toApiMessage),
+      // Esfuerzo bajo: tarea creativa sencilla; mantiene el coste en ~1-2 céntimos por mensaje.
+      output_config: { effort: "low", format: zodOutputFormat(ChatSchema) },
     });
 
     if (response.stop_reason === "refusal") throw new AiError("fallo", "rechazo");
-    const ideas = (response.parsed_output?.ideas ?? []).map((idea) => ({
-      ...idea,
-      format: (idea.format.toLowerCase() in FORMATS ? idea.format.toLowerCase() : "reel") as Format,
-    }));
-    if (ideas.length === 0) throw new AiError("fallo", "vacio");
-    return ideas;
+    const output = response.parsed_output;
+    if (!output) throw new AiError("fallo", "vacio");
+
+    return {
+      reply: output.reply,
+      ideas: output.ideas.map((idea) => ({
+        ...idea,
+        format: (idea.format.toLowerCase() in FORMATS ? idea.format.toLowerCase() : "reel") as Format,
+      })),
+    };
   } catch (error) {
     console.error("Error de Claude:", error);
     throw toAiError(error);
