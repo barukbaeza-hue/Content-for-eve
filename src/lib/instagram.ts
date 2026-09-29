@@ -24,7 +24,8 @@ export function authorizeUrl(redirectUri: string, state: string) {
     scope: INSTAGRAM_SCOPES.join(","),
     state,
   });
-  return `https://www.instagram.com/oauth/authorize?${params}`;
+  // api.instagram.com: evita que el móvil abra la app de Instagram (que no completa el inicio de sesión).
+  return `https://api.instagram.com/oauth/authorize?${params}`;
 }
 
 export class InstagramError extends Error {}
