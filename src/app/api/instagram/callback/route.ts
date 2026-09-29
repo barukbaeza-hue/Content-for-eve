@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appUrl } from "@/lib/app-url";
-import { exchangeCode, getProfile, InstagramError } from "@/lib/instagram";
+import { credentialsHint, exchangeCode, getProfile, InstagramError } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
 const DESTINATIONS = { bienvenida: "/bienvenida", marca: "/marca" } as const;
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (error) return fail("error", `guardar: ${error.message}`);
   } catch (error) {
     console.error("Error al conectar Instagram:", error);
-    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? `${error.message} · ${redirectUri}` : undefined);
+    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? `${error.message} · ${redirectUri} · ${credentialsHint()}` : undefined);
   }
 
   const next = saved.from === "marca" ? "/marca?analizar=1" : "/bienvenida?paso=analizando";

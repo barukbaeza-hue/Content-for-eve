@@ -10,6 +10,16 @@ export const INSTAGRAM_SCOPES = [
   "instagram_business_manage_insights",
 ];
 
+// Sin espacios ni saltos de línea que se cuelan al pegar las claves en Vercel.
+const appId = () => (process.env.INSTAGRAM_APP_ID ?? "").trim();
+const appSecret = () => (process.env.INSTAGRAM_APP_SECRET ?? "").trim();
+
+// Datos no secretos para diagnosticar la conexión.
+export function credentialsHint() {
+  const secret = appSecret();
+  return `app ${appId()}, clave de ${secret.length} caracteres${/^[0-9a-f]+$/.test(secret) ? "" : " no hexadecimal"}`;
+}
+
 export function instagramConfigured() {
   return Boolean(process.env.INSTAGRAM_APP_ID && process.env.INSTAGRAM_APP_SECRET);
 }
@@ -18,7 +28,7 @@ export function authorizeUrl(redirectUri: string, state: string) {
   const params = new URLSearchParams({
     // Pide siempre iniciar sesión, para que se conecte la cuenta correcta.
     force_reauth: "true",
-    client_id: process.env.INSTAGRAM_APP_ID!,
+    client_id: appId(),
     redirect_uri: redirectUri,
     response_type: "code",
     scope: INSTAGRAM_SCOPES.join(","),
@@ -41,8 +51,8 @@ async function graph<T>(path: string, token: string, params: Record<string, stri
 
 async function shortToken(code: string, redirectUri: string) {
   const form = new URLSearchParams({
-    client_id: process.env.INSTAGRAM_APP_ID!,
-    client_secret: process.env.INSTAGRAM_APP_SECRET!,
+    client_id: appId(),
+    client_secret: appSecret(),
     grant_type: "authorization_code",
     redirect_uri: redirectUri,
     code,
@@ -67,7 +77,7 @@ export async function exchangeCode(rawCode: string, redirectUri: string) {
     long = await graph<{ access_token: string; expires_in: number }>(
       "https://graph.instagram.com/access_token",
       short.access_token,
-      { grant_type: "ig_exchange_token", client_secret: process.env.INSTAGRAM_APP_SECRET! },
+      { grant_type: "ig_exchange_token", client_secret: appSecret() },
     );
   } catch (error) {
     console.error("Token largo de Instagram:", error);
