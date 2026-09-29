@@ -26,10 +26,11 @@ export const tools = {
  * Ejecuta un programa y devuelve su salida. Falla con las últimas líneas del error.
  * @param {string} command
  * @param {string[]} args
+ * @param {{ cwd?: string }} [options]
  */
-export function run(command, args) {
+export function run(command, args, { cwd } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { windowsHide: true });
+    const child = spawn(command, args, { windowsHide: true, cwd });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (d) => (stdout += d));
