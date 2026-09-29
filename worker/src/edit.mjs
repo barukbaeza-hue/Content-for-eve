@@ -32,8 +32,10 @@ export async function editVideo(video, log = console.log) {
     ]);
     const segments = keepSegments(parseSilences(stderr, duration), duration);
     const editedWords = remapWords(words, segments);
-    const pieces = framingPlan(segments, words);
-    const title = video.card?.titulo ?? null;
+    // Por defecto solo subtítulos. Título y zoom alterno solo si se piden (prompt o estilo de su marca).
+    const extras = video.card?.estilo ?? {};
+    const pieces = extras.zoom_alterno ? framingPlan(segments, words) : segments.map((s) => ({ ...s, zoom: 1 }));
+    const title = extras.titulo ?? null;
 
     log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
     const output = path.join(dir, "editado.mp4");

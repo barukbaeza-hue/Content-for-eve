@@ -94,11 +94,14 @@ Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cad
 
 ### Estilo de subtítulos
 
-- **Por defecto: minimalista.** Geist Medium en blanco, de a tres palabras, aparición suave, sin rebotes ni colores, con una sombra difusa solo para que se lea. Acompaña, no roba protagonismo.
+- **Por defecto: solo subtítulos.** Geist SemiBold en blanco, a la altura del pecho, de 2 a 4 palabras, aparición suave, sin rebotes ni colores, con una sombra difusa solo para que se lea. Acompaña, no roba protagonismo. Nada más.
+- **Edición más desarrollada:** Mova la aplica si la ve en el perfil del founder (su estilo aprendido) o si la pide con un prompt. Por ejemplo: "empieza con un hook de b-roll y música de suspenso, después salgo yo hablando a cámara y al final un fragmento de una película". Claude arma el plan de edición y el worker lo monta con el material que el founder suba (b-roll, clips) y la biblioteca de música. Los fragmentos de películas tienen derechos de autor: Instagram puede silenciarlos o bloquear el vídeo.
 - **Tipografías de cada marca:** en el onboarding, Claude analiza los vídeos del founder y define su estilo de subtítulos (tipografía, peso, tamaño, posición, color, mayúsculas y palabras a la vez). Elige la tipografía más parecida de **Google Fonts** (~1.800, uso comercial gratis) y el worker la descarga la primera vez. No se descargan tipografías de otros sitios: muchas son de pago.
 - El estilo queda guardado en su marca. El founder puede cambiarlo o subir su propia tipografía si tiene la licencia.
 
 ### Visión: vídeo de referencia
+
+- **Estilo más común de los founders (referencia 2):** cámara frontal en casa, título arriba al empezar, subtítulos a la altura del pecho y cortes con zoom. Sirve para entender cómo graban la mayoría; no es el estilo por defecto.
 
 Estilo al que queremos llegar (vídeo de un founder, 35 s):
 
