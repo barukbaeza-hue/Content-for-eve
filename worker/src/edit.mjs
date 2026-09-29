@@ -24,7 +24,7 @@ export async function editVideo(video, log = console.log) {
     const audio = await prepareAudio(raw, dir, log);
 
     log("Transcribiendo con Whisper…");
-    const rawWords = await transcribe(audio.file, dir);
+    const rawWords = await transcribe(audio.file, dir, duration, log);
 
     log("Buscando silencios…");
     const pcm = path.join(dir, "voz16k.raw");
@@ -156,19 +156,67 @@ async function prepareAudio(raw, dir, log) {
   return { file, info: { metodo: method, lufs_original: originalLufs, lufs_limpio: cleanedLufs, ganancia_db: gain } };
 }
 
-// Whisper con una palabra por segmento para tener el tiempo de cada palabra.
-async function transcribe(audioFile, dir) {
+// Whisper con el tiempo de cada palabra. Primero con DTW (alinea cada palabra con el audio, mucho más preciso);
+// si esta versión de whisper.cpp no lo admite, con el método simple de una palabra por segmento.
+async function transcribe(audioFile, dir, duration, log) {
   const audio = path.join(dir, "voz16k.wav");
   await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", audioFile, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", audio]);
+  const common = ["-m", config.whisperModel, "-f", audio, "-l", config.language, "-t", String(config.threads), "-np"];
+  const clamp = (words) =>
+    words
+      .filter((w) => w.start < duration)
+      .map((w) => ({ ...w, end: Math.min(w.end, duration) }));
+
   const base = path.join(dir, "transcripcion");
-  await run(tools.whisper, [
-    "-m", config.whisperModel, "-f", audio, "-l", config.language,
-    "-t", String(config.threads), "-ml", "1", "-sow", "-oj", "-of", base, "-np",
-  ]);
+  // DTW necesita la atención normal: -nfa la activa en las versiones nuevas; las antiguas no conocen la opción
+  for (const extra of [["--dtw", "small", "-nfa"], ["--dtw", "small"]]) {
+    try {
+      await run(tools.whisper, [...common, ...extra, "-ojf", "-of", base]);
+      const words = wordsFromTokens(JSON.parse(await readFile(`${base}.json`, "utf8")));
+      if (words.length) {
+        log("  Tiempos de palabra: DTW");
+        return clamp(words);
+      }
+    } catch {
+      // se prueba la siguiente opción
+    }
+  }
+
+  log("  Tiempos de palabra: método simple (DTW no disponible)");
+  await run(tools.whisper, [...common, "-ml", "1", "-sow", "-oj", "-of", base]);
   const json = JSON.parse(await readFile(`${base}.json`, "utf8"));
-  return (json.transcription ?? [])
-    .map((s) => ({ text: String(s.text).trim(), start: s.offsets.from / 1000, end: s.offsets.to / 1000 }))
-    .filter((w) => w.text && !/^\[.*\]$/.test(w.text));
+  return clamp(
+    (json.transcription ?? [])
+      .map((s) => ({ text: String(s.text).trim(), start: s.offsets.from / 1000, end: s.offsets.to / 1000 }))
+      .filter((w) => w.text && !/^\[.*\]$/.test(w.text)),
+  );
+}
+
+/**
+ * Convierte los tokens de whisper.cpp (salida -ojf con DTW) en palabras con su tiempo.
+ * Un token que empieza por espacio abre palabra nueva. t_dtw va en centésimas de segundo.
+ * Devuelve [] si faltan tiempos DTW, para usar el método simple.
+ */
+export function wordsFromTokens(json) {
+  const words = [];
+  for (const segment of json.transcription ?? []) {
+    const segmentEnd = (segment.offsets?.to ?? 0) / 1000;
+    const pieces = [];
+    for (const token of segment.tokens ?? []) {
+      const text = String(token.text ?? "");
+      if (!text.trim() || /^\[_|^<\|/.test(text.trim())) continue;
+      if (typeof token.t_dtw !== "number" || token.t_dtw < 0) return [];
+      const time = token.t_dtw / 100;
+      if (text.startsWith(" ") || pieces.length === 0) pieces.push({ text: text.trim(), start: time });
+      else pieces.at(-1).text += text;
+    }
+    pieces.forEach((piece, i) => {
+      const next = pieces[i + 1]?.start ?? segmentEnd;
+      // Una palabra no dura más de ~1 s aunque detrás venga una pausa
+      words.push({ text: piece.text, start: piece.start, end: Math.max(piece.start + 0.05, Math.min(next, piece.start + 1)) });
+    });
+  }
+  return words.filter((w) => w.text && !/^\[.*\]$/.test(w.text));
 }
 
 // Corta los planos (con zoom alterno), quema los subtítulos y deja el formato de Reels (H.264, AAC estéreo 48 kHz).

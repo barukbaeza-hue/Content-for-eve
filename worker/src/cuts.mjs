@@ -118,23 +118,41 @@ export function keepSegments(silences, duration, { pad = 0.1, minKeep = 0.25 } =
 
 /**
  * Pasa las palabras de la transcripción a los tiempos del vídeo ya cortado (para los subtítulos).
+ * Ninguna palabra se pierde: si cae en una parte cortada, se coloca en el tramo conservado más cercano.
  * @param {{ text: string, start: number, end: number }[]} words
  * @param {{ start: number, end: number }[]} segments
  */
 export function remapWords(words, segments) {
-  const result = [];
+  if (segments.length === 0) return [];
+  // Dónde empieza cada tramo en el vídeo final
+  const offsets = [];
   let offset = 0;
   for (const segment of segments) {
-    for (const word of words) {
-      const mid = (word.start + word.end) / 2;
-      if (mid < segment.start || mid >= segment.end) continue;
-      result.push({
-        text: word.text,
-        start: round(offset + Math.max(0, word.start - segment.start)),
-        end: round(offset + Math.min(segment.end, word.end) - segment.start),
-      });
-    }
+    offsets.push(offset);
     offset += segment.end - segment.start;
+  }
+  const distance = (segment, t) => (t < segment.start ? segment.start - t : t > segment.end ? t - segment.end : 0);
+
+  const result = words.map((word) => {
+    const mid = (word.start + word.end) / 2;
+    let index = 0;
+    segments.forEach((segment, i) => {
+      if (distance(segment, mid) < distance(segments[index], mid)) index = i;
+    });
+    const segment = segments[index];
+    const start = Math.min(Math.max(word.start, segment.start), segment.end - 0.05);
+    const end = Math.max(Math.min(word.end, segment.end), start + 0.05);
+    return {
+      text: word.text,
+      start: round(offsets[index] + start - segment.start),
+      end: round(offsets[index] + end - segment.start),
+    };
+  });
+  // Orden y sin solapes, por si varias palabras se juntaron en el mismo punto
+  result.sort((a, b) => a.start - b.start);
+  for (let i = 1; i < result.length; i++) {
+    if (result[i].start < result[i - 1].start + 0.05) result[i].start = round(result[i - 1].start + 0.05);
+    if (result[i].end < result[i].start + 0.05) result[i].end = round(result[i].start + 0.05);
   }
   return result;
 }
