@@ -36,7 +36,7 @@ Los pilares forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.
 |---|---|---|---|
 | 1 | **Conocer** | Tu marca personal: quién eres, cómo hablas, qué construyes, tu historia, lo que sabes, tus opiniones y tu contenido pasado | La base de todo |
 | 2 | **Idear** | Ideas a partir de tu marca personal y de lo que funciona, y **guion en tu voz** para cada una (lo puedes afinar tú). **Inspiración:** ideas que salen de tu competencia y de las tendencias de tu nicho, más ideas nuevas creadas con el agente desde tu marca personal. Plan semanal con equilibrio de temas | El plan, los guiones y la inspiración |
-| 3 | **Editar** | Subes tus vídeos grabados y Mova los edita automáticamente en cola (cortar silencios, limpiar el audio, subtítulos) y escribe el copy (descripción y hashtags). Solo la grabación se hace fuera de Mova. **El método de edición está por redefinir** | Vídeos listos en el banco |
+| 3 | **Editar** | Subes tus vídeos grabados y Mova los edita automáticamente en cola (cortar silencios, limpiar el audio, subtítulos) y escribe el copy (descripción y hashtags). Solo la grabación se hace fuera de Mova. Ver [Edición automática](#edición-automática) | Vídeos listos en el banco |
 | 4 | **Publicar** | Banco de vídeos, calendario y publicación en Instagram y TikTok a la mejor hora | Qué salió y cuándo |
 | 5 | **Conversar** | Bandeja única de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat. Por ejemplo, alguien comenta "INFO" y recibe un mensaje privado con tu enlace | Leads, dudas frecuentes y lo que pide la audiencia |
 | 6 | **Aprender** | Qué vídeos traen alcance, confianza y conversaciones | Qué funciona, y vuelve al pilar 1 |
@@ -72,6 +72,48 @@ El método técnico para conseguir el contenido de las redes está por definir.
 | Proveedores de datos de terceros (scraping) | Descubrir contenido de TikTok y búsquedas amplias | Va contra las condiciones de las plataformas. Solo si se asume el riesgo |
 
 TikTok no ofrece una API oficial de descubrimiento de contenido para uso comercial: su Research API es solo académica. Es el punto más difícil.
+
+## Edición automática
+
+Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien.
+
+### Qué hace en la primera versión
+
+- Corta silencios y tomas repetidas, usando el guion para quedarse con la mejor toma.
+- Limpia el audio: quita ruido y nivela el volumen.
+- Subtítulos animados y zooms suaves en momentos clave.
+- Música libre de derechos incluida en el vídeo. Mova tiene una biblioteca propia, elige el tema según el tono y baja el volumen mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.
+- Más adelante: b-roll (imágenes de apoyo encima de lo que dices).
+
+### Cómo funciona
+
+1. **Whisper** transcribe con marcas de tiempo por palabra.
+2. **Claude** decide los cortes.
+3. **ffmpeg** corta y limpia el audio: el trabajo pesado, rápido y barato.
+4. **Remotion** añade los subtítulos animados, los zooms, los efectos y la música.
+
+### Dónde corre
+
+- Por ahora en el computador del equipo (Windows, 16 GB de RAM, 512 GB de disco), como un programa (worker) que revisa una cola en Supabase.
+- El computador no queda expuesto a internet: el worker sale a buscar trabajo y no recibe conexiones.
+- Si el computador está apagado, los vídeos esperan en la cola.
+- Cuando haya clientes, el mismo worker pasa a un servidor en la nube sin reescribirlo.
+
+### Almacenamiento: Cloudflare R2
+
+- 10 GB gratis; después, ~$0,015 por GB al mes y sin costo por descargas.
+- Da el enlace público que Instagram necesita para publicar.
+- Ciclo de cada vídeo: el original se borra al editarlo, el editado vive en el banco y, al publicarse en Instagram, se borra de Mova.
+
+### Ficha de cada vídeo
+
+Antes de borrar el vídeo, Mova guarda su ficha en la memoria del founder. Es solo texto:
+
+- **Lo que dice:** transcripción, temas, gancho y llamada a la acción.
+- **Lo que se ve:** Claude mira unos fotogramas y anota ropa, lugar, encuadre, luz y si sale alguien más (~1 céntimo por vídeo).
+- **Cómo rindió:** las métricas de Instagram.
+
+Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual con las métricas ("tus vídeos en exteriores tienen el doble de vistas") y encontrar vídeos pasados ("¿en qué vídeo hablé de mi primera venta?").
 
 ## Principios
 
@@ -110,7 +152,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | Ideas y guiones | Chat con IA, ideas y guion en tu voz | Clave de Anthropic |
 | Feed de inspiración | Vídeos de tu nicho y tus referentes, con chat al lado para sacar ideas | Método por decidir (ver Inspiración) |
 | Banco de vídeos | Subida por lotes, copy con IA, cola con días de contenido | Clave de Anthropic |
-| Edición automática | Cortar silencios, limpiar audio, subtítulos, en cola | Transcripción y servicio de renderizado |
+| Edición automática | Cortes, audio limpio, subtítulos animados, zooms y música, en cola | Worker con Whisper, ffmpeg y Remotion; Cloudflare R2 |
 | Calendario y publicación | Programar la semana y publicar solo en Instagram y TikTok | Apps de Meta y TikTok |
 | Métricas | Alcance e interacción de cada vídeo, y qué te funciona | Apps de Meta y TikTok |
 
@@ -123,7 +165,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Tu historia y tu visión" (hecho) | Siguiente |
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
 | 2c · Inspiración | Idear | Feed de competencia y tendencias con chat lateral para sacar ideas, unido al chat de ideas nuevas. Método de obtención por definir | |
-| 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (enfoque por redefinir), copys automáticos | |
+| 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (ver Edición automática), ficha de cada vídeo, copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco y publicación automática en Instagram y TikTok | |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
 | 6 · Comunidad | Conversar | Bandeja de comentarios, respuestas sugeridas, automatizaciones tipo ManyChat (primero en Instagram) | |
