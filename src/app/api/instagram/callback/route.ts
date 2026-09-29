@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   const fail = (reason: string, detail?: string) => {
     const query = new URLSearchParams({ instagram: reason });
-    if (detail) query.set("detalle", detail.slice(0, 200));
+    if (detail) query.set("detalle", detail.slice(0, 400));
     const response = NextResponse.redirect(`${base}${target}?${query}`);
     response.cookies.delete({ name: "ig_oauth", path: "/api/instagram" });
     return response;
@@ -32,8 +32,10 @@ export async function GET(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) return NextResponse.redirect(`${base}/login`);
 
+  let redirectUri = "";
   try {
-    const token = await exchangeCode(code, saved.redirectUri ?? `${base}/api/instagram/callback`);
+    redirectUri = saved.redirectUri ?? `${base}/api/instagram/callback`;
+    const token = await exchangeCode(code, redirectUri);
     const profile = await getProfile(token.accessToken);
 
     const { error } = await supabase.from("social_accounts").upsert(
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (error) return fail("error", `guardar: ${error.message}`);
   } catch (error) {
     console.error("Error al conectar Instagram:", error);
-    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? error.message : undefined);
+    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? `${error.message} · ${redirectUri}` : undefined);
   }
 
   const next = saved.from === "marca" ? "/marca?analizar=1" : "/bienvenida?paso=analizando";
