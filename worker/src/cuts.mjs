@@ -81,7 +81,7 @@ export function alignWords(words, silences) {
     for (const s of silences) {
       if (start >= s.start && start < s.end) start = s.end; // empieza en un silencio: se retrasa al final de la pausa
       if (end > s.start && end <= s.end) end = s.start; // acaba en un silencio: se adelanta al inicio de la pausa
-      if (start < s.start && end > s.end && s.end - s.start > 0.6) end = s.start; // una pausa larga no puede ir dentro de una palabra
+      if (start < s.start && end > s.end) end = s.start; // una pausa no puede ir dentro de una palabra
     }
     if (end <= start) end = start + Math.min(0.3, word.end - word.start || 0.3);
     return { ...word, start: round(start), end: round(end) };
