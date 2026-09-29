@@ -24,8 +24,7 @@ export function authorizeUrl(redirectUri: string, state: string) {
     scope: INSTAGRAM_SCOPES.join(","),
     state,
   });
-  // api.instagram.com: evita que el móvil abra la app de Instagram (que no completa el inicio de sesión).
-  return `https://api.instagram.com/oauth/authorize?${params}`;
+  return `https://www.instagram.com/oauth/authorize?${params}`;
 }
 
 export class InstagramError extends Error {}
@@ -60,16 +59,7 @@ async function shortToken(code: string, redirectUri: string) {
 export async function exchangeCode(rawCode: string, redirectUri: string) {
   // Instagram a veces añade "#_" al final del código.
   const code = rawCode.replace(/#_$/, "");
-  let accessToken: string;
-  try {
-    accessToken = await shortToken(code, redirectUri);
-  } catch (error) {
-    // Instagram puede normalizar la dirección con una barra final.
-    if (!(error instanceof InstagramError) || !/redirect_uri/i.test(error.message)) throw error;
-    const alternative = redirectUri.endsWith("/") ? redirectUri.slice(0, -1) : `${redirectUri}/`;
-    accessToken = await shortToken(code, alternative);
-  }
-  const short = { access_token: accessToken };
+  const short = { access_token: await shortToken(code, redirectUri) };
 
   // Token de larga duración; si falla, se usa el corto (1 hora) para no bloquear la conexión.
   let long = { access_token: short.access_token, expires_in: 3600 };
