@@ -5,6 +5,10 @@ import { BrandForm, type BrandProfile } from "@/app/(app)/marca/brand-form";
 import { Logo } from "@/components/shell/logo";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { PROFILE_FIELDS } from "@/lib/content";
+import { instagramConfigured } from "@/lib/instagram";
+import { INSTAGRAM_MESSAGES } from "@/lib/instagram-messages";
+import { Notice } from "@/components/ui/notice";
+import { Analyzer } from "@/app/(app)/marca/analyzer";
 import { createClient } from "@/lib/supabase/server";
 import { finishOnboarding } from "./actions";
 
@@ -35,18 +39,31 @@ export default async function BienvenidaPage({ searchParams }: PageProps<"/bienv
     .maybeSingle();
   if (data?.onboarded_at) redirect("/ideas");
 
-  const { paso } = await searchParams;
+  const { paso, instagram } = await searchParams;
   const reviewing = paso === "perfil";
+  const analyzing = paso === "analizando";
+  const igMessage = typeof instagram === "string" ? INSTAGRAM_MESSAGES[instagram] : undefined;
 
   return (
     <main className="min-h-dvh px-4 py-10 sm:py-16">
       <div className="mx-auto w-full max-w-xl space-y-10">
         <div className="space-y-6">
           <Logo className="size-9 text-base" />
-          <Steps current={reviewing ? 2 : 0} />
+          <Steps current={reviewing ? 2 : analyzing ? 1 : 0} />
         </div>
 
-        {reviewing ? (
+        {analyzing ? (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-medium">Mova está analizando tus vídeos</h1>
+              <p className="mt-1 text-base text-fg-3">
+                Lee tus Reels, sus textos, métricas y comentarios para entender de qué hablas, cómo hablas y qué te funciona.
+              </p>
+            </div>
+            <Analyzer auto doneHref="/bienvenida?paso=perfil" label="Analizar mis vídeos" />
+            <Link href="/bienvenida?paso=perfil" className={buttonClasses("ghost")}>Continuar sin analizar</Link>
+          </div>
+        ) : reviewing ? (
           <>
             <div>
               <h1 className="text-2xl font-medium">Revisa tu perfil</h1>
@@ -68,10 +85,18 @@ export default async function BienvenidaPage({ searchParams }: PageProps<"/bienv
                 ofreces y qué te funciona. Sin formularios.
               </p>
             </div>
+            {igMessage && <Notice tone="danger">{igMessage}</Notice>}
             <div className="space-y-2">
-              <Button variant="primary" size="lg" disabled className="w-full">Conectar Instagram</Button>
-              <Button size="lg" disabled className="w-full">Conectar TikTok</Button>
-              <p className="pt-1 text-center text-xs text-fg-3">La conexión con Instagram y TikTok llega pronto.</p>
+              {instagramConfigured() ? (
+                <a href="/api/instagram/connect?desde=bienvenida" className={`${buttonClasses("primary", "lg")} w-full`}>
+                  Conectar Instagram
+                </a>
+              ) : (
+                <Button variant="primary" size="lg" disabled className="w-full">Conectar Instagram</Button>
+              )}
+              <p className="pt-1 text-center text-xs text-fg-3">
+                Necesitas una cuenta profesional de Instagram (de creador o de empresa).
+              </p>
             </div>
             <div className="border-t border-line pt-6 text-center">
               <Link href="/bienvenida?paso=perfil" className={buttonClasses("ghost")}>

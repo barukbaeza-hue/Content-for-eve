@@ -1,15 +1,18 @@
 import { Page } from "@/components/shell/page";
 import { PROFILE_FIELDS } from "@/lib/content";
+import { instagramConfigured } from "@/lib/instagram";
+import { INSTAGRAM_MESSAGES } from "@/lib/instagram-messages";
 import { createClient } from "@/lib/supabase/server";
 import { BrandForm, type BrandProfile } from "./brand-form";
 import { ConnectPanel } from "./connect-panel";
 
-export default async function MiMarcaPage() {
+export default async function MiMarcaPage({ searchParams }: PageProps<"/marca">) {
+  const { analizar, instagram: igStatus } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("brand_profiles")
-    .select(`${PROFILE_FIELDS}, source, analyzed_videos, analyzed_at`)
-    .maybeSingle();
+  const [{ data }, { data: instagram }] = await Promise.all([
+    supabase.from("brand_profiles").select(`${PROFILE_FIELDS}, source, analyzed_videos, analyzed_at`).maybeSingle(),
+    supabase.from("social_accounts").select("username").eq("platform", "instagram").maybeSingle(),
+  ]);
   const profile = data as (BrandProfile & { source: string; analyzed_videos: number; analyzed_at: string | null }) | null;
 
   const analyzed = profile?.analyzed_at
@@ -25,7 +28,13 @@ export default async function MiMarcaPage() {
             Mova lo crea a partir de tus vídeos. Lo usa para que tus ideas, guiones y copys suenen a ti.
           </p>
         </div>
-        <ConnectPanel analyzed={analyzed} />
+        <ConnectPanel
+          analyzed={analyzed}
+          instagram={instagram}
+          canConnect={instagramConfigured()}
+          autoAnalyze={analizar === "1"}
+          message={typeof igStatus === "string" ? INSTAGRAM_MESSAGES[igStatus] : undefined}
+        />
         <BrandForm profile={profile} />
       </div>
     </Page>

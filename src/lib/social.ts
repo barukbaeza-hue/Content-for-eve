@@ -23,8 +23,18 @@ export interface SocialSource {
 
 // Devuelve la fuente conectada del usuario, o null si aún no ha conectado esa red.
 export async function getSocialSource(userId: string, platform: SocialPlatform): Promise<SocialSource | null> {
-  // Todavía no hay ninguna red conectable.
-  void userId;
-  void platform;
-  return null;
+  if (platform !== "instagram") return null;
+
+  const { createClient } = await import("./supabase/server");
+  const { recentVideos } = await import("./instagram");
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("social_accounts")
+    .select("access_token")
+    .eq("user_id", userId)
+    .eq("platform", platform)
+    .maybeSingle();
+  if (!data) return null;
+
+  return { platform, recentVideos: (limit) => recentVideos(data.access_token, limit) };
 }
