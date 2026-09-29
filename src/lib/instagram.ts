@@ -16,6 +16,8 @@ export function instagramConfigured() {
 
 export function authorizeUrl(redirectUri: string, state: string) {
   const params = new URLSearchParams({
+    // Pide siempre iniciar sesión, para que se conecte la cuenta correcta.
+    force_reauth: "true",
     client_id: process.env.INSTAGRAM_APP_ID!,
     redirect_uri: redirectUri,
     response_type: "code",
