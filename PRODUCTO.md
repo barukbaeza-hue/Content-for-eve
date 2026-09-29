@@ -96,7 +96,7 @@ Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cad
 
 1. **Whisper** transcribe con marcas de tiempo por palabra.
 2. **Claude** decide los cortes y el plan de edición, con el contexto y las indicaciones.
-3. **ffmpeg** corta y limpia el audio: el trabajo pesado, rápido y barato.
+3. **ffmpeg** corta el vídeo (el trabajo pesado, rápido y barato) y **DeepFilterNet** limpia el audio: quita el ruido y realza la voz.
 4. **Remotion** añade los subtítulos animados, los zooms, los efectos y la música.
 
 ### Dónde corre
@@ -160,7 +160,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | Ideas y guiones | Chat con IA, ideas y guion en tu voz | Clave de Anthropic |
 | Feed de inspiración | Vídeos de tu nicho y tus referentes, con chat al lado para sacar ideas | Método por decidir (ver Inspiración) |
 | Banco de vídeos | Subida por lotes, copy con IA, cola con días de contenido | Clave de Anthropic |
-| Edición automática | Cortes, audio limpio, subtítulos animados, zooms y música, en cola | Worker con Whisper, ffmpeg y Remotion; Cloudflare R2 |
+| Edición automática | Cortes, audio limpio, subtítulos animados, zooms y música, en cola | Worker con Whisper, ffmpeg, DeepFilterNet y Remotion; Cloudflare R2 |
 | Calendario y publicación | Programar la semana y publicar solo en Instagram y TikTok | Apps de Meta y TikTok |
 | Métricas | Alcance e interacción de cada vídeo, y qué te funciona | Apps de Meta y TikTok |
 
