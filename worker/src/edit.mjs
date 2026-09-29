@@ -3,7 +3,7 @@ import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/p
 import os from "node:os";
 import path from "node:path";
 import { ROOT, config } from "./config.mjs";
-import { alignWords, detectSilences, framingPlan, keepSegments, remapWords, totalDuration } from "./cuts.mjs";
+import { alignWords, detectSilences, framingPlan, keepSegments, remapWords, snapToOnsets, totalDuration } from "./cuts.mjs";
 import { download, remove, supabase, upload } from "./storage.mjs";
 import { buildAss } from "./subtitles.mjs";
 import { run, tools } from "./tools.mjs";
@@ -33,7 +33,8 @@ export async function editVideo(video, log = console.log) {
     const detection = detectSilences(new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length >> 1), 16000);
     const segments = keepSegments(detection.silences, duration);
     // Tiempos de cada palabra corregidos con los silencios reales, para que los subtítulos vayan a tiempo
-    const words = alignWords(rawWords, detection.silences);
+    // y con el inicio de cada palabra ajustado a cuando empieza a sonar
+    const words = snapToOnsets(alignWords(rawWords, detection.silences), detection);
     log(`  ${detection.silences.length} pausas (ruido ${detection.noiseDb} dB, voz ${detection.voiceDb} dB)`);
     const editedWords = remapWords(words, segments);
     // Por defecto solo subtítulos. Título y zoom alterno solo si se piden (prompt o estilo de su marca).

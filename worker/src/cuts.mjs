@@ -39,7 +39,7 @@ export function detectSilences(samples, sampleRate, { frameMs = 20, minSilence =
     const rms = Math.sqrt(sum / frame) / 32768;
     levels.push(20 * Math.log10(Math.max(rms, 1e-6)));
   }
-  if (levels.length === 0) return { silences: [], noiseDb: -120, voiceDb: -120, thresholdDb: -120 };
+  if (levels.length === 0) return { silences: [], levels, frameSeconds: frameMs / 1000, noiseDb: -120, voiceDb: -120, thresholdDb: -120 };
 
   const sorted = [...levels].sort((a, b) => a - b);
   const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
@@ -66,7 +66,14 @@ export function detectSilences(samples, sampleRate, { frameMs = 20, minSilence =
     }
   });
   // Solo hay pausas reales si la voz destaca claramente sobre el ruido
-  return { silences: voiceDb - noiseDb < 10 ? [] : silences, noiseDb: round(noiseDb), voiceDb: round(voiceDb), thresholdDb: round(thresholdDb) };
+  return {
+    silences: voiceDb - noiseDb < 10 ? [] : silences,
+    levels,
+    frameSeconds: seconds,
+    noiseDb: round(noiseDb),
+    voiceDb: round(voiceDb),
+    thresholdDb: round(thresholdDb),
+  };
 }
 
 /**
@@ -85,6 +92,39 @@ export function alignWords(words, silences) {
     }
     if (end <= start) end = start + Math.min(0.3, word.end - word.start || 0.3);
     return { ...word, start: round(start), end: round(end) };
+  });
+}
+
+/**
+ * Ajusta el inicio de cada palabra a cuando de verdad empieza a sonar, para que el subtítulo
+ * aparezca con el arranque de la palabra y no a mitad. Whisper marca más o menos el centro.
+ * - Tras una pausa: la palabra empieza cuando vuelve la voz.
+ * - Hablando seguido: en la bajada de volumen entre palabras, justo antes del tiempo de Whisper.
+ * @param {{ text: string, start: number, end: number }[]} words
+ * @param {{ levels: number[], frameSeconds: number, thresholdDb: number }} audio
+ */
+export function snapToOnsets(words, { levels, frameSeconds, thresholdDb }, { lookBack = 0.3, minDip = 3 } = {}) {
+  if (!levels?.length) return words;
+  const frameAt = (t) => Math.max(0, Math.min(levels.length - 1, Math.round(t / frameSeconds)));
+  let previousStart = -Infinity;
+  return words.map((word) => {
+    const at = frameAt(word.start);
+    const from = Math.max(frameAt(word.start - lookBack), frameAt(previousStart + 0.05));
+    let onset = at;
+    // ¿Hay silencio justo antes? Entonces la palabra arranca en el primer momento con voz
+    let lastQuiet = -1;
+    for (let i = from; i <= at; i++) if (levels[i] < thresholdDb) lastQuiet = i;
+    if (lastQuiet >= 0) {
+      onset = Math.min(at, lastQuiet + 1);
+    } else if (at > from) {
+      // Hablando seguido: el punto más bajo entre palabras, si la bajada es clara
+      let low = at;
+      for (let i = from; i < at; i++) if (levels[i] < levels[low]) low = i;
+      if (levels[at] - levels[low] >= minDip) onset = low;
+    }
+    const start = round(Math.max(onset * frameSeconds, previousStart + 0.05));
+    previousStart = start;
+    return { ...word, start, end: round(Math.max(word.end, start + 0.05)) };
   });
 }
 
