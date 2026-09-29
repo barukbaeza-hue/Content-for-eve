@@ -15,8 +15,10 @@ export async function GET(request: NextRequest) {
   } catch {}
   const target = DESTINATIONS[saved.from ?? "bienvenida"] ?? "/bienvenida";
 
-  const fail = (reason: string) => {
-    const response = NextResponse.redirect(`${base}${target}?instagram=${reason}`);
+  const fail = (reason: string, detail?: string) => {
+    const query = new URLSearchParams({ instagram: reason });
+    if (detail) query.set("detalle", detail.slice(0, 200));
+    const response = NextResponse.redirect(`${base}${target}?${query}`);
     response.cookies.delete({ name: "ig_oauth", path: "/api/instagram" });
     return response;
   };
@@ -48,10 +50,10 @@ export async function GET(request: NextRequest) {
       },
       { onConflict: "user_id,platform" },
     );
-    if (error) return fail("error");
+    if (error) return fail("error", `guardar: ${error.message}`);
   } catch (error) {
     console.error("Error al conectar Instagram:", error);
-    return fail(error instanceof InstagramError ? "rechazado" : "error");
+    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? error.message : undefined);
   }
 
   const next = saved.from === "marca" ? "/marca?analizar=1" : "/bienvenida?paso=analizando";

@@ -6,7 +6,7 @@ import { Logo } from "@/components/shell/logo";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { PROFILE_FIELDS } from "@/lib/content";
 import { instagramConfigured } from "@/lib/instagram";
-import { INSTAGRAM_MESSAGES } from "@/lib/instagram-messages";
+import { instagramMessage } from "@/lib/instagram-messages";
 import { Notice } from "@/components/ui/notice";
 import { Analyzer } from "@/app/(app)/marca/analyzer";
 import { createClient } from "@/lib/supabase/server";
@@ -39,10 +39,10 @@ export default async function BienvenidaPage({ searchParams }: PageProps<"/bienv
     .maybeSingle();
   if (data?.onboarded_at) redirect("/ideas");
 
-  const { paso, instagram } = await searchParams;
+  const { paso, instagram, detalle } = await searchParams;
   const reviewing = paso === "perfil";
   const analyzing = paso === "analizando";
-  const igMessage = typeof instagram === "string" ? INSTAGRAM_MESSAGES[instagram] : undefined;
+  const igMessage = instagramMessage(instagram, detalle);
 
   return (
     <main className="min-h-dvh px-4 py-10 sm:py-16">

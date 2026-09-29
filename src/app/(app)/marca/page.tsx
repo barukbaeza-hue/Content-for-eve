@@ -1,13 +1,13 @@
 import { Page } from "@/components/shell/page";
 import { PROFILE_FIELDS } from "@/lib/content";
 import { instagramConfigured } from "@/lib/instagram";
-import { INSTAGRAM_MESSAGES } from "@/lib/instagram-messages";
+import { instagramMessage } from "@/lib/instagram-messages";
 import { createClient } from "@/lib/supabase/server";
 import { BrandForm, type BrandProfile } from "./brand-form";
 import { ConnectPanel } from "./connect-panel";
 
 export default async function MiMarcaPage({ searchParams }: PageProps<"/marca">) {
-  const { analizar, instagram: igStatus } = await searchParams;
+  const { analizar, instagram: igStatus, detalle } = await searchParams;
   const supabase = await createClient();
   const [{ data }, { data: instagram }] = await Promise.all([
     supabase.from("brand_profiles").select(`${PROFILE_FIELDS}, source, analyzed_videos, analyzed_at`).maybeSingle(),
@@ -33,7 +33,7 @@ export default async function MiMarcaPage({ searchParams }: PageProps<"/marca">)
           instagram={instagram}
           canConnect={instagramConfigured()}
           autoAnalyze={analizar === "1"}
-          message={typeof igStatus === "string" ? INSTAGRAM_MESSAGES[igStatus] : undefined}
+          message={instagramMessage(igStatus, detalle)}
         />
         <BrandForm profile={profile} />
       </div>

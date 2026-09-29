@@ -54,14 +54,20 @@ export async function exchangeCode(code: string, redirectUri: string) {
   // La respuesta puede venir directa o dentro de `data`.
   const short = (body?.data?.[0] ?? body) as { access_token?: string; user_id?: string | number };
   if (!res.ok || !short.access_token) {
-    throw new InstagramError(body?.error_message ?? body?.error?.message ?? "No se pudo conectar Instagram.");
+    throw new InstagramError(`código: ${body?.error_message ?? body?.error?.message ?? res.status}`);
   }
 
-  const long = await graph<{ access_token: string; expires_in: number }>(
-    "https://graph.instagram.com/access_token",
-    short.access_token,
-    { grant_type: "ig_exchange_token", client_secret: process.env.INSTAGRAM_APP_SECRET! },
-  );
+  // Token de larga duración; si falla, se usa el corto (1 hora) para no bloquear la conexión.
+  let long = { access_token: short.access_token, expires_in: 3600 };
+  try {
+    long = await graph<{ access_token: string; expires_in: number }>(
+      "https://graph.instagram.com/access_token",
+      short.access_token,
+      { grant_type: "ig_exchange_token", client_secret: process.env.INSTAGRAM_APP_SECRET! },
+    );
+  } catch (error) {
+    console.error("Token largo de Instagram:", error);
+  }
   return {
     accessToken: long.access_token,
     expiresAt: new Date(Date.now() + long.expires_in * 1000),
@@ -76,10 +82,19 @@ export type InstagramProfile = {
   media_count?: number;
 };
 
-export function getProfile(token: string) {
-  return graph<InstagramProfile>("/me", token, {
-    fields: "user_id,username,profile_picture_url,followers_count,media_count",
-  });
+export async function getProfile(token: string) {
+  try {
+    return await graph<InstagramProfile>("/me", token, {
+      fields: "user_id,username,profile_picture_url,followers_count,media_count",
+    });
+  } catch {
+    // Algunos campos no están disponibles en todas las cuentas: se pide lo mínimo.
+    try {
+      return await graph<InstagramProfile>("/me", token, { fields: "user_id,username" });
+    } catch (error) {
+      throw new InstagramError(`perfil: ${error instanceof Error ? error.message : error}`);
+    }
+  }
 }
 
 type Media = {
