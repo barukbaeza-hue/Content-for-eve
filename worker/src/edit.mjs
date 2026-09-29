@@ -3,7 +3,7 @@ import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/p
 import os from "node:os";
 import path from "node:path";
 import { ROOT, config } from "./config.mjs";
-import { framingPlan, keepSegments, parseSilences, remapWords, totalDuration } from "./cuts.mjs";
+import { alignWords, detectSilences, framingPlan, keepSegments, remapWords, totalDuration } from "./cuts.mjs";
 import { download, remove, supabase, upload } from "./storage.mjs";
 import { buildAss } from "./subtitles.mjs";
 import { run, tools } from "./tools.mjs";
@@ -24,13 +24,17 @@ export async function editVideo(video, log = console.log) {
     const audio = await prepareAudio(raw, dir, log);
 
     log("Transcribiendo con Whisper…");
-    const words = await transcribe(audio.file, dir);
+    const rawWords = await transcribe(audio.file, dir);
 
     log("Buscando silencios…");
-    const { stderr } = await run(tools.ffmpeg, [
-      "-hide_banner", "-i", audio.file, "-af", "silencedetect=noise=-40dB:d=0.45", "-f", "null", "-",
-    ]);
-    const segments = keepSegments(parseSilences(stderr, duration), duration);
+    const pcm = path.join(dir, "voz16k.raw");
+    await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", audio.file, "-ac", "1", "-ar", "16000", "-f", "s16le", pcm]);
+    const buffer = await readFile(pcm);
+    const detection = detectSilences(new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length >> 1), 16000);
+    const segments = keepSegments(detection.silences, duration);
+    // Tiempos de cada palabra corregidos con los silencios reales, para que los subtítulos vayan a tiempo
+    const words = alignWords(rawWords, detection.silences);
+    log(`  ${detection.silences.length} pausas (ruido ${detection.noiseDb} dB, voz ${detection.voiceDb} dB)`);
     const editedWords = remapWords(words, segments);
     // Por defecto solo subtítulos. Título y zoom alterno solo si se piden (prompt o estilo de su marca).
     const extras = video.card?.estilo ?? {};
@@ -70,6 +74,7 @@ export async function editVideo(video, log = console.log) {
             duracion_original: round(duration),
             duracion_final: editedDuration,
             tramos: segments.length,
+            pausas: detection.silences.length,
             planos: pieces.length,
             subtitulos: true,
             audio: audio.info,
@@ -182,7 +187,8 @@ async function render({ raw, audio, pieces, words, title, width, height, output,
   await run(
     tools.ffmpeg,
     [
-      "-y", "-hide_banner", "-i", raw, "-i", audio,
+      // Decodificación por hardware si el equipo la tiene (acelera mucho los originales HEVC del iPhone)
+      "-y", "-hide_banner", "-hwaccel", "auto", "-i", raw, "-i", audio,
       "-/filter_complex", "filtro.txt",
       "-map", "[vo]", "-map", "[ao]",
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",

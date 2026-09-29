@@ -67,23 +67,42 @@ export function buildAss(words, { width, height }, { title = null, style = DEFAU
   ];
 
   // Capa 0: sombra difusa (el mismo texto en negro y desenfocado). Capa 1: el texto nítido.
-  const shade = `\\1c&H000000&\\1a&H${style.shadowColor.slice(2, 4)}&\\blur${shadow * 6}`;
-  const layered = (start, end, styleName, text) => [
-    `Dialogue: 0,${start},${end},${styleName},,0,0,0,,{\\fad(120,60)${shade}}${text}`,
-    `Dialogue: 1,${start},${end},${styleName},,0,0,0,,{\\fad(120,60)}${text}`,
+  const shadowAlpha = style.shadowColor.slice(2, 4);
+  const shade = `\\1c&H000000&\\blur${shadow * 6}`;
+  const layered = (start, end, styleName, text, shadowText = text) => [
+    `Dialogue: 0,${start},${end},${styleName},,0,0,0,,{${shade}\\1a&H${shadowAlpha}&}${shadowText}`,
+    `Dialogue: 1,${start},${end},${styleName},,0,0,0,,${text}`,
   ];
 
   const titleText = title ? clean(title.trim()) : "";
-  const titleEvents = titleText ? layered(time(0), time(style.titleSeconds), "Title", titleText) : [];
+  const titleEvents = titleText
+    ? layered(time(0), time(style.titleSeconds), "Title", `{\\fad(120,60)}${titleText}`, `{\\fad(120,60)}${titleText}`)
+    : [];
 
+  // Cada línea (2-4 palabras) se queda fija y sus palabras van apareciendo una a una al decirlas.
+  // Las que aún no se han dicho están, pero invisibles, para que la línea no se mueva.
+  const LEAD = 0.05; // un pelín antes de la voz se percibe sincronizado
   const groups = groupWords(words, style);
   const events = groups.flatMap((group, g) => {
     const next = groups[g + 1];
-    const start = time(group[0].start);
-    // La frase se queda hasta la siguiente si la pausa es corta, para que no parpadee
-    const end = time(next && next[0].start - group.at(-1).end < 0.5 ? next[0].start : group.at(-1).end + 0.25);
-    const text = group.map((w) => clean(w.text)).join(" ");
-    return layered(start, end, "Default", text);
+    // La línea se queda hasta la siguiente si la pausa es corta, para que no parpadee
+    const groupEnd = next && next[0].start - group.at(-1).end < 0.5 ? next[0].start - LEAD : group.at(-1).end + 0.25;
+    return group.flatMap((word, i) => {
+      const start = Math.max(0, word.start - LEAD);
+      const end = i < group.length - 1 ? group[i + 1].start - LEAD : groupEnd;
+      if (end <= start) return [];
+      const line = (visibleAlpha) =>
+        group
+          .map((w, j) => {
+            const text = clean(w.text);
+            if (j > i) return `{\\alpha&HFF&}${text}`;
+            // La palabra nueva entra con un fundido corto
+            if (j === i) return `{\\alpha&HFF&\\t(0,90,\\alpha&H${visibleAlpha}&)}${text}`;
+            return `{\\alpha&H${visibleAlpha}&}${text}`;
+          })
+          .join(" ");
+      return layered(time(start), time(end), "Default", line("00"), line(shadowAlpha));
+    });
   });
   return [...header, ...titleEvents, ...events, ""].join("\n");
 }

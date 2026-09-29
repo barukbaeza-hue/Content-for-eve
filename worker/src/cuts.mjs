@@ -24,13 +24,78 @@ export function parseSilences(log, duration) {
 }
 
 /**
+ * Detecta silencios con un umbral que se adapta a cada vídeo: mide el ruido de fondo y el nivel de la voz,
+ * y considera silencio lo que queda cerca del ruido durante al menos `minSilence` segundos.
+ * @param {Int16Array} samples audio mono
+ * @param {number} sampleRate
+ * @returns {{ silences: { start: number, end: number }[], noiseDb: number, voiceDb: number, thresholdDb: number }}
+ */
+export function detectSilences(samples, sampleRate, { frameMs = 20, minSilence = 0.4, position = 0.3 } = {}) {
+  const frame = Math.round((sampleRate * frameMs) / 1000);
+  const levels = [];
+  for (let i = 0; i + frame <= samples.length; i += frame) {
+    let sum = 0;
+    for (let j = i; j < i + frame; j++) sum += samples[j] * samples[j];
+    const rms = Math.sqrt(sum / frame) / 32768;
+    levels.push(20 * Math.log10(Math.max(rms, 1e-6)));
+  }
+  if (levels.length === 0) return { silences: [], noiseDb: -120, voiceDb: -120, thresholdDb: -120 };
+
+  const sorted = [...levels].sort((a, b) => a - b);
+  const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+  const noiseDb = pct(0.1);
+  const voiceDb = pct(0.9);
+  // Umbral a un 30 % del camino entre el ruido y la voz (en dB)
+  const thresholdDb = noiseDb + (voiceDb - noiseDb) * position;
+
+  // Suaviza con una ventana corta para que una consonante suelta no rompa el silencio
+  const quiet = levels.map((_, i) => {
+    const window = levels.slice(Math.max(0, i - 2), i + 3);
+    return Math.max(...window) < thresholdDb;
+  });
+
+  const silences = [];
+  const seconds = frameMs / 1000;
+  let start = null;
+  quiet.forEach((isQuiet, i) => {
+    if (isQuiet && start === null) start = i;
+    if ((!isQuiet || i === quiet.length - 1) && start !== null) {
+      const end = isQuiet ? i + 1 : i;
+      if ((end - start) * seconds >= minSilence) silences.push({ start: round(start * seconds), end: round(end * seconds) });
+      start = null;
+    }
+  });
+  // Solo hay pausas reales si la voz destaca claramente sobre el ruido
+  return { silences: voiceDb - noiseDb < 10 ? [] : silences, noiseDb: round(noiseDb), voiceDb: round(voiceDb), thresholdDb: round(thresholdDb) };
+}
+
+/**
+ * Corrige los tiempos de Whisper con los silencios reales: Whisper suele alargar la palabra anterior a una pausa
+ * o adelantar la siguiente, y eso desfasa los subtítulos. Ninguna palabra puede empezar o acabar dentro de un silencio.
+ * @param {{ text: string, start: number, end: number }[]} words
+ * @param {{ start: number, end: number }[]} silences
+ */
+export function alignWords(words, silences) {
+  return words.map((word) => {
+    let { start, end } = word;
+    for (const s of silences) {
+      if (start >= s.start && start < s.end) start = s.end; // empieza en un silencio: se retrasa al final de la pausa
+      if (end > s.start && end <= s.end) end = s.start; // acaba en un silencio: se adelanta al inicio de la pausa
+      if (start < s.start && end > s.end && s.end - s.start > 0.6) end = s.start; // una pausa larga no puede ir dentro de una palabra
+    }
+    if (end <= start) end = start + Math.min(0.3, word.end - word.start || 0.3);
+    return { ...word, start: round(start), end: round(end) };
+  });
+}
+
+/**
  * Tramos que se conservan: todo menos los silencios, dejando un respiro a cada lado.
  * @param {{ start: number, end: number }[]} silences
  * @param {number} duration
  * @param {{ pad?: number, minKeep?: number }} [options]
  * @returns {{ start: number, end: number }[]}
  */
-export function keepSegments(silences, duration, { pad = 0.15, minKeep = 0.25 } = {}) {
+export function keepSegments(silences, duration, { pad = 0.1, minKeep = 0.25 } = {}) {
   const segments = [];
   let cursor = 0;
   for (const silence of silences) {
