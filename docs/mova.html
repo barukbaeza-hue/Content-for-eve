@@ -155,6 +155,16 @@
   .original p { color: var(--fg-3); }
 
 
+
+  /* Costos */
+  .table-wrap { border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+  .costs { width: 100%; border-collapse: collapse; color: var(--fg-2); }
+  .costs th, .costs td { text-align: left; padding: 10px 14px; vertical-align: top; }
+  .costs th { color: var(--fg-3); font-weight: var(--medium); background: var(--surface-2); }
+  .costs tr + tr td, .costs thead + tbody tr:first-child td { border-top: 1px solid var(--line); }
+  .costs td.num { width: 38%; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .costs tr.total td { color: var(--fg); font-weight: var(--medium); }
+
   /* Figuras explicativas */
   figure.fig {
     margin: 4px 0 0; padding: 20px; border: 1px solid var(--line); border-radius: 8px;
@@ -253,6 +263,7 @@
       <span class="nav-label t-xs">Documento</span>
       <a href="#icp" class="active">ICP</a>
       <a href="#pilares">Pilares</a>
+      <a href="#costos">Costos</a>
       <a href="#descripcion">Descripción</a>
       <a href="#idea-original">Idea original</a>
     </nav>
@@ -381,6 +392,56 @@
             <figcaption class="t-sm">El banco de vídeos. Los vídeos listos esperan en cola, salen a medida que se publican y Mova te avisa antes de que el banco se vacíe.</figcaption>
           </figure>
           </div>
+        </section>
+
+        <section id="costos">
+          <div class="section-head">
+            <h2 class="t-xl">Costos</h2>
+            <span class="badge t-2xs">Estimación</span>
+          </div>
+          <p class="lead">Estimación para una usuaria (Evelyn) con Instagram. La IA es <strong>Claude Sonnet 5</strong>: $2 por millón de tokens de entrada y $10 por millón de salida (precio oficial de Anthropic). Los tokens están estimados a partir del texto real que envía Mova.</p>
+          <div class="sub">
+            <h3 class="t-lg">IA por acción</h3>
+            <div class="table-wrap"><table class="costs t-sm">
+              <thead><tr><th>Acción</th><th>Coste aprox.</th></tr></thead>
+              <tbody>
+                <tr><td>Mensaje en el chat de ideas (con el historial reciente)</td><td class="num">~2 céntimos</td></tr>
+                <tr><td>Copy de un vídeo</td><td class="num">~1 céntimo</td></tr>
+                <tr><td>Análisis del perfil (últimos 20 vídeos)</td><td class="num">~6 céntimos</td></tr>
+                <tr class="total"><td>Por vídeo publicado (2 mensajes de ideas + 2 copys)</td><td class="num">~5 a 7 céntimos</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">IA al mes</h3>
+            <div class="table-wrap"><table class="costs t-sm">
+              <thead><tr><th>Ritmo</th><th>Coste al mes</th></tr></thead>
+              <tbody>
+                <tr><td>3 vídeos por semana (~12 al mes)</td><td class="num">~$0,70</td></tr>
+                <tr><td>1 vídeo al día (~30 al mes)</td><td class="num">~$1,50 a $2,10</td></tr>
+                <tr><td>2 vídeos al día (~60 al mes)</td><td class="num">~$3 a $4,20</td></tr>
+              </tbody>
+            </table></div>
+            <p class="prose">Una recarga de $5 da para unos 3 meses a 1 vídeo al día. Conviene poner un límite de gasto mensual en la consola de Anthropic.</p>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Otros servicios</h3>
+            <div class="table-wrap"><table class="costs t-sm">
+              <thead><tr><th>Servicio</th><th>Coste</th></tr></thead>
+              <tbody>
+                <tr><td>API de Instagram (Meta): conexión, métricas y publicación</td><td class="num">Gratis</td></tr>
+                <tr><td>Vercel (la web). El plan gratuito es solo para uso no comercial</td><td class="num">Gratis · Pro $20/mes con clientes</td></tr>
+                <tr><td>Supabase (base de datos y archivos). Gratis hasta 500 MB de datos y 1 GB de archivos</td><td class="num">Gratis · Pro $25/mes al subir vídeos</td></tr>
+                <tr><td>Groq (transcripción, más adelante)</td><td class="num">Gratis · &lt;1 céntimo por vídeo</td></tr>
+                <tr><td>Renderizado (edición automática). Por decidir: en el navegador o con un servicio externo</td><td class="num">$0 a unos céntimos por vídeo</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+          <ul class="list">
+            <li><strong>Prueba con Evelyn:</strong> unos $2 al mes, solo de IA.</li>
+            <li><strong>Con clientes:</strong> unos $45 al mes fijos (Vercel Pro y Supabase Pro) más $2 a $4 de IA por cada usuario activo.</li>
+            <li>Precios a septiembre de 2026. Los de Vercel, Supabase y Groq hay que confirmarlos en sus webs antes de pagar.</li>
+          </ul>
         </section>
 
         <section id="descripcion">
