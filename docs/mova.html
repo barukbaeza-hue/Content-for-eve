@@ -263,6 +263,7 @@
       <span class="nav-label t-xs">Documento</span>
       <a href="#icp" class="active">ICP</a>
       <a href="#pilares">Pilares</a>
+      <a href="#edicion">Edición</a>
       <a href="#costos">Costos</a>
       <a href="#descripcion">Descripción</a>
       <a href="#idea-original">Idea original</a>
@@ -321,7 +322,7 @@
           <ol class="pillars">
             <li><span class="n t-sm">1</span><span><strong>Conocer:</strong> quién eres, cómo hablas, tu negocio y tu contenido pasado.</span></li>
             <li><span class="n t-sm">2</span><span><strong>Idear:</strong> ideas desde tu negocio y lo que funciona, con guion en tu voz (lo puedes afinar tú); plan semanal.</span></li>
-            <li><span class="n t-sm">3</span><span><strong>Editar:</strong> subes tus vídeos grabados (solo la grabación va fuera de Mova); Mova los edita automáticamente en cola y escribe el copy. El método de edición está por redefinir.</span></li>
+            <li><span class="n t-sm">3</span><span><strong>Editar:</strong> subes tus vídeos grabados (solo la grabación va fuera de Mova); Mova los edita automáticamente en cola, con su estilo y sus indicaciones, y escribe el copy.</span></li>
             <li><span class="n t-sm">4</span><span><strong>Publicar:</strong> banco de vídeos, calendario y publicación en Instagram y TikTok.</span></li>
             <li><span class="n t-sm">5</span><span><strong>Conversar:</strong> bandeja de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat.</span></li>
             <li><span class="n t-sm">6</span><span><strong>Aprender:</strong> qué funciona; vuelve al pilar 1.</span></li>
@@ -394,6 +395,70 @@
           </div>
         </section>
 
+        <section id="edicion">
+          <div class="section-head">
+            <h2 class="t-xl">Edición automática</h2>
+            <span class="badge t-2xs">Decidido</span>
+          </div>
+          <p class="lead">Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cada vídeo se edita <strong>con el contexto de los vídeos del founder</strong> y con <strong>sus indicaciones</strong>.</p>
+          <div class="sub">
+            <h3 class="t-lg">Qué hace en la primera versión</h3>
+            <ul class="list">
+              <li>Corta silencios y tomas repetidas, usando el guion para quedarse con la mejor toma.</li>
+              <li>Limpia el audio: quita ruido y nivela el volumen.</li>
+              <li>Subtítulos animados y zooms suaves en momentos clave.</li>
+              <li>Música libre de derechos incluida en el vídeo: biblioteca propia de Mova, elegida según el tono y con volumen bajo mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.</li>
+              <li>Más adelante: b-roll (imágenes de apoyo encima de lo que dices).</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Editado con contexto</h3>
+            <ul class="list">
+              <li><strong>Estilo del founder:</strong> Mova aprende de sus vídeos cómo edita (ritmo de cortes, estilo de subtítulos, zooms, tipo de música y duración) y qué estilo le da mejores métricas. Los vídeos nuevos siguen ese estilo.</li>
+              <li><strong>Memoria del founder:</strong> usa el guion, su tono y las fichas de sus vídeos anteriores, por ejemplo para no repetir la misma música varios días seguidos.</li>
+              <li><strong>Indicaciones (prompt):</strong> el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat.</li>
+              <li><strong>Prioridad:</strong> primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Cómo funciona</h3>
+            <ol class="pillars">
+              <li><span class="n t-sm">1</span><span><strong>Whisper</strong> transcribe con marcas de tiempo por palabra.</span></li>
+              <li><span class="n t-sm">2</span><span><strong>Claude</strong> decide los cortes y el plan de edición, con el contexto y las indicaciones.</span></li>
+              <li><span class="n t-sm">3</span><span><strong>ffmpeg</strong> corta y limpia el audio: el trabajo pesado, rápido y barato.</span></li>
+              <li><span class="n t-sm">4</span><span><strong>Remotion</strong> añade los subtítulos animados, los zooms, los efectos y la música.</span></li>
+            </ol>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Dónde corre</h3>
+            <ul class="list">
+              <li>Por ahora en el computador del equipo (Windows, 16 GB de RAM, 512 GB de disco), como un programa (worker) que revisa una cola en Supabase.</li>
+              <li>El computador no queda expuesto a internet: el worker sale a buscar trabajo y no recibe conexiones.</li>
+              <li>Si el computador está apagado, los vídeos esperan en la cola.</li>
+              <li>Cuando haya clientes, el mismo worker pasa a un servidor en la nube sin reescribirlo.</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Almacenamiento: Cloudflare R2</h3>
+            <ul class="list">
+              <li>10 GB gratis; después, ~$0,015 por GB al mes y sin costo por descargas.</li>
+              <li>Da el enlace público que Instagram necesita para publicar.</li>
+              <li>Ciclo de cada vídeo: el original se borra al editarlo, el editado vive en el banco y, al publicarse en Instagram, se borra de Mova.</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">Ficha de cada vídeo</h3>
+            <p class="prose">Antes de borrar el vídeo, Mova guarda su ficha en la memoria del founder. Es solo texto:</p>
+            <ul class="list">
+              <li><strong>Lo que dice:</strong> transcripción, temas, gancho y llamada a la acción.</li>
+              <li><strong>Lo que se ve:</strong> Claude mira unos fotogramas y anota ropa, lugar, encuadre, luz y si sale alguien más (~1 céntimo por vídeo).</li>
+              <li><strong>Cómo se editó:</strong> estilo, música e indicaciones usadas.</li>
+              <li><strong>Cómo rindió:</strong> las métricas de Instagram.</li>
+            </ul>
+            <p class="prose">Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual y la edición con las métricas ("tus vídeos en exteriores tienen el doble de vistas") y encontrar vídeos pasados ("¿en qué vídeo hablé de mi primera venta?").</p>
+          </div>
+        </section>
+
         <section id="costos">
           <div class="section-head">
             <h2 class="t-xl">Costos</h2>
@@ -402,7 +467,7 @@
           <p class="lead">Estimación para una usuaria (Evelyn) con Instagram. La IA es <strong>Claude Sonnet 5</strong>: $2 por millón de tokens de entrada y $10 por millón de salida (precio oficial de Anthropic). Los tokens están estimados a partir del texto real que envía Mova.</p>
           <div class="sub">
             <h3 class="t-lg">Costo por cliente <span class="note t-sm">(la base para fijar el precio)</span></h3>
-            <p class="callout"><strong>~$1,50 a $2,10 por cliente al mes</strong> a 1 vídeo al día, más <strong>$45 al mes fijos</strong> para toda la plataforma. Todavía falta sumar la edición automática.</p>
+            <p class="callout"><strong>~$1,50 a $2,10 por cliente al mes</strong> a 1 vídeo al día, más <strong>$45 al mes fijos</strong> para toda la plataforma. La edición automática cuesta $0 mientras corra en el computador del equipo.</p>
             <div class="table-wrap"><table class="costs t-sm">
               <thead><tr><th>Concepto</th><th>Costo al mes</th></tr></thead>
               <tbody>
@@ -412,7 +477,7 @@
               </tbody>
             </table></div>
             <ul class="list">
-              <li><strong>Edición automática:</strong> falta. Puede ser el mayor costo por cliente, así que el método de renderizado decide el costo final.</li>
+              <li><strong>Edición automática:</strong> $0 mientras corra en el computador del equipo. La ficha visual de cada vídeo suma ~$0,30 por cliente al mes. En un servidor en la nube, sumar ~$20 a $40 al mes fijos.</li>
             </ul>
           </div>
           <div class="sub">

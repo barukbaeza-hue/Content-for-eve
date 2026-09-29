@@ -75,7 +75,7 @@ TikTok no ofrece una API oficial de descubrimiento de contenido para uso comerci
 
 ## Edición automática
 
-Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien.
+Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cada vídeo se edita **con el contexto de los vídeos del founder** y con **sus indicaciones**.
 
 ### Qué hace en la primera versión
 
@@ -85,10 +85,17 @@ Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien.
 - Música libre de derechos incluida en el vídeo. Mova tiene una biblioteca propia, elige el tema según el tono y baja el volumen mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.
 - Más adelante: b-roll (imágenes de apoyo encima de lo que dices).
 
+### Editado con contexto
+
+- **Estilo del founder:** Mova aprende de sus vídeos cómo edita (ritmo de cortes, estilo de subtítulos, zooms, tipo de música y duración) y qué estilo le da mejores métricas. Los vídeos nuevos siguen ese estilo.
+- **Memoria del founder:** usa el guion, su tono y las fichas de sus vídeos anteriores, por ejemplo para no repetir la misma música varios días seguidos.
+- **Indicaciones (prompt):** el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat.
+- **Prioridad:** primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.
+
 ### Cómo funciona
 
 1. **Whisper** transcribe con marcas de tiempo por palabra.
-2. **Claude** decide los cortes.
+2. **Claude** decide los cortes y el plan de edición, con el contexto y las indicaciones.
 3. **ffmpeg** corta y limpia el audio: el trabajo pesado, rápido y barato.
 4. **Remotion** añade los subtítulos animados, los zooms, los efectos y la música.
 
@@ -111,9 +118,10 @@ Antes de borrar el vídeo, Mova guarda su ficha en la memoria del founder. Es so
 
 - **Lo que dice:** transcripción, temas, gancho y llamada a la acción.
 - **Lo que se ve:** Claude mira unos fotogramas y anota ropa, lugar, encuadre, luz y si sale alguien más (~1 céntimo por vídeo).
+- **Cómo se editó:** estilo, música e indicaciones usadas.
 - **Cómo rindió:** las métricas de Instagram.
 
-Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual con las métricas ("tus vídeos en exteriores tienen el doble de vistas") y encontrar vídeos pasados ("¿en qué vídeo hablé de mi primera venta?").
+Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual y la edición con las métricas ("tus vídeos en exteriores tienen el doble de vistas") y encontrar vídeos pasados ("¿en qué vídeo hablé de mi primera venta?").
 
 ## Principios
 
