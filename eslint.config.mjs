@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Worker de edición: programa aparte con su propio package.json
+    "worker/**",
   ]),
 ]);
 

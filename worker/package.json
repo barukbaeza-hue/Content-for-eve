@@ -1,0 +1,18 @@
+{
+  "name": "mova-worker",
+  "private": true,
+  "type": "module",
+  "description": "Worker de edición automática de Mova",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/index.mjs",
+    "probar": "node --env-file=.env src/probar.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1142.0",
+    "@aws-sdk/lib-storage": "^3.1142.0",
+    "@supabase/supabase-js": "^2.117.2"
+  }
+}
