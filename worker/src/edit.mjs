@@ -1,5 +1,5 @@
 // Edición de un vídeo: limpia el audio, transcribe, quita silencios, pone subtítulos y monta el vídeo final.
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { ROOT, config } from "./config.mjs";
@@ -166,6 +166,8 @@ async function render({ raw, audio, segments, words, width, height, output, dir 
   const outWidth = Math.min(1080, width) - (Math.min(1080, width) % 2);
   const outHeight = Math.round((height * outWidth) / width / 2) * 2;
   await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width: outWidth, height: outHeight }));
+  // Tipografías de los subtítulos (Geist), junto al archivo para que la ruta sea simple en Windows
+  await cp(path.join(ROOT, "fonts"), path.join(dir, "fonts"), { recursive: true });
 
   const parts = segments.map(
     (s, i) =>
@@ -176,7 +178,7 @@ async function render({ raw, audio, segments, words, width, height, output, dir 
   const graph =
     parts.join("") +
     `${inputs}concat=n=${segments.length}:v=1:a=1[vc][ac];` +
-    `[vc]scale=${outWidth}:${outHeight},setsar=1,fps=30,subtitles=subtitulos.ass,format=yuv420p[vo];` +
+    `[vc]scale=${outWidth}:${outHeight},setsar=1,fps=30,subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
     `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[ao]`;
 
   // Con muchos tramos el filtro no cabe en la línea de comandos de Windows: va en un archivo.

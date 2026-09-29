@@ -1,12 +1,23 @@
-// Subtítulos estilo Reels en formato ASS: 2-3 palabras a la vez y la palabra que se dice resaltada.
+// Subtítulos en formato ASS, estilo minimalista para founder creators:
+// Geist en blanco, de a tres palabras, con una aparición suave y una sombra difusa que solo da legibilidad.
 
-const HIGHLIGHT = "&H0000D7FF&"; // amarillo (ASS usa azul-verde-rojo)
+/** Estilo por defecto. Más adelante cada founder tendrá el suyo según su marca. */
+export const DEFAULT_STYLE = {
+  font: "Geist Medium",
+  sizeRatio: 0.04, // alto de letra respecto al alto del vídeo
+  color: "&H00FFFFFF", // blanco (ASS: alfa-azul-verde-rojo)
+  shadowColor: "&H80000000", // negro al 50 %
+  spacing: -0.5, // tracking ligeramente negativo
+  positionRatio: 0.2, // distancia desde abajo
+  maxWords: 3,
+  maxChars: 22,
+};
 
 /**
  * Agrupa las palabras en frases cortas: se corta por longitud, por puntuación o por una pausa.
  * @param {{ text: string, start: number, end: number }[]} words
  */
-export function groupWords(words, { maxWords = 3, maxChars = 18, maxGap = 0.35 } = {}) {
+export function groupWords(words, { maxWords = 3, maxChars = 22, maxGap = 0.35 } = {}) {
   const groups = [];
   let current = [];
   for (const word of words) {
@@ -29,10 +40,10 @@ export function groupWords(words, { maxWords = 3, maxChars = 18, maxGap = 0.35 }
  * @param {{ text: string, start: number, end: number }[]} words tiempos del vídeo ya cortado
  * @param {{ width: number, height: number }} size tamaño del vídeo final
  */
-export function buildAss(words, { width, height }) {
-  const fontSize = Math.round(height * 0.056);
-  const outline = Math.max(3, Math.round(fontSize * 0.09));
-  const marginV = Math.round(height * 0.26);
+export function buildAss(words, { width, height }, style = DEFAULT_STYLE) {
+  const fontSize = Math.round(height * style.sizeRatio);
+  const shadow = Math.max(1, Math.round(fontSize * 0.04));
+  const marginV = Math.round(height * style.positionRatio);
   const header = [
     "[Script Info]",
     "ScriptType: v4.00+",
@@ -43,35 +54,32 @@ export function buildAss(words, { width, height }) {
     "",
     "[V4+ Styles]",
     "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-    `Style: Default,Arial,${fontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,${outline},${Math.round(outline / 2)},2,60,60,${marginV},1`,
+    `Style: Default,${style.font},${fontSize},${style.color},${style.color},${style.shadowColor},${style.shadowColor},0,0,0,0,100,100,${style.spacing},0,1,0,0,2,80,80,${marginV},1`,
     "",
     "[Events]",
     "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
   ];
 
-  const events = [];
-  const groups = groupWords(words);
-  groups.forEach((group, g) => {
+  const groups = groupWords(words, style);
+  const events = groups.flatMap((group, g) => {
     const next = groups[g + 1];
-    // La frase se queda en pantalla hasta la siguiente si la pausa es corta
-    const groupEnd = next && next[0].start - group.at(-1).end < 0.5 ? next[0].start : group.at(-1).end + 0.2;
-    group.forEach((word, i) => {
-      const start = word.start;
-      const end = i < group.length - 1 ? group[i + 1].start : groupEnd;
-      if (end <= start) return;
-      const text = group
-        .map((w, j) => (j === i ? `{\\c${HIGHLIGHT}}${escape(w.text)}{\\c&H00FFFFFF&}` : escape(w.text)))
-        .join(" ");
-      // Al aparecer la frase, un pequeño "pop"
-      const pop = i === 0 ? "{\\fscx88\\fscy88\\t(0,90,\\fscx104\\fscy104)\\t(90,160,\\fscx100\\fscy100)}" : "";
-      events.push(`Dialogue: 0,${time(start)},${time(end)},Default,,0,0,0,,${pop}${text}`);
-    });
+    const start = time(group[0].start);
+    // La frase se queda hasta la siguiente si la pausa es corta, para que no parpadee
+    const end = time(next && next[0].start - group.at(-1).end < 0.5 ? next[0].start : group.at(-1).end + 0.25);
+    const text = group.map((w) => clean(w.text)).join(" ");
+    // Capa 0: sombra difusa (el mismo texto en negro y desenfocado). Capa 1: el texto nítido.
+    const shade = `{\\fad(120,60)\\1c${style.shadowColor.slice(0, 2)}000000&\\1a&H${style.shadowColor.slice(2, 4)}&\\blur${shadow * 6}}`;
+    return [
+      `Dialogue: 0,${start},${end},Default,,0,0,0,,${shade}${text}`,
+      `Dialogue: 1,${start},${end},Default,,0,0,0,,{\\fad(120,60)}${text}`,
+    ];
   });
   return [...header, ...events, ""].join("\n");
 }
 
-function escape(text) {
-  return text.replace(/[{}]/g, "").replace(/\\/g, "");
+// Sin comas ni puntos finales: en pantalla se lee más limpio. Se mantienen ¿? y ¡!
+function clean(text) {
+  return text.replace(/[{}\\]/g, "").replace(/[.,;:]+$/g, "");
 }
 
 // Formato de tiempo ASS: h:mm:ss.cc
