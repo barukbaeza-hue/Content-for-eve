@@ -3,7 +3,7 @@ import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/p
 import os from "node:os";
 import path from "node:path";
 import { ROOT, config } from "./config.mjs";
-import { keepSegments, parseSilences, remapWords, totalDuration } from "./cuts.mjs";
+import { framingPlan, keepSegments, parseSilences, remapWords, totalDuration } from "./cuts.mjs";
 import { download, remove, supabase, upload } from "./storage.mjs";
 import { buildAss } from "./subtitles.mjs";
 import { run, tools } from "./tools.mjs";
@@ -32,10 +32,12 @@ export async function editVideo(video, log = console.log) {
     ]);
     const segments = keepSegments(parseSilences(stderr, duration), duration);
     const editedWords = remapWords(words, segments);
+    const pieces = framingPlan(segments, words);
+    const title = video.card?.titulo ?? null;
 
-    log(`Montando el vídeo (${segments.length} tramos, ${editedWords.length} palabras de subtítulos)…`);
+    log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
     const output = path.join(dir, "editado.mp4");
-    await render({ raw, audio: audio.file, segments, words: editedWords, width, height, output, dir });
+    await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, dir });
 
     const key = `videos/${video.user_id}/${video.id}/editado.mp4`;
     log("Subiendo el vídeo editado…");
@@ -66,6 +68,7 @@ export async function editVideo(video, log = console.log) {
             duracion_original: round(duration),
             duracion_final: editedDuration,
             tramos: segments.length,
+            planos: pieces.length,
             subtitulos: true,
             audio: audio.info,
             indicaciones: video.edit_instructions ?? null,
@@ -161,25 +164,15 @@ async function transcribe(audioFile, dir) {
     .filter((w) => w.text && !/^\[.*\]$/.test(w.text));
 }
 
-// Corta los tramos, quema los subtítulos y deja el formato de Reels (H.264, AAC estéreo 48 kHz).
-async function render({ raw, audio, segments, words, width, height, output, dir }) {
+// Corta los planos (con zoom alterno), quema los subtítulos y deja el formato de Reels (H.264, AAC estéreo 48 kHz).
+async function render({ raw, audio, pieces, words, title, width, height, output, dir }) {
   const outWidth = Math.min(1080, width) - (Math.min(1080, width) % 2);
   const outHeight = Math.round((height * outWidth) / width / 2) * 2;
-  await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width: outWidth, height: outHeight }));
+  await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width: outWidth, height: outHeight }, { title }));
   // Tipografías de los subtítulos (Geist), junto al archivo para que la ruta sea simple en Windows
   await cp(path.join(ROOT, "fonts"), path.join(dir, "fonts"), { recursive: true });
 
-  const parts = segments.map(
-    (s, i) =>
-      `[0:v]trim=start=${s.start}:end=${s.end},setpts=PTS-STARTPTS[v${i}];` +
-      `[1:a]atrim=start=${s.start}:end=${s.end},asetpts=PTS-STARTPTS[a${i}];`,
-  );
-  const inputs = segments.map((_, i) => `[v${i}][a${i}]`).join("");
-  const graph =
-    parts.join("") +
-    `${inputs}concat=n=${segments.length}:v=1:a=1[vc][ac];` +
-    `[vc]scale=${outWidth}:${outHeight},setsar=1,fps=30,subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
-    `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[ao]`;
+  const graph = buildGraph(pieces, outWidth, outHeight);
 
   // Con muchos tramos el filtro no cabe en la línea de comandos de Windows: va en un archivo.
   // ffmpeg corre dentro de la carpeta temporal para que la ruta de los subtítulos sea simple.
@@ -195,6 +188,25 @@ async function render({ raw, audio, segments, words, width, height, output, dir 
       output,
     ],
     { cwd: dir },
+  );
+}
+
+/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos y audio en formato de Reels. */
+export function buildGraph(pieces, outWidth, outHeight) {
+  const parts = pieces.map((p, i) => {
+    // Plano cerrado: recorta el centro (algo por encima, donde está la cara) y lo vuelve a escalar
+    const zoom = p.zoom > 1 ? `crop=iw/${p.zoom}:ih/${p.zoom}:(iw-iw/${p.zoom})/2:(ih-ih/${p.zoom})*0.35,` : "";
+    return (
+      `[0:v]trim=start=${p.start}:end=${p.end},setpts=PTS-STARTPTS,${zoom}scale=${outWidth}:${outHeight},setsar=1[v${i}];` +
+      `[1:a]atrim=start=${p.start}:end=${p.end},asetpts=PTS-STARTPTS[a${i}];`
+    );
+  });
+  const inputs = pieces.map((_, i) => `[v${i}][a${i}]`).join("");
+  return (
+    parts.join("") +
+    `${inputs}concat=n=${pieces.length}:v=1:a=1[vc][ac];` +
+    `[vc]fps=30,subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
+    `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[ao]`
   );
 }
 

@@ -1,13 +1,20 @@
 // Pone en la cola un vídeo del PC para probar la edición sin pasar por la web.
-// Uso: npm run probar -- "C:\ruta\al\video.mp4" ["indicaciones"]
+// Uso: npm run probar -- "C:\ruta\al\video.mp4" [--titulo "Título arriba"] [--indicaciones "más dinámico"]
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { supabase, upload } from "./storage.mjs";
 
-const [file, instructions] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const option = (name) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const file = args.find((a, i) => !a.startsWith("--") && !args[i - 1]?.startsWith("--"));
+const title = option("titulo");
+const instructions = option("indicaciones");
 if (!file || !existsSync(file)) {
-  console.error('Uso: npm run probar -- "C:\\ruta\\al\\video.mp4" ["indicaciones"]');
+  console.error('Uso: npm run probar -- "C:\\ruta\\al\\video.mp4" [--titulo "Título"] [--indicaciones "más dinámico"]');
   process.exit(1);
 }
 
@@ -36,6 +43,7 @@ const { error } = await supabase.from("videos").insert({
   status: "editing",
   edit_status: "queued",
   edit_instructions: instructions ?? null,
+  card: title ? { titulo: title } : {},
   platforms: ["instagram"],
 });
 if (error) {

@@ -74,6 +74,34 @@ export function remapWords(words, segments) {
   return result;
 }
 
+/**
+ * Planos: divide los tramos al final de las frases y alterna encuadre normal y cerrado,
+ * para que con una sola cámara parezca que hay dos. Cada corte por silencio también cambia de plano.
+ * @param {{ start: number, end: number }[]} segments
+ * @param {{ text: string, start: number, end: number }[]} words tiempos del vídeo original
+ * @returns {{ start: number, end: number, zoom: number }[]}
+ */
+export function framingPlan(segments, words, { minShot = 3.5, zoom = 1.12 } = {}) {
+  const pieces = [];
+  let closeUp = false;
+  for (const segment of segments) {
+    let start = segment.start;
+    // Finales de frase dentro del tramo, con margen para no dejar planos muy cortos
+    const sentenceEnds = words
+      .filter((w) => /[.!?]$/.test(w.text) && w.end > segment.start && w.end < segment.end - minShot / 2)
+      .map((w) => w.end);
+    for (const cut of sentenceEnds) {
+      if (cut - start < minShot) continue;
+      pieces.push({ start, end: round(cut), zoom: closeUp ? zoom : 1 });
+      closeUp = !closeUp;
+      start = round(cut);
+    }
+    pieces.push({ start, end: segment.end, zoom: closeUp ? zoom : 1 });
+    closeUp = !closeUp;
+  }
+  return pieces;
+}
+
 export function totalDuration(segments) {
   return round(segments.reduce((sum, s) => sum + (s.end - s.start), 0));
 }
