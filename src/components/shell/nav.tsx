@@ -1,12 +1,12 @@
 "use client";
 
-import { BarChart3, CalendarDays, Lightbulb, PenLine, Sparkles, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, Clapperboard, Lightbulb, Sparkles, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
-  { href: "/copys", label: "Copys", icon: PenLine },
+  { href: "/videos", label: "Vídeos", icon: Clapperboard },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/metricas", label: "Métricas", icon: BarChart3 },
   { href: "/marca", label: "Mi marca", icon: Sparkles },
