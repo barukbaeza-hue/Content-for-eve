@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Lightbulb, PenLine, Sparkles, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, Lightbulb, PenLine, Sparkles, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,6 +8,7 @@ const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
   { href: "/copys", label: "Copys", icon: PenLine },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
+  { href: "/metricas", label: "Métricas", icon: BarChart3 },
   { href: "/marca", label: "Mi marca", icon: Sparkles },
 ];
 
@@ -38,7 +39,7 @@ export function TabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 grid h-14 grid-cols-4 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-10 grid h-14 grid-cols-5 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden">
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (

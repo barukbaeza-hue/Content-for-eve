@@ -118,8 +118,19 @@ async function topComments(id: string, token: string) {
   }
 }
 
-// Últimos vídeos (Reels) con métricas y comentarios, para crear el perfil.
-export async function recentVideos(token: string, limit: number): Promise<SocialVideo[]> {
+export type Reel = {
+  id: string;
+  caption: string;
+  permalink: string;
+  thumbnailUrl?: string;
+  postedAt: string;
+  likes?: number;
+  comments?: number;
+  views?: number;
+};
+
+// Últimos Reels con sus métricas.
+export async function recentReels(token: string, limit: number): Promise<Reel[]> {
   const res = await graph<{ data: Media[] }>("/me/media", token, {
     fields: "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,thumbnail_url",
     limit: String(Math.min(limit * 2, 50)),
@@ -128,13 +139,30 @@ export async function recentVideos(token: string, limit: number): Promise<Social
 
   return Promise.all(
     videos.map(async (m) => ({
-      platform: "instagram" as const,
+      id: m.id,
       caption: m.caption ?? "",
+      permalink: m.permalink,
+      thumbnailUrl: m.thumbnail_url,
+      postedAt: m.timestamp,
       likes: m.like_count,
       comments: m.comments_count,
       views: await mediaViews(m.id, token),
-      postedAt: m.timestamp,
-      topComments: m.comments_count ? await topComments(m.id, token) : [],
+    })),
+  );
+}
+
+// Últimos vídeos con métricas y comentarios, para crear el perfil.
+export async function recentVideos(token: string, limit: number): Promise<SocialVideo[]> {
+  const reels = await recentReels(token, limit);
+  return Promise.all(
+    reels.map(async (r) => ({
+      platform: "instagram" as const,
+      caption: r.caption,
+      likes: r.likes,
+      comments: r.comments,
+      views: r.views,
+      postedAt: r.postedAt,
+      topComments: r.comments ? await topComments(r.id, token) : [],
     })),
   );
 }
