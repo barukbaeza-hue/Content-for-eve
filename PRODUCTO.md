@@ -100,6 +100,20 @@ TikTok no ofrece una API oficial de descubrimiento de contenido para uso comerci
 - **Todo por lotes:** subir 10 vídeos de golpe, editarlos en cola en segundo plano, generar sus copys y programar la semana en una sola acción.
 - **Rápido de verdad:** la interfaz responde al instante, el trabajo pesado va en segundo plano y nunca te hace esperar para seguir.
 
+## MVP para clientes
+
+Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van después.
+
+| Módulo | Qué incluye | Depende de |
+|---|---|---|
+| Onboarding y perfil | Conectar Instagram y TikTok; Mova crea el perfil a partir de los vídeos | App de Meta, app de TikTok, IA |
+| Ideas y guiones | Chat con IA, ideas y guion en tu voz | Clave de Anthropic |
+| Feed de inspiración | Vídeos de tu nicho y tus referentes, con chat al lado para sacar ideas | Método por decidir (ver Inspiración) |
+| Banco de vídeos | Subida por lotes, copy con IA, cola con días de contenido | Clave de Anthropic |
+| Edición automática | Cortar silencios, limpiar audio, subtítulos, en cola | Transcripción y servicio de renderizado |
+| Calendario y publicación | Programar la semana y publicar solo en Instagram y TikTok | Apps de Meta y TikTok |
+| Métricas | Alcance e interacción de cada vídeo, y qué te funciona | Apps de Meta y TikTok |
+
 ## Hoja de ruta
 
 | Fase | Pilar | Qué incluye | Estado |
