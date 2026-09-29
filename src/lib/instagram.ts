@@ -14,12 +14,6 @@ export const INSTAGRAM_SCOPES = [
 const appId = () => (process.env.INSTAGRAM_APP_ID ?? "").trim();
 const appSecret = () => (process.env.INSTAGRAM_APP_SECRET ?? "").trim();
 
-// Datos no secretos para diagnosticar la conexión.
-export function credentialsHint() {
-  const secret = appSecret();
-  return `app ${appId()}, clave de ${secret.length} caracteres${/^[0-9a-f]+$/.test(secret) ? "" : " no hexadecimal"}`;
-}
-
 export function instagramConfigured() {
   return Boolean(process.env.INSTAGRAM_APP_ID && process.env.INSTAGRAM_APP_SECRET);
 }

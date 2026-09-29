@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appUrl } from "@/lib/app-url";
-import { credentialsHint, exchangeCode, getProfile, InstagramError } from "@/lib/instagram";
+import { exchangeCode, getProfile, InstagramError } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
 const DESTINATIONS = { bienvenida: "/bienvenida", marca: "/marca" } as const;
@@ -32,10 +32,8 @@ export async function GET(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) return NextResponse.redirect(`${base}/login`);
 
-  let redirectUri = "";
   try {
-    redirectUri = saved.redirectUri ?? `${base}/api/instagram/callback`;
-    const token = await exchangeCode(code, redirectUri);
+    const token = await exchangeCode(code, saved.redirectUri ?? `${base}/api/instagram/callback`);
     const profile = await getProfile(token.accessToken);
 
     const { error } = await supabase.from("social_accounts").upsert(
@@ -55,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (error) return fail("error", `guardar: ${error.message}`);
   } catch (error) {
     console.error("Error al conectar Instagram:", error);
-    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? `${error.message} · ${redirectUri} · ${credentialsHint()}` : undefined);
+    return fail(error instanceof InstagramError ? "rechazado" : "error", error instanceof Error ? error.message : undefined);
   }
 
   const next = saved.from === "marca" ? "/marca?analizar=1" : "/bienvenida?paso=analizando";
