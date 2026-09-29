@@ -40,8 +40,7 @@ async function graph<T>(path: string, token: string, params: Record<string, stri
   return body as T;
 }
 
-// Cambia el código de autorización por un token de larga duración (~60 días).
-export async function exchangeCode(code: string, redirectUri: string) {
+async function shortToken(code: string, redirectUri: string) {
   const form = new URLSearchParams({
     client_id: process.env.INSTAGRAM_APP_ID!,
     client_secret: process.env.INSTAGRAM_APP_SECRET!,
@@ -52,10 +51,25 @@ export async function exchangeCode(code: string, redirectUri: string) {
   const res = await fetch("https://api.instagram.com/oauth/access_token", { method: "POST", body: form });
   const body = await res.json().catch(() => ({}));
   // La respuesta puede venir directa o dentro de `data`.
-  const short = (body?.data?.[0] ?? body) as { access_token?: string; user_id?: string | number };
-  if (!res.ok || !short.access_token) {
-    throw new InstagramError(`código: ${body?.error_message ?? body?.error?.message ?? res.status}`);
+  const short = (body?.data?.[0] ?? body) as { access_token?: string };
+  if (res.ok && short.access_token) return short.access_token;
+  throw new InstagramError(`código: ${body?.error_message ?? body?.error?.message ?? res.status}`);
+}
+
+// Cambia el código de autorización por un token de larga duración (~60 días).
+export async function exchangeCode(rawCode: string, redirectUri: string) {
+  // Instagram a veces añade "#_" al final del código.
+  const code = rawCode.replace(/#_$/, "");
+  let accessToken: string;
+  try {
+    accessToken = await shortToken(code, redirectUri);
+  } catch (error) {
+    // Instagram puede normalizar la dirección con una barra final.
+    if (!(error instanceof InstagramError) || !/redirect_uri/i.test(error.message)) throw error;
+    const alternative = redirectUri.endsWith("/") ? redirectUri.slice(0, -1) : `${redirectUri}/`;
+    accessToken = await shortToken(code, alternative);
   }
+  const short = { access_token: accessToken };
 
   // Token de larga duración; si falla, se usa el corto (1 hora) para no bloquear la conexión.
   let long = { access_token: short.access_token, expires_in: 3600 };

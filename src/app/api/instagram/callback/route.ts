@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const base = appUrl(request);
   const params = request.nextUrl.searchParams;
 
-  let saved: { state?: string; from?: keyof typeof DESTINATIONS } = {};
+  let saved: { state?: string; from?: keyof typeof DESTINATIONS; redirectUri?: string } = {};
   try {
     saved = JSON.parse(request.cookies.get("ig_oauth")?.value ?? "{}");
   } catch {}
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   if (!data?.claims) return NextResponse.redirect(`${base}/login`);
 
   try {
-    const token = await exchangeCode(code, `${base}/api/instagram/callback`);
+    const token = await exchangeCode(code, saved.redirectUri ?? `${base}/api/instagram/callback`);
     const profile = await getProfile(token.accessToken);
 
     const { error } = await supabase.from("social_accounts").upsert(

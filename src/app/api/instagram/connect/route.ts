@@ -11,8 +11,10 @@ export async function GET(request: NextRequest) {
   if (!instagramConfigured()) return NextResponse.redirect(`${base}${DESTINATIONS[from]}&instagram=no-configurado`);
 
   const state = crypto.randomUUID();
-  const response = NextResponse.redirect(authorizeUrl(`${base}/api/instagram/callback`, state));
-  response.cookies.set("ig_oauth", JSON.stringify({ state, from }), {
+  const redirectUri = `${base}/api/instagram/callback`;
+  const response = NextResponse.redirect(authorizeUrl(redirectUri, state));
+  // Se guarda la dirección exacta: el cambio del código exige la misma.
+  response.cookies.set("ig_oauth", JSON.stringify({ state, from, redirectUri }), {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
