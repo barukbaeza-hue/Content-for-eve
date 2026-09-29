@@ -92,6 +92,21 @@ Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cad
 - **Indicaciones (prompt):** el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat.
 - **Prioridad:** primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.
 
+### Estilo de subtítulos
+
+- **Por defecto: minimalista.** Geist Medium en blanco, de a tres palabras, aparición suave, sin rebotes ni colores, con una sombra difusa solo para que se lea. Acompaña, no roba protagonismo.
+- **Tipografías de cada marca:** en el onboarding, Claude analiza los vídeos del founder y define su estilo de subtítulos (tipografía, peso, tamaño, posición, color, mayúsculas y palabras a la vez). Elige la tipografía más parecida de **Google Fonts** (~1.800, uso comercial gratis) y el worker la descarga la primera vez. No se descargan tipografías de otros sitios: muchas son de pago.
+- El estilo queda guardado en su marca. El founder puede cambiarlo o subir su propia tipografía si tiene la licencia.
+
+### Visión: vídeo de referencia
+
+Estilo al que queremos llegar (vídeo de un founder, 35 s):
+
+- **Gancho (primeros ~8 s):** montaje con planos de apoyo cortados cada ~1 s, color oscuro y cinematográfico, textura de grano y líneas. Texto grande en el centro, palabra a palabra, mezclando una sans en negrita con una **serif cursiva ligera** para la palabra clave ("is very *important*", "cashflow *management*").
+- **Cuerpo:** entrevista con varios planos (primer plano y plano general), color natural. Subtítulos pequeños en sans regular blanca, de 3 a 5 palabras, a veces con una caja oscura translúcida detrás.
+- **Qué puede hacer Mova:** gancho tipográfico con palabra clave destacada (Claude elige cuál, Remotion lo anima), gradación de color y grano, subtítulos pequeños con caja opcional, y simular varios planos con una sola cámara (zoom de encuadre en cada corte). Música.
+- **Qué depende de la grabación:** los planos de apoyo (b-roll) y los planos reales de varias cámaras necesitan que el founder grabe ese material. Mova puede pedirlo en el guion ("graba 3 planos de ti trabajando") y montarlo solo.
+
 ### Cómo funciona
 
 1. **Whisper** transcribe con marcas de tiempo por palabra.
