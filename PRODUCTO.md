@@ -124,6 +124,21 @@ Estilo al que queremos llegar (vídeo de un founder, 35 s):
 - Si el computador está apagado, los vídeos esperan en la cola.
 - Cuando haya clientes, el mismo worker pasa a un servidor en la nube sin reescribirlo.
 
+### Tiempos de edición
+
+Medido en el PC del equipo (Windows, procesador sin tarjeta gráfica dedicada): un vídeo de 21 s tardó 44-47 s. **La edición tarda unas 2 veces lo que dura el vídeo**, más el tiempo de subida.
+
+| Vídeo | Tiempo de edición aprox. |
+|---|---|
+| 30 s | ~1 min |
+| 60 s | ~2 min |
+| 90 s | ~3 min |
+| Lote de 10 vídeos de 45 s | ~15 min (se editan uno detrás de otro) |
+
+- Es una medida con un vídeo de WhatsApp (baja resolución). Un original del móvil en 1080p tardará algo más, y en 4K bastante más: conviene grabar en 1080p.
+- Cuando se sumen Remotion (efectos) y Claude (plan de edición), el tiempo subirá un poco.
+- En un servidor en la nube con más núcleos, o con varios workers a la vez, baja a ~1 vez la duración o menos.
+
 ### Almacenamiento: Cloudflare R2
 
 - 10 GB gratis; después, ~$0,015 por GB al mes y sin costo por descargas.
