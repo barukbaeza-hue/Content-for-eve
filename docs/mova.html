@@ -402,18 +402,16 @@
           <p class="lead">Estimación para una usuaria (Evelyn) con Instagram. La IA es <strong>Claude Sonnet 5</strong>: $2 por millón de tokens de entrada y $10 por millón de salida (precio oficial de Anthropic). Los tokens están estimados a partir del texto real que envía Mova.</p>
           <div class="sub">
             <h3 class="t-lg">Costo por cliente <span class="note t-sm">(la base para fijar el precio)</span></h3>
-            <p class="callout"><strong>~$6 por cliente al mes con 10 clientes, ~$3 con 50 y ~$2,50 con 100</strong>, a 1 vídeo al día. Todavía falta sumar la edición automática.</p>
+            <p class="callout"><strong>~$1,50 a $2,10 por cliente al mes</strong> a 1 vídeo al día, más <strong>$45 al mes fijos</strong> para toda la plataforma. Todavía falta sumar la edición automática.</p>
             <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Clientes</th><th>Costo por cliente al mes</th></tr></thead>
+              <thead><tr><th>Concepto</th><th>Costo al mes</th></tr></thead>
               <tbody>
-                <tr><td>10 · fijos $4,50 + IA $1,50 a $2,10</td><td class="num">~$6 a $6,60</td></tr>
-                <tr><td>50 · fijos $0,90 + IA $1,50 a $2,10</td><td class="num">~$2,40 a $3</td></tr>
-                <tr><td>100 · fijos $0,45 + IA $1,50 a $2,10</td><td class="num">~$2 a $2,60</td></tr>
+                <tr><td>Por cliente · IA a 1 vídeo al día</td><td class="num">~$1,50 a $2,10</td></tr>
+                <tr><td>Por cliente · IA a 2 vídeos al día</td><td class="num">~$3 a $4,20</td></tr>
+                <tr><td>Fijos · Vercel Pro + Supabase Pro, sin importar cuántos clientes haya</td><td class="num">$45</td></tr>
               </tbody>
             </table></div>
             <ul class="list">
-              <li><strong>Fijos:</strong> $45 al mes (Vercel Pro + Supabase Pro) repartidos entre los clientes. Bajan cuantos más clientes hay.</li>
-              <li><strong>IA:</strong> crece con el uso. A 2 vídeos al día, sumar entre $1,50 y $2,10 más por cliente.</li>
               <li><strong>Edición automática:</strong> falta. Puede ser el mayor costo por cliente, así que el método de renderizado decide el costo final.</li>
             </ul>
           </div>
@@ -460,8 +458,8 @@
               <thead><tr><th>Escenario (1 vídeo al día por usuario)</th><th>Total al mes</th></tr></thead>
               <tbody>
                 <tr><td>Prueba con Evelyn: servicios gratis + IA ~$2</td><td class="num">~$2</td></tr>
-                <tr><td>10 clientes: servicios $45 + IA $15 a $21</td><td class="num">~$60 a $66 (~$6 por cliente)</td></tr>
-                <tr><td>50 clientes: servicios $45 + IA $75 a $105</td><td class="num">~$120 a $150 (~$3 por cliente)</td></tr>
+                <tr><td>10 clientes: servicios $45 + IA $15 a $21</td><td class="num">~$60 a $66</td></tr>
+                <tr><td>50 clientes: servicios $45 + IA $75 a $105</td><td class="num">~$120 a $150</td></tr>
               </tbody>
             </table></div>
             <p class="prose">Servicios = Vercel Pro ($20) + Supabase Pro ($25). Con muchos vídeos subidos, Supabase puede cobrar almacenamiento extra. El renderizado de la edición automática no está incluido hasta decidir el método.</p>
