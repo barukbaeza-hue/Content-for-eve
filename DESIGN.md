@@ -67,3 +67,7 @@ Claro y oscuro automáticos según el sistema del usuario.
 ## Componentes
 
 En `src/components/ui`: `Button` (`primary`, `secondary`, `ghost`, `danger`), `Input`, `Textarea`, `Label`, `Notice`, `EmptyState` y `ConfirmDialog` (diálogo de cristal). En `src/components/shell`: `Nav`, `TabBar`, `Page` y `Logo`.
+
+Los menús flotantes de cristal (tres puntos, banco del calendario, selectores) usan las clases compartidas de `src/components/ui/menu.ts`: mismo cristal, relleno, filas y separadores. Lo único que cambia entre ellos es el fondo que tienen detrás.
+
+El calendario de publicación usa **FullCalendar** (vistas de mes y semana, arrastrar y soltar), con sus colores sacados de los tokens en `globals.css` (`.mova-calendar`). No se reinventan componentes que ya existen y están probados.
