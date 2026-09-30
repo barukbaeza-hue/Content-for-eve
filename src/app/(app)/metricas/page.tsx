@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { instagramConfigured, recentReels, type Reel } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
+import { freshToken, getFollowers, recentVideos as recentTikToks, TikTokError, tiktokConfigured } from "@/lib/tiktok";
 
 const number = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 const fmt = (n?: number) => (n === undefined ? "—" : number.format(n));
@@ -25,24 +26,36 @@ function change(views: number | undefined, avg: number | undefined) {
   return pct === 0 ? "= media" : `${pct > 0 ? "+" : "−"}${Math.abs(pct)} % vs media`;
 }
 
-export default async function MetricasPage({ searchParams }: PageProps<"/metricas">) {
-  const byViews = (await searchParams).orden === "vistas";
-  const supabase = await createClient();
-  const { data: account } = await supabase
-    .from("social_accounts")
-    .select("username, followers_count, access_token")
-    .eq("platform", "instagram")
-    .maybeSingle();
+type Network = "instagram" | "tiktok";
+const LABELS: Record<Network, { name: string; item: string; best: string }> = {
+  instagram: { name: "Instagram", item: "Reels", best: "Mejor Reel" },
+  tiktok: { name: "TikTok", item: "Vídeos", best: "Mejor vídeo" },
+};
 
-  if (!account) {
+export default async function MetricasPage({ searchParams }: PageProps<"/metricas">) {
+  const params = await searchParams;
+  const byViews = params.orden === "vistas";
+  const supabase = await createClient();
+  const { data: accounts } = await supabase
+    .from("social_accounts")
+    .select("id, platform, username, followers_count, access_token, token_expires_at, refresh_token");
+
+  // Por defecto, la primera red conectada (Instagram si están las dos)
+  const connected = (["instagram", "tiktok"] as const).filter((n) => accounts?.some((a) => a.platform === n));
+  const network: Network = params.red === "tiktok" || params.red === "instagram" ? params.red : connected[0] ?? "instagram";
+  const account = accounts?.find((a) => a.platform === network);
+  const label = LABELS[network];
+  const href = (query: Record<string, string>) => `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...query })}`;
+
+  if (!connected.length) {
     return (
       <Page title="Métricas">
         <EmptyState
           icon={BarChart3}
-          title="Conecta Instagram para ver tus métricas"
-          description="Mova te muestra el alcance de cada Reel y qué te funciona mejor."
-          action={instagramConfigured()
-            ? <a href="/api/instagram/connect?desde=marca" className={buttonClasses("primary")}>Conectar Instagram</a>
+          title="Conecta tus redes para ver tus métricas"
+          description="Mova te muestra el alcance de cada vídeo en Instagram y TikTok, y qué te funciona mejor."
+          action={instagramConfigured() || tiktokConfigured()
+            ? <Link href="/marca" className={buttonClasses("primary")}>Conectar en Mi marca</Link>
             : undefined}
         />
       </Page>
@@ -50,12 +63,30 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   }
 
   let reels: Reel[] = [];
-  let failed = false;
-  try {
-    reels = await recentReels(account.access_token, 20);
-  } catch (error) {
-    console.error("Error al leer Instagram:", error);
-    failed = true;
+  let failed: string | null = null;
+  let followers = account?.followers_count ?? undefined;
+  if (!account) {
+    failed = `${label.name} no está conectado. Conéctalo en Mi marca.`;
+  } else if (network === "instagram") {
+    try {
+      reels = await recentReels(account.access_token, 20);
+    } catch (error) {
+      console.error("Error al leer Instagram:", error);
+      failed = "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca.";
+    }
+  } else {
+    try {
+      const token = await freshToken(account, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", account.id); });
+      const [videos, count] = await Promise.all([recentTikToks(token, 20), getFollowers(token).catch(() => undefined)]);
+      reels = videos;
+      if (count !== undefined) {
+        followers = count;
+        if (count !== account.followers_count) await supabase.from("social_accounts").update({ followers_count: count }).eq("id", account.id);
+      }
+    } catch (error) {
+      console.error("Error al leer TikTok:", error);
+      failed = error instanceof TikTokError ? error.message : "No se pudieron leer tus vídeos de TikTok. Vuelve a conectar la cuenta desde Mi marca.";
+    }
   }
 
   const withViews = reels.filter((r) => r.views !== undefined);
@@ -72,23 +103,31 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   return (
     <Page title="Métricas">
       <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
-        {failed && <Notice tone="danger">No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca.</Notice>}
+        {connected.length > 1 && (
+          <div className="flex w-fit gap-1 rounded-lg border border-line p-0.5">
+            {connected.map((n) => (
+              <Link key={n} href={`/metricas?red=${n}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
+            ))}
+          </div>
+        )}
+
+        {failed && <Notice tone="danger">{failed}</Notice>}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Seguidores" value={fmt(account.followers_count ?? undefined)} />
+          <Stat label="Seguidores" value={fmt(followers)} />
           <Stat label="Vistas medias" value={fmt(avgViews)} />
           <Stat label="Me gusta medios" value={fmt(avgLikes)} />
-          <Stat label="Mejor Reel" value={best ? fmt(best.views) : "—"} />
+          <Stat label={label.best} value={best ? fmt(best.views) : "—"} />
         </div>
 
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
-              Reels <span className="text-fg-4">· @{account.username} · últimos {reels.length}</span>
+              {label.item} <span className="text-fg-4">· @{account?.username} · últimos {reels.length}</span>
             </h2>
             <div className="flex gap-1 rounded-lg border border-line p-0.5">
-              <Link href="/metricas" className={tab(!byViews)} scroll={false}>Recientes</Link>
-              <Link href="/metricas?orden=vistas" className={tab(byViews)} scroll={false}>Más vistos</Link>
+              <Link href={`/metricas?red=${network}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
+              <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
             </div>
           </div>
 
@@ -107,7 +146,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
                     )}
                     {best && reel.id === best.id && (
                       <span className="absolute top-2 left-2 rounded-full bg-[rgb(0_0_0/0.35)] px-2 py-0.5 text-xs font-medium text-[#fff] backdrop-blur-md">
-                        Mejor Reel
+                        {label.best}
                       </span>
                     )}
                     <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.85)] via-[rgb(0_0_0/0.4)] to-transparent px-3 pt-20 pb-3 text-[#fff]">

@@ -1,8 +1,9 @@
 // TikTok: inicio de sesión (Login Kit) para publicar vídeos (Content Posting API). Solo se usa en el servidor.
 const API = "https://open.tiktokapis.com/v2";
 
-// user.info.basic: nombre y foto · user.info.profile: @usuario · video.publish: publicar directamente
-export const TIKTOK_SCOPES = ["user.info.basic", "user.info.profile", "video.publish"];
+// user.info.basic: nombre y foto · user.info.profile: @usuario · user.info.stats: seguidores
+// video.list: tus vídeos y sus métricas · video.publish: publicar directamente
+export const TIKTOK_SCOPES = ["user.info.basic", "user.info.profile", "user.info.stats", "video.list", "video.publish"];
 
 // Sin espacios ni saltos de línea que se cuelan al pegar las claves en Vercel.
 const clientKey = () => (process.env.TIKTOK_CLIENT_KEY ?? "").trim();
@@ -50,6 +51,86 @@ export async function exchangeCode(code: string, redirectUri: string) {
     refreshExpiresAt: new Date(Date.now() + body.refresh_expires_in * 1000),
     scope: String(body.scope ?? ""),
   };
+}
+
+// El token dura 24 h: si caducó (o está por caducar), se renueva con el de renovación y se guarda
+export async function freshToken(
+  account: { id: string; access_token: string; token_expires_at: string | null; refresh_token: string | null },
+  save: (fields: Record<string, string>) => Promise<unknown>,
+) {
+  const left = account.token_expires_at ? new Date(account.token_expires_at).getTime() - Date.now() : 0;
+  if (left > 5 * 60 * 1000) return account.access_token;
+  if (!account.refresh_token) throw new TikTokError("La conexión con TikTok caducó. Vuelve a conectarla en Mi marca.");
+  const res = await fetch(`${API}/oauth/token/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_key: clientKey(),
+      client_secret: clientSecret(),
+      grant_type: "refresh_token",
+      refresh_token: account.refresh_token,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.access_token) throw new TikTokError("La conexión con TikTok caducó. Vuelve a conectarla en Mi marca.");
+  await save({
+    access_token: body.access_token,
+    token_expires_at: new Date(Date.now() + body.expires_in * 1000).toISOString(),
+    refresh_token: body.refresh_token,
+    refresh_expires_at: new Date(Date.now() + body.refresh_expires_in * 1000).toISOString(),
+  });
+  return body.access_token as string;
+}
+
+async function api<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init.headers },
+    cache: "no-store",
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || (body.error?.code && body.error.code !== "ok")) {
+    const code = body.error?.code;
+    throw new TikTokError(code === "scope_not_authorized"
+      ? "Falta el permiso para leer tus vídeos. Vuelve a conectar TikTok en Mi marca."
+      : body.error?.message || `TikTok respondió ${res.status}`);
+  }
+  return body.data as T;
+}
+
+export async function getFollowers(token: string) {
+  const data = await api<{ user: { follower_count?: number } }>("/user/info/?fields=follower_count", token);
+  return data.user.follower_count;
+}
+
+export type TikTokVideo = {
+  id: string;
+  caption: string;
+  permalink: string;
+  thumbnailUrl?: string;
+  postedAt: string;
+  likes?: number;
+  comments?: number;
+  views?: number;
+};
+
+// Últimos vídeos publicados con sus métricas
+export async function recentVideos(token: string, limit: number): Promise<TikTokVideo[]> {
+  const fields = "id,title,video_description,cover_image_url,share_url,create_time,view_count,like_count,comment_count";
+  const data = await api<{ videos: Record<string, string | number | undefined>[] }>(`/video/list/?fields=${fields}`, token, {
+    method: "POST",
+    body: JSON.stringify({ max_count: Math.min(limit, 20) }),
+  });
+  return (data.videos ?? []).map((v) => ({
+    id: String(v.id),
+    caption: String(v.video_description || v.title || ""),
+    permalink: String(v.share_url ?? ""),
+    thumbnailUrl: v.cover_image_url ? String(v.cover_image_url) : undefined,
+    postedAt: new Date(Number(v.create_time) * 1000).toISOString(),
+    likes: v.like_count === undefined ? undefined : Number(v.like_count),
+    comments: v.comment_count === undefined ? undefined : Number(v.comment_count),
+    views: v.view_count === undefined ? undefined : Number(v.view_count),
+  }));
 }
 
 export async function getProfile(token: string) {
