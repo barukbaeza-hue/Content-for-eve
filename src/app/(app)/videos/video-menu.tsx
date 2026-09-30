@@ -3,6 +3,8 @@
 import { Captions, Download, MoreHorizontal, Share2, Trash2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Props = {
   id: string;
@@ -14,12 +16,13 @@ type Props = {
 };
 
 const itemClasses =
-  "flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg transition-colors duration-150 hover:bg-surface-2 disabled:opacity-50";
+  "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-fg transition-colors duration-150 " +
+  "hover:bg-[rgb(128_128_128/0.16)] disabled:opacity-50";
 
-function Item({ icon: Icon, children, ...props }: { icon: LucideIcon } & React.ComponentProps<"button">) {
+function Item({ icon: Icon, danger = false, children, ...props }: { icon: LucideIcon; danger?: boolean } & React.ComponentProps<"button">) {
   return (
-    <button type="button" className={itemClasses} {...props}>
-      <Icon className="size-4 text-fg-3" strokeWidth={1.75} />
+    <button type="button" className={`${itemClasses} ${danger ? "text-danger" : ""}`} {...props}>
+      <Icon className={`size-4 ${danger ? "text-danger" : "text-fg-3"}`} strokeWidth={1.75} />
       {children}
     </button>
   );
@@ -27,24 +30,40 @@ function Item({ icon: Icon, children, ...props }: { icon: LucideIcon } & React.C
 
 // Menú de tres puntos anclado a la esquina del vídeo.
 export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDelete }: Props) {
-  const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  // Posición del menú en pantalla: se dibuja sobre la página para que la tarjeta no lo recorte
+  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const open = position !== null;
+  const close = () => setPosition(null);
 
-  // Se cierra al tocar fuera o con Escape
+  function toggle() {
+    if (open || !button.current) return close();
+    const rect = button.current.getBoundingClientRect();
+    setPosition({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+  }
+
+  // Se cierra al tocar fuera, con Escape, al hacer scroll o al cambiar el tamaño de la ventana
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    const outside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (!menu.current?.contains(target) && !button.current?.contains(target)) close();
     };
-    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", close);
-    document.addEventListener("touchstart", close);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && close();
+    document.addEventListener("mousedown", outside);
+    document.addEventListener("touchstart", outside);
     document.addEventListener("keydown", escape);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
     return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("touchstart", close);
+      document.removeEventListener("mousedown", outside);
+      document.removeEventListener("touchstart", outside);
       document.removeEventListener("keydown", escape);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
     };
   }, [open]);
 
@@ -68,18 +87,19 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
       if (!(e instanceof DOMException && e.name === "AbortError")) alert("No se pudo compartir el vídeo.");
     } finally {
       setSharing(false);
-      setOpen(false);
+      close();
     }
   }
 
   return (
-    <div ref={ref} className="absolute top-2 right-2 z-10">
-      <button type="button" aria-label="Opciones" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className="flex size-8 items-center justify-center rounded-md bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60">
+    <div className="absolute top-2 right-2 z-10">
+      <button ref={button} type="button" aria-label="Opciones" aria-expanded={open} onClick={toggle}
+        className="flex size-8 items-center justify-center rounded-full bg-[rgb(0_0_0/0.35)] text-[#fff] backdrop-blur-md transition-colors hover:bg-[rgb(0_0_0/0.5)]">
         <MoreHorizontal className="size-4" strokeWidth={2} />
       </button>
-      {open && (
-        <div role="menu" className="absolute top-9 right-0 w-48 rounded-lg bg-surface-1 p-1 shadow-popover">
+      {position && createPortal(
+        <div ref={menu} role="menu" style={{ top: position.top, right: position.right }}
+          className="glass fixed z-40 w-52 rounded-xl p-1.5">
           {canEditSubtitles && (
             <Link href={`/videos/${id}`} className={itemClasses} role="menuitem">
               <Captions className="size-4 text-fg-3" strokeWidth={1.75} />
@@ -92,19 +112,33 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
             </Item>
           )}
           {downloadUrl && (
-            <a href={downloadUrl} className={itemClasses} role="menuitem" onClick={() => setOpen(false)}>
+            <a href={downloadUrl} className={itemClasses} role="menuitem" onClick={close}>
               <Download className="size-4 text-fg-3" strokeWidth={1.75} />
               Descargar
             </a>
           )}
-          <Item icon={Trash2} role="menuitem" onClick={() => {
-            setOpen(false);
-            if (confirm(`¿Borrar "${title}"?`)) onDelete();
+          <div className="mx-1 my-1 h-px bg-[var(--glass-line)]" />
+          <Item icon={Trash2} danger role="menuitem" onClick={() => {
+            close();
+            setConfirming(true);
           }}>
             Borrar vídeo
           </Item>
-        </div>
+        </div>,
+        document.body,
       )}
+      <ConfirmDialog
+        open={confirming}
+        title="¿Borrar este vídeo?"
+        description={`"${title}" se borrará de tu banco. No se puede deshacer.`}
+        confirmLabel="Borrar"
+        danger
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          onDelete();
+        }}
+      />
     </div>
   );
 }

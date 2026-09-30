@@ -7,7 +7,7 @@ Inspirado en el sistema de Linear, en versión monocromática: interfaz sobria, 
 1. **Una acción principal por pantalla.** Solo un botón `primary` visible a la vez.
 2. **Cada pantalla vacía dice qué hacer.** Siempre con un `EmptyState` que explica el siguiente paso.
 3. **Jerarquía por contraste, no por color.** El máximo contraste (acento) se reserva para la acción principal y el foco.
-4. **Sin sombras.** Capas de superficie + bordes `line`. La única sombra es `shadow-popover` para elementos flotantes.
+4. **Sin sombras.** Capas de superficie + bordes `line`. Los elementos flotantes (menús, diálogos) usan **cristal**: la utilidad `glass`, fondo translúcido con desenfoque del contenido de detrás, borde sutil y sombra suave (inspirado en Google Flow).
 
 ## Tipografía
 
@@ -29,7 +29,7 @@ Base de 15px. Interlineado siempre en múltiplos de 4px. Tracking negativo que c
 
 ## Color
 
-**Monocromático:** solo grises neutros, sin tinte. El acento es el propio texto principal (blanco en oscuro, casi negro en claro). No hay colores de estado: errores y confirmaciones se distinguen por su icono. La única excepción es el logo de Google, que su guía de marca obliga a mostrar en color.
+**Monocromático:** solo grises neutros, sin tinte. El acento es el propio texto principal (blanco en oscuro, casi negro en claro). No hay colores de estado: errores y confirmaciones se distinguen por su icono. Excepciones: el rojo `danger`, solo para acciones destructivas (borrar), y el logo de Google, que su guía de marca obliga a mostrar en color.
 
 Claro y oscuro automáticos según el sistema del usuario.
 
@@ -48,6 +48,8 @@ Claro y oscuro automáticos según el sistema del usuario.
 | `accent` | `#f5f5f5` | `#171717` | Acción principal, foco, logo |
 | `accent-hover` | `#d4d4d4` | `#3d3d3d` | Hover de la acción principal |
 | `on-accent` | `#0c0c0c` | `#ffffff` | Texto sobre el acento |
+| `danger` | `#f87171` | `#dc2626` | Solo acciones destructivas (borrar) |
+| `glass` | `rgb(28 28 28 / 0.6)` | `rgb(255 255 255 / 0.72)` | Fondo de menús y diálogos, con desenfoque |
 
 ## Espaciado, radios y alturas
 
@@ -63,4 +65,4 @@ Claro y oscuro automáticos según el sistema del usuario.
 
 ## Componentes
 
-En `src/components/ui`: `Button` (`primary`, `secondary`, `ghost`), `Input`, `Textarea`, `Label`, `Notice` y `EmptyState`. En `src/components/shell`: `Nav`, `TabBar`, `Page` y `Logo`.
+En `src/components/ui`: `Button` (`primary`, `secondary`, `ghost`, `danger`), `Input`, `Textarea`, `Label`, `Notice`, `EmptyState` y `ConfirmDialog` (diálogo de cristal). En `src/components/shell`: `Nav`, `TabBar`, `Page` y `Logo`.

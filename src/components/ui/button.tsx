@@ -4,6 +4,7 @@ const VARIANTS = {
   primary: "bg-accent text-on-accent hover:bg-accent-hover",
   secondary: "border border-line bg-surface-1 text-fg hover:border-line-strong hover:bg-surface-2",
   ghost: "text-fg-3 hover:bg-surface-2 hover:text-fg",
+  danger: "bg-danger text-[#fff] hover:opacity-90",
 };
 
 const SIZES = {

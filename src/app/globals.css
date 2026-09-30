@@ -20,6 +20,11 @@
   --accent: #171717;
   --accent-hover: #3d3d3d;
   --on-accent: #ffffff;
+  /* Única excepción de color: acciones destructivas */
+  --danger: #dc2626;
+  /* Cristal para elementos flotantes (menús y diálogos) */
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-line: rgb(0 0 0 / 0.08);
   color-scheme: light;
 }
 
@@ -38,6 +43,9 @@
     --accent: #f5f5f5;
     --accent-hover: #d4d4d4;
     --on-accent: #0c0c0c;
+    --danger: #f87171;
+    --glass: rgb(28 28 28 / 0.6);
+    --glass-line: rgb(255 255 255 / 0.1);
     color-scheme: dark;
   }
 }
@@ -58,6 +66,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
 
   /* Tipografía: Geist, solo Regular (400) y Medium (500). */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -121,6 +130,15 @@
   /* Sin sombras: la profundidad se da con superficies y bordes de 1px. */
   --shadow-*: initial;
   --shadow-popover: 0 0 0 1px var(--line), 0 8px 24px rgb(0 0 0 / 0.16);
+}
+
+/* Cristal esmerilado para menús y diálogos flotantes: deja ver lo de detrás, desenfocado. */
+@utility glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.22);
 }
 
 @layer base {
