@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { menuClasses, menuLabelClasses } from "@/components/ui/menu";
 
 // Popover de cristal para cambiar la hora de un vídeo programado: tus horas habituales o una a mano.
 export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
@@ -51,15 +52,15 @@ export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
   const style = below ? { top: anchor.bottom + 6, left } : { bottom: window.innerHeight - anchor.top + 6, left };
 
   return createPortal(
-    <form ref={box} style={{ ...style, width }} className="glass fixed z-40 space-y-3 rounded-xl p-3"
+    <form ref={box} style={{ ...style, width }} className={`${menuClasses} fixed z-40 space-y-2`}
       onSubmit={(e) => {
         e.preventDefault();
         save(time);
       }}>
-      <p className="text-xs font-medium text-fg-3">
+      <p className={menuLabelClasses}>
         {day.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
       </p>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5 px-1">
         {presets.map((t) => (
           <button key={t} type="button" disabled={past(t)} onClick={() => save(t)}
             className={`h-8 rounded-md text-sm tabular-nums transition-colors disabled:opacity-35 ${
@@ -69,7 +70,7 @@ export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-1 pb-1">
         <input type="time" value={time} step={300} autoFocus aria-label="Otra hora"
           onChange={(e) => {
             setTime(e.target.value);
@@ -78,7 +79,7 @@ export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
           className="h-8 min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 text-sm tabular-nums focus:border-line-strong focus:outline-none" />
         <Button type="submit" size="sm" variant="primary">Guardar</Button>
       </div>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="px-2.5 pb-1 text-xs text-danger">{error}</p>}
     </form>,
     document.body,
   );

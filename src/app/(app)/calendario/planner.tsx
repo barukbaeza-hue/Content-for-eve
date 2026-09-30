@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { Notice } from "@/components/ui/notice";
+import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
 import { scheduleVideos } from "./actions";
 import { BankPicker } from "./bank-picker";
 import { TimePicker } from "./time-picker";
@@ -408,62 +409,45 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         )}
       </section>
 
-      {/* Banco flotante de cristal en la esquina: se puede plegar para ver el calendario entero */}
+      {/* Banco flotante: mismo menú de cristal que los tres puntos de los vídeos (clases compartidas) */}
       <aside {...dropProps("bank", (id) => apply([{ id, at: null }]))}
-        className={`glass fixed right-6 bottom-6 z-30 isolate flex w-72 flex-col overflow-hidden rounded-xl transition-[box-shadow,transform] duration-150 ${
-          over === "bank" ? "scale-[1.02] ring-2 ring-fg-3" : ""
-        }`}>
-        {/* Como el menú de los vídeos: debajo del cristal se ve un vídeo muy desenfocado.
-            Aquí no hay vídeo detrás, así que se pone el primero del banco como fondo. */}
-        {bank[0] && (
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
-            <video src={`${bank[0].url}#t=0.5`} preload="metadata" muted playsInline
-              className="size-full scale-150 object-cover blur-[36px] saturate-150" />
-            <div className="absolute inset-0 bg-[var(--glass)]" />
-          </div>
-        )}
+        className={`${menuClasses} fixed right-6 bottom-6 z-30 w-64`}>
         <button type="button" onClick={() => setBankOpen((o) => !o)} aria-expanded={bankOpen}
-          className="flex items-center gap-3 px-3.5 py-3 text-left">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-medium">Banco</h2>
-            <p className="text-xs text-fg-3">
-              {bank.length === 1 ? "1 vídeo listo" : `${bank.length} vídeos listos`} · {daysLeft === 1 ? "1 día" : `${daysLeft} días`} de contenido
-            </p>
-          </div>
+          className={`${menuItemClasses.replace("h-9 ", "")} py-1.5`}>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{over === "bank" ? "Suelta para devolverlo" : "Banco"}</span>
+            <span className="block text-xs text-fg-3">
+              {bank.length === 1 ? "1 vídeo" : `${bank.length} vídeos`} · {daysLeft === 1 ? "1 día" : `${daysLeft} días`} de contenido
+            </span>
+          </span>
           <ChevronDown className={`size-4 text-fg-3 transition-transform duration-150 ${bankOpen ? "" : "rotate-180"}`} strokeWidth={1.75} />
         </button>
 
         {bankOpen && (
-          <div className="border-t border-[var(--glass-line)] p-1.5">
+          <>
+            <div className={menuSeparatorClasses} />
             {bank.length === 0 ? (
-              <p className="px-2 py-4 text-center text-xs text-fg-3">
-                Sube vídeos en Vídeos. Cuando estén editados aparecen aquí para programarlos.
-              </p>
+              <p className="px-2.5 py-2 text-sm text-fg-3">Sube vídeos en Vídeos y aparecerán aquí al terminar de editarse.</p>
             ) : (
-              <ul className="no-scrollbar max-h-[50vh] space-y-0.5 overflow-y-auto">
+              <ul className="no-scrollbar max-h-[50vh] overflow-y-auto">
                 {bank.map((video) => (
-                  <li key={video.id} {...dragProps(video.id)}
-                    className={`group flex cursor-grab items-center gap-3 rounded-lg p-1.5 transition-colors hover:bg-[rgb(128_128_128/0.16)] active:cursor-grabbing ${
-                      dragging === video.id ? "opacity-40" : ""
-                    }`}>
-                    <div className="aspect-[9/16] w-8 shrink-0 overflow-hidden rounded bg-surface-3">
+                  <li key={video.id} {...dragProps(video.id)} title="Arrastra a un día"
+                    className={`${menuItemClasses} group cursor-grab active:cursor-grabbing ${dragging === video.id ? "opacity-40" : ""}`}>
+                    <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3">
                       <Thumb url={video.url} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm">{video.title}</p>
-                      <p className="text-xs text-fg-3">{seconds(video.duration)}</p>
-                    </div>
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{video.title}</span>
+                    <span className="text-xs text-fg-3 tabular-nums group-hover:hidden">{seconds(video.duration)}</span>
                     <button type="button" aria-label="Programar en el próximo hueco" title="Programar en el próximo hueco"
                       onClick={() => placeNext(video.id)}
-                      className="flex size-7 shrink-0 items-center justify-center rounded-md text-fg-3 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[rgb(128_128_128/0.2)] hover:text-fg">
+                      className="hidden text-fg-3 group-hover:block hover:text-fg">
                       <Plus className="size-4" strokeWidth={1.75} />
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            <p className="px-2 pt-1.5 pb-1 text-2xs text-fg-4">Arrastra un vídeo a un día, o de vuelta aquí para quitarlo.</p>
-          </div>
+          </>
         )}
       </aside>
       {adding && (

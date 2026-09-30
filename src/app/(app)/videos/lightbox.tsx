@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { menuClasses } from "@/components/ui/menu";
 import { Player } from "./player";
 import { VideoActions, type VideoActionsProps } from "./video-menu";
 
@@ -44,7 +45,7 @@ export function Lightbox({ startAt, onClose, ...video }: VideoActionsProps & {
           close();
           video.onDelete();
         }} render={(items) => (
-          <div role="menu" className="glass w-52 rounded-xl p-1.5">{items}</div>
+          <div role="menu" className={`${menuClasses} w-52`}>{items}</div>
         )} />
       </div>
     </div>,

@@ -5,15 +5,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
 import { RenameDialog } from "./rename-dialog";
 
-const itemClasses =
-  "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-fg transition-colors duration-150 " +
-  "hover:bg-[rgb(128_128_128/0.16)] disabled:opacity-50";
 
 function Item({ icon: Icon, danger = false, children, ...props }: { icon: LucideIcon; danger?: boolean } & React.ComponentProps<"button">) {
   return (
-    <button type="button" className={`${itemClasses} ${danger ? "text-danger" : ""}`} {...props}>
+    <button type="button" className={`${menuItemClasses} ${danger ? "text-danger" : ""}`} {...props}>
       <Icon className={`size-4 ${danger ? "text-danger" : "text-fg-3"}`} strokeWidth={1.75} />
       {children}
     </button>
@@ -67,7 +65,7 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, on
         Cambiar nombre
       </Item>
       {canEditSubtitles && (
-        <Link href={`/videos/${id}`} className={itemClasses} role="menuitem">
+        <Link href={`/videos/${id}`} className={menuItemClasses} role="menuitem">
           <Captions className="size-4 text-fg-3" strokeWidth={1.75} />
           Editar subtítulos
         </Link>
@@ -83,12 +81,12 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, on
         </Item>
       )}
       {downloadUrl && (
-        <a href={downloadUrl} className={itemClasses} role="menuitem" onClick={onPick}>
+        <a href={downloadUrl} className={menuItemClasses} role="menuitem" onClick={onPick}>
           <Download className="size-4 text-fg-3" strokeWidth={1.75} />
           Descargar
         </a>
       )}
-      <div className="mx-1 my-1 h-px bg-[var(--glass-line)]" />
+      <div className={menuSeparatorClasses} />
       <Item icon={Trash2} danger role="menuitem" onClick={() => {
         onPick?.();
         setConfirming(true);
@@ -167,7 +165,7 @@ export function VideoMenu(props: VideoActionsProps) {
         </button>
         {position && createPortal(
           <div ref={menu} role="menu" style={{ top: position.top, right: position.right }}
-            className="glass fixed z-40 w-52 rounded-xl p-1.5">
+            className={`${menuClasses} fixed z-40 w-52`}>
             {items}
           </div>,
           document.body,
