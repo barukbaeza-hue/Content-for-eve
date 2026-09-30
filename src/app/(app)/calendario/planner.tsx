@@ -410,9 +410,18 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
       {/* Banco flotante de cristal en la esquina: se puede plegar para ver el calendario entero */}
       <aside {...dropProps("bank", (id) => apply([{ id, at: null }]))}
-        className={`glass fixed right-6 bottom-6 z-30 flex w-72 flex-col rounded-xl transition-[box-shadow,transform] duration-150 ${
+        className={`glass fixed right-6 bottom-6 z-30 isolate flex w-72 flex-col overflow-hidden rounded-xl transition-[box-shadow,transform] duration-150 ${
           over === "bank" ? "scale-[1.02] ring-2 ring-fg-3" : ""
         }`}>
+        {/* Como el menú de los vídeos: debajo del cristal se ve un vídeo muy desenfocado.
+            Aquí no hay vídeo detrás, así que se pone el primero del banco como fondo. */}
+        {bank[0] && (
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+            <video src={`${bank[0].url}#t=0.5`} preload="metadata" muted playsInline
+              className="size-full scale-150 object-cover blur-[36px] saturate-150" />
+            <div className="absolute inset-0 bg-[var(--glass)]" />
+          </div>
+        )}
         <button type="button" onClick={() => setBankOpen((o) => !o)} aria-expanded={bankOpen}
           className="flex items-center gap-3 px-3.5 py-3 text-left">
           <div className="min-w-0 flex-1">
