@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 pb-14 md:py-2 md:pr-2 md:pb-2">
-        <div className="flex flex-1 overflow-y-auto bg-surface-1 md:rounded-xl md:border md:border-line">
+        <div className="no-scrollbar flex flex-1 overflow-y-auto bg-surface-1 md:rounded-xl md:border md:border-line">
           {children}
         </div>
       </main>
