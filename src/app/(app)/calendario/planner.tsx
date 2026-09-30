@@ -109,16 +109,24 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   const upcoming = list.filter((v) => v.status === "scheduled" && v.at && new Date(v.at) > new Date()).length;
   const daysLeft = Math.floor((bank.length + upcoming) / perDay);
 
-  const events = useMemo(() => {
-    const now = new Date();
-    return list.filter((v) => v.at).map((v) => ({
+  // "Ahora" se actualiza cada minuto para que lo pasado se vaya marcando solo
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const events = useMemo(() => [
+    // Todo lo que ya pasó sale en un gris más claro y no admite vídeos
+    { id: "pasado", start: "2000-01-01", end: new Date(now).toISOString(), display: "background", classNames: ["mova-past"] },
+    ...list.filter((v) => v.at).map((v) => ({
       id: v.id,
       title: v.title,
       start: v.at!,
-      editable: v.status === "scheduled" && new Date(v.at!) > now,
+      editable: v.status === "scheduled" && new Date(v.at!).getTime() > now,
       extendedProps: { video: v },
-    }));
-  }, [list]);
+    })),
+  ], [list, now]);
 
   // Los vídeos del banco se pueden arrastrar al calendario
   useEffect(() => {
@@ -188,7 +196,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
   // Cada vídeo en el calendario: miniatura, hora (clic para cambiarla), nombre y × para devolverlo al banco
   function renderEvent({ event }: EventContentArg) {
-    const video = event.extendedProps.video as CalendarVideo;
+    const video = event.extendedProps.video as CalendarVideo | undefined;
+    if (!video) return null; // el fondo gris de lo pasado
     const movable = event.startEditable;
     const time = video.status === "published" ? "Publicado" : clock(event.start!);
     return (
@@ -286,7 +295,9 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
           droppable
           datesSet={(arg: DatesSetArg) => setTitle(arg.view.title)}
           // No se programa en el pasado
-          eventAllow={(span) => span.end > new Date()}
+          // En el mes vale cualquier día que no haya terminado; en la semana, solo horas futuras
+          eventAllow={(span) => (span.allDay ? span.end : span.start) > new Date()}
+          dropAccept="[data-video]"
           eventDrop={(info: EventDropArg) => {
             if (info.event.start! <= new Date()) return info.revert();
             // En el mes, al cambiar de día se mantiene la hora
@@ -304,6 +315,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             const day = new Date(info.date.getFullYear(), info.date.getMonth(), info.date.getDate());
             const today = new Date();
             if (day < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return;
+            if (!info.allDay && info.date <= today) return;
             setAdding({
               day,
               time: info.allDay ? null : info.date,

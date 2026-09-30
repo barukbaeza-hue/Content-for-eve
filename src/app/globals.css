@@ -216,8 +216,10 @@
 .mova-calendar .fc-day-past .fc-daygrid-day-number {
   color: var(--fg-4);
 }
-.mova-calendar .fc-day-past:not(.fc-col-header-cell) {
-  background: color-mix(in srgb, var(--surface-2) 40%, transparent);
+/* Lo que ya pasó (días y horas) en un gris más claro; lo disponible queda en el fondo oscuro */
+.mova-calendar .fc-bg-event.mova-past {
+  background: rgb(128 128 128 / 0.13);
+  opacity: 1;
 }
 .mova-calendar .fc-day-today .fc-daygrid-day-number {
   background: var(--fg);
