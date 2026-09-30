@@ -1,10 +1,11 @@
 "use client";
 
-import { Captions, Download, MoreHorizontal, Share2, Trash2, type LucideIcon } from "lucide-react";
+import { Captions, Download, MoreHorizontal, Pencil, Share2, Trash2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { RenameDialog } from "./rename-dialog";
 
 type Props = {
   id: string;
@@ -32,6 +33,7 @@ function Item({ icon: Icon, danger = false, children, ...props }: { icon: Lucide
 export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDelete }: Props) {
   const [sharing, setSharing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   // Posición del menú en pantalla: se dibuja sobre la página para que la tarjeta no lo recorte
   const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -94,7 +96,7 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
   return (
     // Con ratón, los tres puntos aparecen al pasar por encima del vídeo; en pantallas táctiles siempre se ven
     <div className={`absolute top-2 right-2 z-10 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100 ${
-      open || confirming ? "opacity-100" : "[@media(hover:hover)]:opacity-0"
+      open || confirming || renaming ? "opacity-100" : "[@media(hover:hover)]:opacity-0"
     }`}>
       <button ref={button} type="button" aria-label="Opciones" aria-expanded={open} onClick={toggle}
         className="flex size-8 items-center justify-center rounded-full bg-[rgb(0_0_0/0.35)] text-[#fff] backdrop-blur-md transition-colors hover:bg-[rgb(0_0_0/0.5)]">
@@ -103,6 +105,12 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
       {position && createPortal(
         <div ref={menu} role="menu" style={{ top: position.top, right: position.right }}
           className="glass fixed z-40 w-52 rounded-xl p-1.5">
+          <Item icon={Pencil} role="menuitem" onClick={() => {
+            close();
+            setRenaming(true);
+          }}>
+            Cambiar nombre
+          </Item>
           {canEditSubtitles && (
             <Link href={`/videos/${id}`} className={itemClasses} role="menuitem">
               <Captions className="size-4 text-fg-3" strokeWidth={1.75} />
@@ -130,6 +138,7 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
         </div>,
         document.body,
       )}
+      {renaming && <RenameDialog id={id} title={title} onClose={() => setRenaming(false)} />}
       <ConfirmDialog
         open={confirming}
         title="¿Borrar este vídeo?"

@@ -1,8 +1,8 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
+import { CircleAlert, CircleCheck, Clock, LoaderCircle, Play, RotateCcw, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteVideo, retryVideo } from "./actions";
 import { VideoMenu } from "./video-menu";
@@ -49,7 +49,6 @@ function seconds(n: number | null) {
 
 export function VideoList({ videos }: { videos: VideoItem[] }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
   const working = videos.some((v) => v.editStatus === "queued" || v.editStatus === "processing");
 
   // Mientras hay vídeos en edición, la lista se actualiza sola.
@@ -61,54 +60,88 @@ export function VideoList({ videos }: { videos: VideoItem[] }) {
 
   return (
     <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {videos.map((video) => {
-        const s = status(video);
-        const Icon = s.icon;
-        const busy = video.editStatus === "queued" || video.editStatus === "processing";
-        return (
-          <li key={video.id} className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line">
-            <div className="group relative aspect-[9/16] bg-surface-2">
-              {video.url ? (
-                // Tocar el vídeo lo reproduce
-                <video src={video.url} controls playsInline preload="metadata" className="size-full object-cover" />
-              ) : (
-                <div className="flex size-full flex-col items-center justify-center gap-2 px-3 text-center text-fg-3">
-                  <Icon className={`size-5 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
-                  <span className="text-xs">{s.label}</span>
-                </div>
-              )}
-              <VideoMenu
-                id={video.id}
-                title={video.title}
-                url={video.url}
-                downloadUrl={video.downloadUrl}
-                canEditSubtitles={video.canEditSubtitles && !busy}
-                onDelete={() => startTransition(() => deleteVideo(video.id))}
-              />
-            </div>
-            <div className="space-y-2 p-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{video.title}</p>
-                <p className="flex items-center gap-1 text-xs text-fg-3">
-                  <Icon className={`size-3 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
-                  {s.label}
-                  {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
-                </p>
-                {video.error && (
-                  <p className="mt-1 line-clamp-2 text-xs text-fg-3" title={video.error}>{video.error}</p>
-                )}
-              </div>
-              {video.editStatus === "failed" && (
-                <Button size="sm" variant="secondary" disabled={pending}
-                  onClick={() => startTransition(() => retryVideo(video.id))}>
-                  <RotateCcw className="size-3.5" strokeWidth={1.75} />
-                  Reintentar
-                </Button>
-              )}
-            </div>
-          </li>
-        );
-      })}
+      {videos.map((video) => <VideoCard key={video.id} video={video} />)}
     </ul>
+  );
+}
+
+// Tarjeta a sangre: el nombre y el estado van sobre un degradado oscuro en la parte de abajo del vídeo.
+function VideoCard({ video }: { video: VideoItem }) {
+  const [pending, startTransition] = useTransition();
+  const player = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const s = status(video);
+  const Icon = s.icon;
+  const busy = video.editStatus === "queued" || video.editStatus === "processing";
+
+  // Clic para reproducir o pausar; doble clic para pantalla completa
+  function toggle() {
+    const v = player.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
+  }
+
+  return (
+    <li className="group relative aspect-[9/16] min-w-0 overflow-hidden rounded-lg bg-surface-2">
+      {video.url ? (
+        <video ref={player} src={video.url} playsInline preload="metadata"
+          className="size-full cursor-pointer object-cover"
+          onClick={toggle}
+          onDoubleClick={() => player.current?.requestFullscreen?.().catch(() => {})}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))} />
+      ) : (
+        <div className="flex size-full items-center justify-center pb-16 text-fg-3">
+          <Icon className={`size-6 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.5} />
+        </div>
+      )}
+
+      {video.url && !playing && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-[rgb(0_0_0/0.35)] text-[#fff] opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100">
+            <Play className="ml-0.5 size-5" fill="currentColor" strokeWidth={0} />
+          </span>
+        </div>
+      )}
+
+      <div className={`pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.8)] via-[rgb(0_0_0/0.35)] to-transparent px-3 pt-16 pb-3 text-[#fff] transition-opacity duration-200 ${
+        playing ? "opacity-0" : ""
+      }`}>
+        <p className="truncate text-sm font-medium">{video.title}</p>
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-[rgb(255_255_255/0.75)]">
+          <Icon className={`size-3 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
+          {s.label}
+          {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
+        </p>
+        {video.error && (
+          <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={video.error}>{video.error}</p>
+        )}
+        {video.editStatus === "failed" && (
+          <Button size="sm" variant="secondary" disabled={pending} className="pointer-events-auto mt-2"
+            onClick={() => startTransition(() => retryVideo(video.id))}>
+            <RotateCcw className="size-3.5" strokeWidth={1.75} />
+            Reintentar
+          </Button>
+        )}
+      </div>
+
+      {playing && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[rgb(255_255_255/0.25)]">
+          <div className="h-full bg-[#fff]" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
+
+      <VideoMenu
+        id={video.id}
+        title={video.title}
+        url={video.url}
+        downloadUrl={video.downloadUrl}
+        canEditSubtitles={video.canEditSubtitles && !busy}
+        onDelete={() => startTransition(() => deleteVideo(video.id))}
+      />
+    </li>
   );
 }

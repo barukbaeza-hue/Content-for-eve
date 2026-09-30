@@ -8,7 +8,7 @@ import { Label, Textarea } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { prepareUploads, queueVideos, type UploadSlot } from "./actions";
 
-type Item = { file: File; progress: number };
+type Item = { file: File; title: string; progress: number };
 
 const CONCURRENCY = 2;
 
@@ -48,7 +48,7 @@ export function Uploader() {
     if (!videos.length) return;
     setDone(null);
     setError(null);
-    setItems((prev) => [...prev, ...videos.map((file) => ({ file, progress: 0 }))]);
+    setItems((prev) => [...prev, ...videos.map((file) => ({ file, title: title(file.name), progress: 0 }))]);
   }
 
   // Mientras sube, soltar archivos no hace nada
@@ -83,7 +83,7 @@ export function Uploader() {
       if (!videos.length) return;
       setDone(null);
       setError(null);
-      setItems((prev) => [...prev, ...videos.map((file) => ({ file, progress: 0 }))]);
+      setItems((prev) => [...prev, ...videos.map((file) => ({ file, title: title(file.name), progress: 0 }))]);
     };
     window.addEventListener("dragenter", enter);
     window.addEventListener("dragover", over);
@@ -111,11 +111,11 @@ export function Uploader() {
         Array.from({ length: CONCURRENCY }, async () => {
           for (let next = queue.shift(); next; next = queue.shift()) {
             const { slot, index } = next;
-            const { file } = items[index];
+            const { file, title: name } = items[index];
             await put(slot.url, file, (p) =>
               setItems((prev) => prev.map((it, i) => (i === index ? { ...it, progress: p } : it))),
             );
-            uploaded.push({ ...slot, title: title(file.name) });
+            uploaded.push({ ...slot, title: name.trim() || title(file.name) });
           }
         }),
       );
@@ -153,16 +153,20 @@ export function Uploader() {
       ) : (
         <>
           <ul className="divide-y divide-line rounded-md border border-line">
-            {items.map(({ file, progress }, i) => (
+            {items.map(({ file, title: name, progress }, i) => (
               <li key={`${file.name}-${i}`} className="flex items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm">{title(file.name)}</p>
+                  {/* El nombre se puede cambiar para identificar el vídeo en el banco */}
+                  <input value={name} maxLength={120} disabled={busy} aria-label="Nombre del vídeo"
+                    placeholder={title(file.name)}
+                    onChange={(e) => setItems((prev) => prev.map((it, j) => (j === i ? { ...it, title: e.target.value } : it)))}
+                    className="-ml-1.5 h-7 w-full rounded-md border border-transparent bg-transparent px-1.5 text-sm hover:border-line focus:border-line-strong focus:outline-none disabled:hover:border-transparent" />
                   {busy ? (
                     <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-3">
                       <div className="h-full bg-accent transition-[width]" style={{ width: `${Math.round(progress * 100)}%` }} />
                     </div>
                   ) : (
-                    <p className="text-xs text-fg-3">{size(file.size)}</p>
+                    <p className="text-xs text-fg-3">{file.name} · {size(file.size)}</p>
                   )}
                 </div>
                 {!busy && (

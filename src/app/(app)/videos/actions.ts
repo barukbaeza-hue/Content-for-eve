@@ -74,6 +74,16 @@ export async function retryVideo(id: string) {
   revalidatePath("/videos");
 }
 
+export async function renameVideo(id: string, title: string): Promise<{ error?: string }> {
+  const clean = title.trim().slice(0, 120);
+  if (!clean) return { error: "Escribe un nombre." };
+  const { supabase } = await currentUser();
+  const { error } = await supabase.from("videos").update({ title: clean }).eq("id", id);
+  if (error) return { error: "No se pudo cambiar el nombre." };
+  revalidatePath("/videos");
+  return {};
+}
+
 export async function deleteVideo(id: string) {
   const { supabase } = await currentUser();
   const { data: video } = await supabase.from("videos").select("raw_path, storage_path, clean_path").eq("id", id).maybeSingle();
