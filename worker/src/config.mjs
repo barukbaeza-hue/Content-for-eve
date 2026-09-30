@@ -22,7 +22,7 @@ export const config = {
   whisperModel: process.env.WHISPER_MODEL?.trim() || path.join(ROOT, "models", "ggml-small-q5_1.bin"),
   language: process.env.WHISPER_LANGUAGE?.trim() || "es",
   threads: Number(process.env.THREADS) || Math.max(1, os.cpus().length - 1),
-  pollSeconds: Number(process.env.POLL_SECONDS) || 10,
+  pollSeconds: Number(process.env.POLL_SECONDS) || 3,
   // En el PC del equipo guarda una copia del vídeo editado en worker/salida para revisarlo
   keepLocalCopy: process.env.GUARDAR_COPIA !== "0",
 };

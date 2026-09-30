@@ -16,15 +16,29 @@ export async function editVideo(video, log = console.log) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mova-"));
   try {
     const raw = path.join(dir, `original${path.extname(video.raw_path) || ".mp4"}`);
+    // Tiempo de cada paso, para saber qué pesa
+    let mark = Date.now();
+    const step = (label) => {
+      log(`  ${label}: ${((Date.now() - mark) / 1000).toFixed(1)} s`);
+      mark = Date.now();
+    };
+
     log("Descargando el original…");
     await download(video.raw_path, raw);
     const { duration, width, height } = await probe(raw);
+    step("descarga");
 
-    log("Limpiando el audio con DeepFilterNet…");
-    const audio = await prepareAudio(raw, dir, log);
-
-    log("Transcribiendo con Whisper…");
-    const rawWords = await transcribe(audio.file, dir, duration, log);
+    // Whisper transcribe con el audio original mientras DeepFilterNet limpia la voz: van a la vez
+    log("Limpiando el audio (DeepFilterNet) y transcribiendo (Whisper) a la vez…");
+    const voice = path.join(dir, "voz.wav");
+    await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", raw, "-vn", "-ac", "1", "-ar", "48000", "-c:a", "pcm_s16le", voice]);
+    const t0 = Date.now();
+    const took = (label) => (r) => (log(`  ${label}: ${((Date.now() - t0) / 1000).toFixed(1)} s`), r);
+    const [audio, rawWords] = await Promise.all([
+      prepareAudio(voice, dir, log).then(took("audio limpio")),
+      transcribe(voice, dir, duration, log).then(took("transcripción")),
+    ]);
+    mark = Date.now();
 
     log("Buscando silencios…");
     const pcm = path.join(dir, "voz16k.raw");
@@ -36,6 +50,7 @@ export async function editVideo(video, log = console.log) {
     // y con el inicio de cada palabra ajustado a cuando empieza a sonar
     const words = snapToOnsets(alignWords(rawWords, detection.silences), detection);
     log(`  ${detection.silences.length} pausas (ruido ${detection.noiseDb} dB, voz ${detection.voiceDb} dB)`);
+    step("silencios");
     const editedWords = remapWords(words, segments);
     // Por defecto solo subtítulos. Título y zoom alterno solo si se piden (prompt o estilo de su marca).
     const extras = video.card?.estilo ?? {};
@@ -45,10 +60,12 @@ export async function editVideo(video, log = console.log) {
     log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
     const output = path.join(dir, "editado.mp4");
     await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, dir });
+    step("montaje");
 
     const key = `videos/${video.user_id}/${video.id}/editado.mp4`;
     log("Subiendo el vídeo editado…");
     await upload(output, key);
+    step("subida");
 
     if (config.keepLocalCopy) {
       const folder = path.join(ROOT, "salida");
@@ -122,9 +139,7 @@ async function loudness(file) {
  * Limpia la voz con DeepFilterNet y la deja al volumen de Reels.
  * Si la limpieza se come la voz (pasa con audios muy comprimidos), usa el original con un filtro suave.
  */
-async function prepareAudio(raw, dir, log) {
-  const original = path.join(dir, "voz.wav");
-  await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", raw, "-vn", "-ac", "1", "-ar", "48000", "-c:a", "pcm_s16le", original]);
+async function prepareAudio(original, dir, log) {
 
   const outDir = path.join(dir, "limpio");
   await mkdir(outDir, { recursive: true });
@@ -157,12 +172,16 @@ async function prepareAudio(raw, dir, log) {
   return { file, info: { metodo: method, lufs_original: originalLufs, lufs_limpio: cleanedLufs, ganancia_db: gain } };
 }
 
+/** Variante de DTW que funciona en este equipo (undefined: aún no se sabe; null: ninguna). */
+let dtwOption;
+
 // Whisper con el tiempo de cada palabra. Primero con DTW (alinea cada palabra con el audio, mucho más preciso);
 // si esta versión de whisper.cpp no lo admite, con el método simple de una palabra por segmento.
 async function transcribe(audioFile, dir, duration, log) {
   const audio = path.join(dir, "voz16k.wav");
   await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", audioFile, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", audio]);
-  const common = ["-m", config.whisperModel, "-f", audio, "-l", config.language, "-t", String(config.threads), "-np"];
+  // Greedy (-bs 1 -bo 1): una sola pasada por palabra, 2-3 veces más rápido que buscar 5 alternativas
+  const common = ["-m", config.whisperModel, "-f", audio, "-l", config.language, "-t", String(config.threads), "-np", "-bs", "1", "-bo", "1"];
   const clamp = (words) =>
     words
       .filter((w) => w.start < duration)
@@ -170,11 +189,14 @@ async function transcribe(audioFile, dir, duration, log) {
 
   const base = path.join(dir, "transcripcion");
   // DTW necesita la atención normal: -nfa la activa en las versiones nuevas; las antiguas no conocen la opción
-  for (const extra of [["--dtw", "small", "-nfa"], ["--dtw", "small"]]) {
+  // Se recuerda qué variante funciona en este equipo para no transcribir dos veces
+  const options = dtwOption === undefined ? [["--dtw", "small", "-nfa"], ["--dtw", "small"]] : dtwOption ? [dtwOption] : [];
+  for (const extra of options) {
     try {
       await run(tools.whisper, [...common, ...extra, "-ojf", "-of", base]);
       const words = wordsFromTokens(JSON.parse(await readFile(`${base}.json`, "utf8")));
       if (words.length) {
+        dtwOption = extra;
         log("  Tiempos de palabra: DTW");
         return clamp(words);
       }
@@ -182,6 +204,7 @@ async function transcribe(audioFile, dir, duration, log) {
       // se prueba la siguiente opción
     }
   }
+  dtwOption = null;
 
   log("  Tiempos de palabra: método simple (DTW no disponible)");
   await run(tools.whisper, [...common, "-ml", "1", "-sow", "-oj", "-of", base]);
