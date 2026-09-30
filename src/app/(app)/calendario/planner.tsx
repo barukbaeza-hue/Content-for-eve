@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { Draggable, type DateClickArg, type DropArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Notice } from "@/components/ui/notice";
@@ -78,6 +79,7 @@ function Thumb({ url }: { url: string }) {
 export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; perDay: number; times: string[] }) {
   // El calendario depende de la hora y la zona horaria del navegador: se dibuja solo en el cliente
   const mounted = useSyncExternalStore(noop, () => true, () => false);
+  const router = useRouter();
   const calendar = useRef<FullCalendar>(null);
   const bankRef = useRef<HTMLElement>(null);
   const [view, setView] = useState<View>(() => {
@@ -134,6 +136,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     setOverrides((prev) => ({ ...prev, ...Object.fromEntries(changes.map((c) => [c.id, c.at])) }));
     startTransition(async () => {
       const result = await scheduleVideos(changes, Intl.DateTimeFormat().resolvedOptions().timeZone);
+      // Trae del servidor el calendario ya guardado, sin tener que recargar la página
+      if (!result.error) router.refresh();
       if (result.error) {
         setError(result.error);
         setOverrides((prev) => {
