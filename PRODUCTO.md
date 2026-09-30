@@ -207,7 +207,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
 | 2c · Inspiración | Idear | Feed de competencia y tendencias con chat lateral para sacar ideas, unido al chat de ideas nuevas. Método de obtención por definir | |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (ver Edición automática), ficha de cada vídeo, copys automáticos | |
-| 4 · Publicación | Publicar | Calendario desde el banco y publicación automática en Instagram y TikTok | |
+| 4 · Publicación | Publicar | Calendario desde el banco (FullCalendar, mes y semana) y publicación automática en Instagram y TikTok desde el worker, a la hora programada. TikTok entra en la primera versión porque es la red principal de Evelyn; publica en privado hasta que TikTok apruebe la app | En curso |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
 | 6 · Comunidad | Conversar | Bandeja de comentarios, respuestas sugeridas, automatizaciones tipo ManyChat (primero en Instagram) | |
 | 7 · Resultados | Aprender | Métricas por vídeo que vuelven a la memoria | |

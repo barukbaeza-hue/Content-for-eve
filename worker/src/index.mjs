@@ -1,6 +1,7 @@
-// Worker de edición: toma vídeos de la cola de Supabase y los edita uno a uno.
+// Worker de Mova: edita los vídeos de la cola uno a uno y, en paralelo, publica los programados cuando llega su hora.
 import { config } from "./config.mjs";
 import { editVideo, resubtitleVideo } from "./edit.mjs";
+import { publishDue } from "./publish.mjs";
 import { supabase } from "./storage.mjs";
 import { checkTools } from "./tools.mjs";
 
@@ -17,9 +18,22 @@ function time() {
   return new Date().toLocaleTimeString("es-CL");
 }
 
+// Revisa el calendario cada pocos segundos, sin esperar a que termine una edición
+async function publishLoop() {
+  while (!stopping) {
+    try {
+      await publishDue((msg) => console.log(`[${time()}] Publicar · ${msg}`));
+    } catch (e) {
+      console.error(`[${time()}] Publicar · ${e instanceof Error ? e.message : e}`);
+    }
+    await sleep(config.publishSeconds);
+  }
+}
+
 async function main() {
   await checkTools();
-  console.log(`Worker de Mova listo. Revisando la cola cada ${config.pollSeconds} s (Ctrl+C para parar).`);
+  console.log(`Worker de Mova listo. Revisando la cola cada ${config.pollSeconds} s y el calendario cada ${config.publishSeconds} s (Ctrl+C para parar).`);
+  const publishing = publishLoop();
 
   while (!stopping) {
     const { data, error } = await supabase.rpc("claim_next_edit");
@@ -60,6 +74,7 @@ async function main() {
         .eq("id", video.id);
     }
   }
+  await publishing;
   console.log("Worker parado.");
 }
 

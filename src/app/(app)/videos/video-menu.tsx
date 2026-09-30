@@ -1,11 +1,13 @@
 "use client";
 
-import { Captions, Download, MoreHorizontal, Pencil, Share2, Trash2, type LucideIcon } from "lucide-react";
+import { Captions, Download, MoreHorizontal, Pencil, Send, Share2, Trash2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
+import type { Platform } from "./actions";
+import { PostDialog } from "./post-dialog";
 import { RenameDialog } from "./rename-dialog";
 
 
@@ -24,6 +26,8 @@ export type VideoActionsProps = {
   url: string | null;
   downloadUrl: string | null;
   canEditSubtitles: boolean;
+  caption: string;
+  platforms: Platform[];
   onDelete: () => void;
 };
 
@@ -48,13 +52,14 @@ async function shareVideo(url: string, title: string) {
 
 // Acciones de un vídeo con sus diálogos. Se usan en el menú de tres puntos y en el panel del lightbox.
 // `render` recibe la lista de opciones; `onPick` se llama al elegir una (para cerrar el menú).
-export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, onDelete, onPick, render }: VideoActionsProps & {
+export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, caption, platforms, onDelete, onPick, render }: VideoActionsProps & {
   onPick?: () => void;
   render: (items: React.ReactNode, active: boolean) => React.ReactNode;
 }) {
   const [sharing, setSharing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [posting, setPosting] = useState(false);
 
   const items = (
     <>
@@ -63,6 +68,12 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, on
         setRenaming(true);
       }}>
         Cambiar nombre
+      </Item>
+      <Item icon={Send} role="menuitem" onClick={() => {
+        onPick?.();
+        setPosting(true);
+      }}>
+        Descripción y redes
       </Item>
       {canEditSubtitles && (
         <Link href={`/videos/${id}`} className={menuItemClasses} role="menuitem">
@@ -98,7 +109,8 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, on
 
   return (
     <>
-      {render(items, confirming || renaming)}
+      {render(items, confirming || renaming || posting)}
+      {posting && <PostDialog id={id} caption={caption} platforms={platforms} onClose={() => setPosting(false)} />}
       {renaming && <RenameDialog id={id} title={title} onClose={() => setRenaming(false)} />}
       <ConfirmDialog
         open={confirming}

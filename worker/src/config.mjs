@@ -23,6 +23,15 @@ export const config = {
   language: process.env.WHISPER_LANGUAGE?.trim() || "es",
   threads: Number(process.env.THREADS) || Math.max(1, os.cpus().length - 1),
   pollSeconds: Number(process.env.POLL_SECONDS) || 3,
+  // TikTok: para renovar el token de 24 h al publicar
+  tiktok: {
+    clientKey: process.env.TIKTOK_CLIENT_KEY?.trim() || "",
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET?.trim() || "",
+    // PUBLIC_TO_EVERYONE necesita la app aprobada por TikTok; mientras tanto se publica en privado (SELF_ONLY)
+    privacy: process.env.TIKTOK_PRIVACY?.trim() || "PUBLIC_TO_EVERYONE",
+  },
+  instagramGraph: `https://graph.instagram.com/${process.env.INSTAGRAM_GRAPH_VERSION?.trim() || "v23.0"}`,
+  publishSeconds: Number(process.env.PUBLISH_SECONDS) || 30,
   // En el PC del equipo guarda una copia del vídeo editado en worker/salida para revisarlo
   keepLocalCopy: process.env.GUARDAR_COPIA !== "0",
 };

@@ -19,6 +19,8 @@ export async function scheduleVideos(items: { id: string; at: string | null }[],
       .eq("edit_status", "edited")
       .in("status", ["ready", "scheduled"]);
     if (error) return { error: "No se pudo guardar el calendario. Inténtalo de nuevo." };
+    // Si antes falló la publicación, al volver a programarlo se intenta de cero
+    await supabase.from("publications").delete().eq("video_id", id).eq("status", "failed");
   }
 
   // La zona horaria del navegador se guarda para publicar a la hora correcta

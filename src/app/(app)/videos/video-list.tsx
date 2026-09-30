@@ -1,10 +1,10 @@
 "use client";
 
-import { CalendarClock, CircleAlert, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
+import { CalendarClock, CircleAlert, Send, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { deleteVideo, retryVideo } from "./actions";
+import { deleteVideo, retryVideo, type Platform } from "./actions";
 import { Lightbox } from "./lightbox";
 import { Player } from "./player";
 import { VideoMenu } from "./video-menu";
@@ -20,10 +20,19 @@ export type VideoItem = {
   downloadUrl: string | null;
   canEditSubtitles: boolean;
   scheduledAt: string | null;
+  caption: string;
+  platforms: Platform[];
+  // Estado de publicación por red
+  publications: { platform: Platform; status: "pending" | "processing" | "published" | "failed"; permalink: string | null; error: string | null }[];
+  published: boolean;
   createdAt: string;
 };
 
 type Status = { label: string; icon: LucideIcon; spin?: boolean };
+
+const NETWORK: Record<Platform, string> = { instagram: "Instagram", tiktok: "TikTok" };
+const networks = (video: VideoItem) =>
+  video.publications.filter((p) => p.status === "published").map((p) => NETWORK[p.platform]).join(" y ") || "redes";
 
 // La paleta es monocromática: el estado se distingue por el icono.
 function status(video: VideoItem): Status {
@@ -34,6 +43,11 @@ function status(video: VideoItem): Status {
     case "processing":
       return { label: "Editando…", icon: LoaderCircle, spin: true };
     case "edited":
+      if (video.published) return { label: `Publicado en ${networks(video)}`, icon: Send };
+      if (video.publications.some((p) => p.status === "failed")) return { label: "No se pudo publicar", icon: CircleAlert };
+      if (video.publications.some((p) => p.status === "pending" || p.status === "processing")) {
+        return { label: "Publicando…", icon: LoaderCircle, spin: true };
+      }
       if (video.scheduledAt) {
         const at = new Date(video.scheduledAt).toLocaleString("es", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
         return { label: `Programado · ${at}`, icon: CalendarClock };
@@ -56,7 +70,9 @@ function seconds(n: number | null) {
 
 export function VideoList({ videos }: { videos: VideoItem[] }) {
   const router = useRouter();
-  const working = videos.some((v) => v.editStatus === "queued" || v.editStatus === "processing");
+  const working = videos.some((v) =>
+    v.editStatus === "queued" || v.editStatus === "processing" ||
+    v.publications.some((p) => p.status === "pending" || p.status === "processing"));
 
   // Mientras hay vídeos en edición, la lista se actualiza sola.
   useEffect(() => {
@@ -87,6 +103,8 @@ function VideoCard({ video }: { video: VideoItem }) {
     url: video.url,
     downloadUrl: video.downloadUrl,
     canEditSubtitles: video.canEditSubtitles && !busy,
+    caption: video.caption,
+    platforms: video.platforms,
     onDelete: () => startTransition(() => deleteVideo(video.id)),
   };
 
@@ -112,6 +130,11 @@ function VideoCard({ video }: { video: VideoItem }) {
       {video.error && (
         <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={video.error}>{video.error}</p>
       )}
+      {video.publications.filter((p) => p.status === "failed").map((p) => (
+        <p key={p.platform} className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={p.error ?? undefined}>
+          {NETWORK[p.platform]}: {p.error}
+        </p>
+      ))}
       {video.editStatus === "failed" && (
         <Button size="sm" variant="secondary" disabled={pending} className="pointer-events-auto mt-2"
           onClick={() => startTransition(() => retryVideo(video.id))}>
