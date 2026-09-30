@@ -1,10 +1,11 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Sparkles, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { scheduleVideos } from "./actions";
+import { BankPicker } from "./bank-picker";
 import { TimePicker } from "./time-picker";
 
 export type CalendarVideo = {
@@ -19,6 +20,8 @@ export type CalendarVideo = {
 
 type Change = { id: string; at: string | null };
 type View = "mes" | "semana";
+
+const noop = () => () => {};
 
 const DRAG_TYPE = "application/x-mova-video";
 
@@ -86,19 +89,22 @@ function Thumb({ url }: { url: string }) {
 
 export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; perDay: number; times: string[] }) {
   // Vista por mes o por semana; se recuerda en este navegador
-  const [view, setView] = useState<View>("mes");
-  useEffect(() => {
+  // El calendario depende de la hora y la zona horaria del navegador: se dibuja solo en el cliente
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
+  const [view, setView] = useState<View>(() => {
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- solo se lee una vez al abrir, tras hidratar
-      if (localStorage.getItem("mova.calendario.vista") === "semana") setView("semana");
-    } catch {}
-  }, []);
+      return localStorage.getItem("mova.calendario.vista") === "semana" ? "semana" : "mes";
+    } catch {
+      return "mes";
+    }
+  });
   const [cursor, setCursor] = useState(() => new Date());
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState<{ id: string; anchor: DOMRect } | null>(null);
+  const [adding, setAdding] = useState<{ day: Date; anchor: DOMRect } | null>(null);
   const [, startTransition] = useTransition();
   const slots = useMemo(() => [...times].sort(), [times]);
 
@@ -195,6 +201,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     draggable: true,
     onDragStart: (e: React.DragEvent) => {
       e.dataTransfer.setData(DRAG_TYPE, id);
+      e.dataTransfer.setData("text/plain", id);
       e.dataTransfer.effectAllowed = "move";
       setDragging(id);
     },
@@ -205,16 +212,23 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   });
 
   const dropProps = (key: string, onDrop: (id: string) => void) => ({
-    onDragOver: (e: React.DragEvent) => {
+    onDragEnter: (e: React.DragEvent) => {
       if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
       e.preventDefault();
       setOver(key);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (over !== key) setOver(key);
     },
     onDragLeave: (e: React.DragEvent) => {
       if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver((o) => (o === key ? null : o));
     },
     onDrop: (e: React.DragEvent) => {
-      const id = e.dataTransfer.getData(DRAG_TYPE);
+      e.preventDefault();
+      const id = e.dataTransfer.getData(DRAG_TYPE) || dragging;
       setOver(null);
       if (id) onDrop(id);
     },
@@ -263,12 +277,25 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             const items = onDay(day);
             return (
               <div key={key} {...(past ? {} : dropProps(key, (id) => place(id, day)))}
-                className={`flex min-h-[132px] flex-col gap-1 p-1.5 transition-colors duration-150 ${
+                // Clic en un hueco vacío del día: elegir un vídeo del banco
+                onClick={(e) => {
+                  if (!past && e.target === e.currentTarget) setAdding({ day, anchor: new DOMRect(e.clientX, e.clientY, 0, 0) });
+                }}
+                className={`group/day ${past ? "" : "cursor-pointer"} flex min-h-[132px] flex-col gap-1 p-1.5 transition-colors duration-150 ${
                   i % 7 ? "border-l border-line" : ""
                 } ${i >= 7 ? "border-t border-line" : ""} ${
                   over === key ? "bg-surface-3" : past || muted ? "bg-surface-2/40" : ""
                 }`}>
-                <div className="flex justify-end">{dayNumber(day, past, muted)}</div>
+                <div className="flex items-center justify-between">
+                  {!past ? (
+                    <button type="button" aria-label="Añadir un vídeo a este día" title="Añadir un vídeo"
+                      onClick={(e) => setAdding({ day, anchor: e.currentTarget.getBoundingClientRect() })}
+                      className="flex size-6 items-center justify-center rounded-md text-fg-3 opacity-0 transition-opacity group-hover/day:opacity-100 hover:bg-surface-3 hover:text-fg focus-visible:opacity-100">
+                      <Plus className="size-4" strokeWidth={1.75} />
+                    </button>
+                  ) : <span />}
+                  {dayNumber(day, past, muted)}
+                </div>
                 {items.map((video) => {
                   const published = video.status === "published";
                   const movable = !published && !past;
@@ -299,6 +326,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       </div>
     </div>
   );
+
+  if (!mounted) return <div className="flex-1" />;
 
   return (
     <div className="mx-auto grid w-full max-w-[1400px] flex-1 gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -388,9 +417,11 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
                   })}
 
                   {Array.from({ length: empty }, (_, i) => (
-                    <div key={i} className="flex h-20 flex-col items-center justify-center rounded-md border border-dashed border-line text-center">
-                      <span className="text-2xs text-fg-4">Arrastra un vídeo</span>
-                    </div>
+                    <button key={i} type="button" onClick={(e) => setAdding({ day, anchor: e.currentTarget.getBoundingClientRect() })}
+                      className="flex h-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line text-center text-fg-4 transition-colors hover:border-line-strong hover:text-fg-2">
+                      <Plus className="size-4" strokeWidth={1.75} />
+                      <span className="text-2xs">Arrastra o elige</span>
+                    </button>
                   ))}
                 </div>
               );
@@ -440,6 +471,14 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         )}
         <p className="text-2xs text-fg-4">Arrastra un vídeo a un día para programarlo, o de vuelta aquí para quitarlo.</p>
       </aside>
+      {adding && (
+        <BankPicker anchor={adding.anchor} day={adding.day} videos={bank} thumb={(url) => <Thumb url={url} />}
+          onClose={() => setAdding(null)}
+          onPick={(id) => {
+            setAdding(null);
+            place(id, adding.day);
+          }} />
+      )}
       {picked && picking && (
         <TimePicker anchor={picking.anchor} day={new Date(picked.at!)} value={clock(new Date(picked.at!))}
           presets={slots} onClose={() => setPicking(null)}

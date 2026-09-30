@@ -105,7 +105,8 @@ function VideoCard({ video }: { video: VideoItem }) {
       <p className="truncate text-sm font-medium">{video.title}</p>
       <p className="mt-0.5 flex items-center gap-1 text-xs text-[rgb(255_255_255/0.75)]">
         <Icon className={`size-3 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
-        {s.label}
+        {/* La fecha programada se formatea en la hora del navegador */}
+        <span suppressHydrationWarning>{s.label}</span>
         {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
       </p>
       {video.error && (
