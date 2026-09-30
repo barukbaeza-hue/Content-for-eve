@@ -44,8 +44,9 @@
     --accent-hover: #d4d4d4;
     --on-accent: #0c0c0c;
     --danger: #f87171;
-    --glass: rgb(28 28 28 / 0.6);
-    --glass-line: rgb(255 255 255 / 0.1);
+    /* Algo más claro que las superficies para que el cristal se note aunque debajo no haya imagen */
+    --glass: rgb(44 44 44 / 0.55);
+    --glass-line: rgb(255 255 255 / 0.12);
     color-scheme: dark;
   }
 }
@@ -138,7 +139,7 @@
   border: 1px solid var(--glass-line);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.22);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 @utility no-scrollbar {
