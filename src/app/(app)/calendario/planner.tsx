@@ -1,8 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { scheduleVideos } from "./actions";
 import { BankPicker } from "./bank-picker";
@@ -177,26 +176,6 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     }
   }
 
-  // Llena los huecos del mes o la semana visible con los vídeos del banco, en orden
-  function fill() {
-    const now = new Date();
-    const queue = [...bank];
-    const plan = [...list];
-    const changes: Change[] = [];
-    for (const day of days) {
-      if (isPast(day) || !inView(day)) continue;
-      while (queue.length && plan.filter((v) => v.at && sameDay(new Date(v.at), day)).length < perDay) {
-        const at = freeTime(day, slots, plan, now);
-        if (!at) break;
-        const video = queue.shift()!;
-        plan.push({ ...video, at: at.toISOString(), status: "scheduled" });
-        changes.push({ id: video.id, at: at.toISOString() });
-      }
-    }
-    if (!changes.length) return setError(bank.length ? `${view === "mes" ? "Este mes" : "Esta semana"} ya no tiene huecos libres.` : "No quedan vídeos en el banco.");
-    apply(changes);
-  }
-
   const dragProps = (id: string) => ({
     draggable: true,
     onDragStart: (e: React.DragEvent) => {
@@ -363,10 +342,6 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
                 </button>
               ))}
             </div>
-            <Button variant="primary" onClick={fill} disabled={bank.length === 0}>
-              <Sparkles className="size-4" strokeWidth={1.75} />
-              {view === "mes" ? "Llenar el mes" : "Llenar la semana"}
-            </Button>
           </div>
         </div>
 
