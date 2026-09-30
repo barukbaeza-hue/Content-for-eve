@@ -92,7 +92,10 @@ export function VideoMenu({ id, title, url, downloadUrl, canEditSubtitles, onDel
   }
 
   return (
-    <div className="absolute top-2 right-2 z-10">
+    // Con ratón, los tres puntos aparecen al pasar por encima del vídeo; en pantallas táctiles siempre se ven
+    <div className={`absolute top-2 right-2 z-10 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100 ${
+      open || confirming ? "opacity-100" : "[@media(hover:hover)]:opacity-0"
+    }`}>
       <button ref={button} type="button" aria-label="Opciones" aria-expanded={open} onClick={toggle}
         className="flex size-8 items-center justify-center rounded-full bg-[rgb(0_0_0/0.35)] text-[#fff] backdrop-blur-md transition-colors hover:bg-[rgb(0_0_0/0.5)]">
         <MoreHorizontal className="size-4" strokeWidth={2} />

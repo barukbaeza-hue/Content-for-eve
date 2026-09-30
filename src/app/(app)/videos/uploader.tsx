@@ -1,7 +1,8 @@
 "use client";
 
 import { Upload, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
@@ -40,12 +41,61 @@ export function Uploader() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
 
+  const [dragging, setDragging] = useState(false);
+
   function pick(files: FileList | null) {
-    if (!files?.length) return;
+    const videos = Array.from(files ?? []).filter((file) => file.type.startsWith("video/"));
+    if (!videos.length) return;
     setDone(null);
     setError(null);
-    setItems((prev) => [...prev, ...Array.from(files).map((file) => ({ file, progress: 0 }))]);
+    setItems((prev) => [...prev, ...videos.map((file) => ({ file, progress: 0 }))]);
   }
+
+  // Mientras sube, soltar archivos no hace nada
+  const busyRef = useRef(false);
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  // En el computador se pueden arrastrar vídeos desde el explorador a cualquier parte de la página
+  useEffect(() => {
+    let depth = 0;
+    const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes("Files") ?? false;
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth++;
+      setDragging(true);
+    };
+    const over = (e: DragEvent) => hasFiles(e) && e.preventDefault();
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragging(false);
+    };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragging(false);
+      if (busyRef.current) return;
+      const videos = Array.from(e.dataTransfer?.files ?? []).filter((file) => file.type.startsWith("video/"));
+      if (!videos.length) return;
+      setDone(null);
+      setError(null);
+      setItems((prev) => [...prev, ...videos.map((file) => ({ file, progress: 0 }))]);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragover", over);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("drop", drop);
+    };
+  }, []);
 
   async function submit() {
     setBusy(true);
@@ -93,7 +143,7 @@ export function Uploader() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">Sube tus vídeos grabados</p>
-            <p className="text-sm text-fg-3">Mova los edita en cola: audio limpio, sin silencios y con subtítulos.</p>
+            <p className="text-sm text-fg-3">Arrástralos aquí o elígelos. Mova los edita: audio limpio, sin silencios y con subtítulos.</p>
           </div>
           <Button variant="primary" onClick={() => input.current?.click()}>
             <Upload className="size-4" strokeWidth={1.75} />
@@ -142,6 +192,16 @@ export function Uploader() {
       )}
 
       {error && <Notice tone="danger">{error}</Notice>}
+      {dragging && !busy && createPortal(
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[rgb(0_0_0/0.25)] p-8 backdrop-blur-sm">
+          <div className="glass flex size-full max-h-[480px] max-w-3xl flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed">
+            <Upload className="size-8 text-fg-2" strokeWidth={1.5} />
+            <p className="text-lg font-medium">Suelta tus vídeos aquí</p>
+            <p className="text-sm text-fg-3">Se añadirán a la cola de edición</p>
+          </div>
+        </div>,
+        document.body,
+      )}
       {done !== null && (
         <Notice tone="success">
           {done === 1 ? "Vídeo en cola." : `${done} vídeos en cola.`} Aparecerán listos en tu banco cuando termine la edición.

@@ -60,14 +60,14 @@ export function VideoList({ videos }: { videos: VideoItem[] }) {
   }, [working, router]);
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {videos.map((video) => {
         const s = status(video);
         const Icon = s.icon;
         const busy = video.editStatus === "queued" || video.editStatus === "processing";
         return (
           <li key={video.id} className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line">
-            <div className="relative aspect-[9/16] bg-surface-2">
+            <div className="group relative aspect-[9/16] bg-surface-2">
               {video.url ? (
                 // Tocar el vídeo lo reproduce
                 <video src={video.url} controls playsInline preload="metadata" className="size-full object-cover" />

@@ -44,7 +44,7 @@ export default async function VideosPage() {
 
   return (
     <Page title="Vídeos">
-      <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
         <Uploader />
         {videos.length === 0 ? (
           <EmptyState icon={Clapperboard} title="Tu banco de vídeos está vacío"

@@ -8,6 +8,7 @@ Inspirado en el sistema de Linear, en versión monocromática: interfaz sobria, 
 2. **Cada pantalla vacía dice qué hacer.** Siempre con un `EmptyState` que explica el siguiente paso.
 3. **Jerarquía por contraste, no por color.** El máximo contraste (acento) se reserva para la acción principal y el foco.
 4. **Sin sombras.** Capas de superficie + bordes `line`. Los elementos flotantes (menús, diálogos) usan **cristal**: la utilidad `glass`, fondo translúcido con desenfoque del contenido de detrás, borde sutil y sombra suave (inspirado en Google Flow).
+5. **Escritorio primero.** Mova se usa sobre todo en el computador: cada pantalla se diseña primero para escritorio (contenido ancho, arrastrar y soltar, acciones al pasar el ratón) y después se adapta al móvil.
 
 ## Tipografía
 
