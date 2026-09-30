@@ -28,58 +28,39 @@ export async function editVideo(video, log = console.log) {
     const { duration, width, height } = await probe(raw);
     step("descarga");
 
-    // Whisper empieza ya con el audio original y sigue trabajando mientras se limpia la voz y se monta el vídeo
+    // Whisper transcribe con el audio original mientras DeepFilterNet limpia la voz: van a la vez
+    log("Limpiando el audio (DeepFilterNet) y transcribiendo (Whisper) a la vez…");
     const voice = path.join(dir, "voz.wav");
     await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", raw, "-vn", "-ac", "1", "-ar", "48000", "-c:a", "pcm_s16le", voice]);
     const t0 = Date.now();
-    const since = () => `${((Date.now() - t0) / 1000).toFixed(1)} s`;
-    log("Transcribiendo (Whisper) y limpiando el audio (DeepFilterNet) a la vez…");
-    const transcription = transcribe(voice, dir, duration, log).then((r) => (log(`  transcripción: ${since()}`), r));
-    transcription.catch(() => {}); // el error se recoge más abajo, al esperarla
+    const took = (label) => (r) => (log(`  ${label}: ${((Date.now() - t0) / 1000).toFixed(1)} s`), r);
+    const [audio, rawWords] = await Promise.all([
+      prepareAudio(voice, dir, log).then(took("audio limpio")),
+      transcribe(voice, dir, duration, log).then(took("transcripción")),
+    ]);
+    mark = Date.now();
 
-    const audio = await prepareAudio(voice, dir, log);
-    log(`  audio limpio: ${since()}`);
-
+    log("Buscando silencios…");
     const pcm = path.join(dir, "voz16k.raw");
     await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", audio.file, "-ac", "1", "-ar", "16000", "-f", "s16le", pcm]);
     const buffer = await readFile(pcm);
     const detection = detectSilences(new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length >> 1), 16000);
     const segments = keepSegments(detection.silences, duration);
+    // Tiempos de cada palabra corregidos con los silencios reales, para que los subtítulos vayan a tiempo
+    // y con el inicio de cada palabra ajustado a cuando empieza a sonar
+    const words = snapToOnsets(alignWords(rawWords, detection.silences), detection);
     log(`  ${detection.silences.length} pausas (ruido ${detection.noiseDb} dB, voz ${detection.voiceDb} dB)`);
-
+    step("silencios");
+    const editedWords = remapWords(words, segments);
     // Por defecto solo subtítulos. Título y zoom alterno solo si se piden (prompt o estilo de su marca).
     const extras = video.card?.estilo ?? {};
+    const pieces = extras.zoom_alterno ? framingPlan(segments, words) : segments.map((s) => ({ ...s, zoom: 1 }));
     const title = extras.titulo ?? null;
-    const output = path.join(dir, "editado.mp4");
-    // Tiempos de cada palabra corregidos con los silencios reales y ajustados a cuando empieza a sonar cada una
-    const timeWords = (raw) => snapToOnsets(alignWords(raw, detection.silences), detection);
 
-    let words;
-    let pieces;
-    let editedWords;
-    if (extras.zoom_alterno) {
-      // El zoom alterno depende de las frases: hay que esperar a la transcripción y montar todo de una vez
-      words = timeWords(await transcription);
-      editedWords = remapWords(words, segments);
-      pieces = framingPlan(segments, words);
-      log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos)…`);
-      await render({ raw, audio: audio.file, pieces, width, height, output, dir, subtitles: { words: editedWords, title } });
-    } else {
-      // Los cortes se montan mientras Whisper termina; después se queman los subtítulos en una pasada ligera
-      pieces = segments.map((s) => ({ ...s, zoom: 1 }));
-      const cut = path.join(dir, "cortado.mp4");
-      log(`Montando los cortes (${segments.length} tramos) mientras termina la transcripción…`);
-      const [rawWords] = await Promise.all([
-        transcription,
-        render({ raw, audio: audio.file, pieces, width, height, output: cut, dir }).then(() => log(`  cortes: ${since()}`)),
-      ]);
-      words = timeWords(rawWords);
-      editedWords = remapWords(words, segments);
-      log(`Poniendo los subtítulos (${editedWords.length} palabras)…`);
-      await burnSubtitles({ input: cut, words: editedWords, title, output, dir });
-    }
-    log(`  montaje terminado: ${since()}`);
-    mark = Date.now();
+    log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
+    const output = path.join(dir, "editado.mp4");
+    await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, dir });
+    step("montaje");
 
     const key = `videos/${video.user_id}/${video.id}/editado.mp4`;
     log("Subiendo el vídeo editado…");
@@ -262,66 +243,36 @@ export function wordsFromTokens(json) {
   return words.filter((w) => w.text && !/^\[.*\]$/.test(w.text));
 }
 
-/** Tamaño final: como mucho 1080 de ancho, en números pares. */
-function outputSize(width, height) {
+// Corta los planos (con zoom alterno), quema los subtítulos y deja el formato de Reels (H.264, AAC estéreo 48 kHz).
+async function render({ raw, audio, pieces, words, title, width, height, output, dir }) {
   const outWidth = Math.min(1080, width) - (Math.min(1080, width) % 2);
-  return { outWidth, outHeight: Math.round((height * outWidth) / width / 2) * 2 };
-}
-
-/** Archivo de subtítulos y tipografías (Geist) en la carpeta temporal, para que la ruta sea simple en Windows. */
-async function prepareSubtitles({ words, title, outWidth, outHeight, dir }) {
+  const outHeight = Math.round((height * outWidth) / width / 2) * 2;
   await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width: outWidth, height: outHeight }, { title }));
+  // Tipografías de los subtítulos (Geist), junto al archivo para que la ruta sea simple en Windows
   await cp(path.join(ROOT, "fonts"), path.join(dir, "fonts"), { recursive: true });
-}
 
-const H264 = ["-c:v", "libx264", "-preset", "veryfast"];
-const AAC = ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"];
+  const graph = buildGraph(pieces, outWidth, outHeight);
 
-// Corta los planos (con zoom alterno si se pidió) y deja el formato de Reels (H.264, AAC estéreo 48 kHz).
-// Con subtítulos, todo de una vez; sin ellos, es la primera pasada mientras Whisper sigue transcribiendo.
-async function render({ raw, audio, pieces, width, height, output, dir, subtitles }) {
-  const { outWidth, outHeight } = outputSize(width, height);
-  if (subtitles) await prepareSubtitles({ ...subtitles, outWidth, outHeight, dir });
   // Con muchos tramos el filtro no cabe en la línea de comandos de Windows: va en un archivo.
-  await writeFile(path.join(dir, "filtro.txt"), buildGraph(pieces, outWidth, outHeight, { subtitles: Boolean(subtitles) }));
+  // ffmpeg corre dentro de la carpeta temporal para que la ruta de los subtítulos sea simple.
+  await writeFile(path.join(dir, "filtro.txt"), graph);
   await run(
     tools.ffmpeg,
     [
-      // Decodificación por hardware si el equipo la tiene (acelera los originales HEVC del iPhone)
+      // Decodificación por hardware si el equipo la tiene (acelera mucho los originales HEVC del iPhone)
       "-y", "-hide_banner", "-hwaccel", "auto", "-i", raw, "-i", audio,
       "-/filter_complex", "filtro.txt",
       "-map", "[vo]", "-map", "[ao]",
-      // Si luego se queman los subtítulos, esta pasada va con algo más de calidad para no perderla al recomprimir
-      ...H264, "-crf", subtitles ? "21" : "18",
-      ...AAC,
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+      "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
       output,
     ],
     { cwd: dir },
   );
 }
 
-// Segunda pasada: quema los subtítulos sobre el vídeo ya cortado (ligero: 1080p en H.264). El audio se copia tal cual.
-async function burnSubtitles({ input, words, title, output, dir }) {
-  const { stdout } = await run(tools.ffprobe, [
-    "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", input,
-  ]);
-  const [outWidth, outHeight] = stdout.trim().split(",").map(Number);
-  await prepareSubtitles({ words, title, outWidth, outHeight, dir });
-  await run(
-    tools.ffmpeg,
-    [
-      "-y", "-hide_banner", "-i", input,
-      "-vf", "subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p",
-      ...H264, "-crf", "21",
-      "-c:a", "copy", "-movflags", "+faststart",
-      output,
-    ],
-    { cwd: dir },
-  );
-}
-
-/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos opcionales y audio en formato de Reels. */
-export function buildGraph(pieces, outWidth, outHeight, { subtitles = true } = {}) {
+/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos y audio en formato de Reels. */
+export function buildGraph(pieces, outWidth, outHeight) {
   const parts = pieces.map((p, i) => {
     // Plano cerrado: recorta el centro (algo por encima, donde está la cara) y lo vuelve a escalar
     const zoom = p.zoom > 1 ? `crop=iw/${p.zoom}:ih/${p.zoom}:(iw-iw/${p.zoom})/2:(ih-ih/${p.zoom})*0.35,` : "";
@@ -334,7 +285,7 @@ export function buildGraph(pieces, outWidth, outHeight, { subtitles = true } = {
   return (
     parts.join("") +
     `${inputs}concat=n=${pieces.length}:v=1:a=1[vc][ac];` +
-    `[vc]fps=30,${subtitles ? "subtitles=subtitulos.ass:fontsdir=fonts," : ""}format=yuv420p[vo];` +
+    `[vc]fps=30,subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
     `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[ao]`
   );
 }
