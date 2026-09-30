@@ -19,7 +19,7 @@ export default async function VideosPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("videos")
-    .select("id, title, edit_status, edit_job, edit_error, duration_seconds, storage_path, clean_path, created_at")
+    .select("id, title, edit_status, edit_job, edit_error, duration_seconds, storage_path, clean_path, status, scheduled_at, created_at")
     .order("created_at", { ascending: false })
     .limit(60);
 
@@ -36,6 +36,7 @@ export default async function VideosPage() {
         url: ready ? await signDownload(v.storage_path) : null,
         downloadUrl: ready ? await signDownload(v.storage_path, `${v.title}.mp4`) : null,
         canEditSubtitles: Boolean(v.clean_path),
+        scheduledAt: v.status === "scheduled" ? v.scheduled_at : null,
         createdAt: v.created_at,
       };
     }),

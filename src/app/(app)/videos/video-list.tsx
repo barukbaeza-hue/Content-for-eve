@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
+import { CalendarClock, CircleAlert, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export type VideoItem = {
   url: string | null;
   downloadUrl: string | null;
   canEditSubtitles: boolean;
+  scheduledAt: string | null;
   createdAt: string;
 };
 
@@ -33,6 +34,10 @@ function status(video: VideoItem): Status {
     case "processing":
       return { label: "Editando…", icon: LoaderCircle, spin: true };
     case "edited":
+      if (video.scheduledAt) {
+        const at = new Date(video.scheduledAt).toLocaleString("es", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+        return { label: `Programado · ${at}`, icon: CalendarClock };
+      }
       return { label: "Listo", icon: CircleCheck };
     case "failed":
       return { label: "No se pudo editar", icon: CircleAlert };
