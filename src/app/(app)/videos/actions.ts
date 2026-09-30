@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { r2Configured, removeObjects, signUpload } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
+import { applyLineEdits, type Word } from "@/lib/subtitles";
 
 const MAX_FILES = 20;
 const MAX_BYTES = 2 * 1024 ** 3; // 2 GB por vídeo
@@ -75,11 +76,55 @@ export async function retryVideo(id: string) {
 
 export async function deleteVideo(id: string) {
   const { supabase } = await currentUser();
-  const { data: video } = await supabase.from("videos").select("raw_path, storage_path").eq("id", id).maybeSingle();
+  const { data: video } = await supabase.from("videos").select("raw_path, storage_path, clean_path").eq("id", id).maybeSingle();
   if (!video) return;
-  await removeObjects([video.raw_path, video.storage_path].filter(Boolean) as string[]).catch((e) =>
+  await removeObjects([video.raw_path, video.storage_path, video.clean_path].filter(Boolean) as string[]).catch((e) =>
     console.error("No se pudo borrar el vídeo de R2:", e),
   );
   await supabase.from("videos").delete().eq("id", id);
   revalidatePath("/videos");
+}
+
+// Guarda los subtítulos corregidos y pide al worker que los vuelva a poner (sin reeditar el vídeo).
+// Las correcciones de una palabra por otra se guardan en el diccionario de la marca para los próximos vídeos.
+export async function saveSubtitles(id: string, lines: string[], remember: boolean): Promise<{ error?: string }> {
+  const { supabase, userId } = await currentUser();
+  const { data: video } = await supabase
+    .from("videos")
+    .select("transcript, clean_path, edit_status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!video) return { error: "No se encontró el vídeo." };
+  if (!video.clean_path) return { error: "Este vídeo se editó antes de poder corregir subtítulos. Súbelo de nuevo para corregirlos." };
+  if (video.edit_status !== "edited") return { error: "Espera a que termine la edición actual." };
+
+  const current = (video.transcript?.edited_words ?? []) as Word[];
+  const { words, corrections } = applyLineEdits(current, lines);
+
+  const { error } = await supabase
+    .from("videos")
+    .update({
+      transcript: { ...video.transcript, edited_words: words },
+      edit_status: "queued",
+      edit_job: "subtitulos",
+      edit_attempts: 0,
+      edit_error: null,
+    })
+    .eq("id", id);
+  if (error) return { error: "No se pudieron guardar los subtítulos." };
+
+  if (remember && Object.keys(corrections).length) {
+    const { data: brand } = await supabase
+      .from("brand_profiles")
+      .select("vocabulary, corrections")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const vocabulary = [...new Set([...(brand?.vocabulary ?? []), ...Object.values(corrections)])];
+    await supabase
+      .from("brand_profiles")
+      .upsert({ user_id: userId, vocabulary, corrections: { ...(brand?.corrections ?? {}), ...corrections } });
+  }
+
+  revalidatePath("/videos");
+  return {};
 }

@@ -30,9 +30,16 @@ export function signUpload(key: string, contentType: string) {
   });
 }
 
-// Enlace temporal para ver o descargar un vídeo.
-export function signDownload(key: string) {
-  return getSignedUrl(s3(), new GetObjectCommand({ Bucket: bucket(), Key: key }), { expiresIn: 60 * 60 * 6 });
+// Enlace temporal para ver un vídeo; con `filename`, el navegador lo descarga con ese nombre.
+export function signDownload(key: string, filename?: string) {
+  const disposition = filename
+    ? `attachment; filename="${filename.replace(/[^\w .-]+/g, "_")}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+    : undefined;
+  return getSignedUrl(
+    s3(),
+    new GetObjectCommand({ Bucket: bucket(), Key: key, ResponseContentDisposition: disposition }),
+    { expiresIn: 60 * 60 * 6 },
+  );
 }
 
 export async function removeObjects(keys: string[]) {
