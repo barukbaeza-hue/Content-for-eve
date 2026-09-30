@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { scheduleVideos } from "./actions";
+import { TimePicker } from "./time-picker";
 
 export type CalendarVideo = {
   id: string;
@@ -88,6 +89,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const [, startTransition] = useTransition();
   const slots = useMemo(() => [...times].sort(), [times]);
 
@@ -192,6 +194,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     },
   });
 
+  const picked = picking && list.find((v) => v.id === picking.id && v.at);
+
   return (
     <div className="mx-auto grid w-full max-w-[1400px] flex-1 gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
       <section className="min-w-0 space-y-4">
@@ -255,9 +259,18 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
                         } ${dragging === video.id ? "opacity-40" : ""} ${published ? "opacity-70" : ""}`}>
                         <Thumb url={video.url} />
                         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.8)] to-transparent px-2 pt-8 pb-2 text-[#fff]">
-                          <p className="text-xs font-medium tabular-nums">
-                            {published ? "Publicado" : clock(new Date(video.at!))}
-                          </p>
+                          {movable ? (
+                            // Clic en la hora para cambiarla
+                            <button type="button" title="Cambiar la hora" draggable={false}
+                              onClick={(e) => setPicking({ id: video.id, anchor: e.currentTarget.getBoundingClientRect() })}
+                              className="pointer-events-auto -mx-1 rounded px-1 text-xs font-medium tabular-nums underline-offset-2 hover:bg-[rgb(255_255_255/0.18)] hover:underline">
+                              {clock(new Date(video.at!))}
+                            </button>
+                          ) : (
+                            <p className="text-xs font-medium tabular-nums">
+                              {published ? "Publicado" : clock(new Date(video.at!))}
+                            </p>
+                          )}
                           <p className="truncate text-2xs text-[rgb(255_255_255/0.8)]">{video.title}</p>
                         </div>
                         {movable && (
@@ -323,6 +336,14 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         )}
         <p className="text-2xs text-fg-4">Arrastra un vídeo a un día para programarlo, o de vuelta aquí para quitarlo.</p>
       </aside>
+      {picked && picking && (
+        <TimePicker anchor={picking.anchor} day={new Date(picked.at!)} value={clock(new Date(picked.at!))}
+          presets={slots} onClose={() => setPicking(null)}
+          onSave={(at) => {
+            setPicking(null);
+            apply([{ id: picked.id, at: at.toISOString() }]);
+          }} />
+      )}
     </div>
   );
 }
