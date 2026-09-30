@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Sparkles, X } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { scheduleVideos } from "./actions";
@@ -18,6 +18,7 @@ export type CalendarVideo = {
 };
 
 type Change = { id: string; at: string | null };
+type View = "mes" | "semana";
 
 const DRAG_TYPE = "application/x-mova-video";
 
@@ -84,7 +85,15 @@ function Thumb({ url }: { url: string }) {
 }
 
 export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; perDay: number; times: string[] }) {
-  const [week, setWeek] = useState(() => startOfWeek(new Date()));
+  // Vista por mes o por semana; se recuerda en este navegador
+  const [view, setView] = useState<View>("mes");
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- solo se lee una vez al abrir, tras hidratar
+      if (localStorage.getItem("mova.calendario.vista") === "semana") setView("semana");
+    } catch {}
+  }, []);
+  const [cursor, setCursor] = useState(() => new Date());
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -104,7 +113,24 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   const upcoming = list.filter((v) => v.status === "scheduled" && v.at && new Date(v.at) > new Date()).length;
   const daysLeft = Math.floor((bank.length + upcoming) / perDay);
   const today = new Date();
-  const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
+  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const first = view === "mes" ? startOfWeek(monthStart) : startOfWeek(cursor);
+  const weeks = view === "mes"
+    ? Math.ceil(((monthStart.getDay() + 6) % 7 + new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate()) / 7)
+    : 1;
+  const days = Array.from({ length: weeks * 7 }, (_, i) => addDays(first, i));
+  const inView = (day: Date) => view === "semana" || day.getMonth() === cursor.getMonth();
+
+  function changeView(next: View) {
+    setView(next);
+    try {
+      localStorage.setItem("mova.calendario.vista", next);
+    } catch {}
+  }
+
+  function move(step: number) {
+    setCursor((c) => (view === "mes" ? new Date(c.getFullYear(), c.getMonth() + step, 1) : addDays(c, step * 7)));
+  }
   const onDay = (day: Date) =>
     list.filter((v) => v.at && sameDay(new Date(v.at), day)).sort((a, b) => a.at!.localeCompare(b.at!));
   const isPast = (day: Date) => day < new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -145,14 +171,14 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     }
   }
 
-  // Llena los huecos de la semana visible con los vídeos del banco, en orden
-  function fillWeek() {
+  // Llena los huecos del mes o la semana visible con los vídeos del banco, en orden
+  function fill() {
     const now = new Date();
     const queue = [...bank];
     const plan = [...list];
     const changes: Change[] = [];
     for (const day of days) {
-      if (isPast(day)) continue;
+      if (isPast(day) || !inView(day)) continue;
       while (queue.length && plan.filter((v) => v.at && sameDay(new Date(v.at), day)).length < perDay) {
         const at = freeTime(day, slots, plan, now);
         if (!at) break;
@@ -161,7 +187,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         changes.push({ id: video.id, at: at.toISOString() });
       }
     }
-    if (!changes.length) return setError(bank.length ? "Esta semana ya no tiene huecos libres." : "No quedan vídeos en el banco.");
+    if (!changes.length) return setError(bank.length ? `${view === "mes" ? "Este mes" : "Esta semana"} ya no tiene huecos libres.` : "No quedan vídeos en el banco.");
     apply(changes);
   }
 
@@ -196,41 +222,133 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
   const picked = picking && list.find((v) => v.id === picking.id && v.at);
 
+  // La hora de un vídeo programado; clic para cambiarla
+  const timeLabel = (video: CalendarVideo, movable: boolean, hover: string) =>
+    movable ? (
+      <button type="button" title="Cambiar la hora" draggable={false}
+        onClick={(e) => setPicking({ id: video.id, anchor: e.currentTarget.getBoundingClientRect() })}
+        className={`pointer-events-auto -mx-1 shrink-0 rounded px-1 text-xs font-medium tabular-nums underline-offset-2 hover:underline ${hover}`}>
+        {clock(new Date(video.at!))}
+      </button>
+    ) : (
+      <span className="shrink-0 text-xs font-medium tabular-nums">
+        {video.status === "published" ? "Publicado" : clock(new Date(video.at!))}
+      </span>
+    );
+
+  const dayNumber = (day: Date, past: boolean, muted = false) => (
+    <span className={`flex size-6 items-center justify-center rounded-full text-sm font-medium tabular-nums ${
+      sameDay(day, today) ? "bg-fg text-canvas" : past || muted ? "text-fg-4" : "text-fg"
+    }`}>
+      {day.getDate()}
+    </span>
+  );
+
+  // Vista de mes: cada día es una celda con sus vídeos en filas compactas
+  const monthGrid = (
+    <div className="overflow-x-auto">
+      <div className="min-w-[840px] overflow-hidden rounded-lg border border-line">
+        <div className="grid grid-cols-7 border-b border-line bg-surface-2">
+          {days.slice(0, 7).map((d) => (
+            <span key={d.getDay()} className="px-2 py-1.5 text-xs font-medium capitalize text-fg-3">
+              {d.toLocaleDateString("es", { weekday: "short" }).replace(".", "")}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {days.map((day, i) => {
+            const key = day.toDateString();
+            const past = isPast(day);
+            const muted = !inView(day);
+            const items = onDay(day);
+            return (
+              <div key={key} {...(past ? {} : dropProps(key, (id) => place(id, day)))}
+                className={`flex min-h-[132px] flex-col gap-1 p-1.5 transition-colors duration-150 ${
+                  i % 7 ? "border-l border-line" : ""
+                } ${i >= 7 ? "border-t border-line" : ""} ${
+                  over === key ? "bg-surface-3" : past || muted ? "bg-surface-2/40" : ""
+                }`}>
+                <div className="flex justify-end">{dayNumber(day, past, muted)}</div>
+                {items.map((video) => {
+                  const published = video.status === "published";
+                  const movable = !published && !past;
+                  return (
+                    <div key={video.id} {...(movable ? dragProps(video.id) : {})}
+                      className={`group flex items-center gap-1.5 rounded-md bg-surface-2 p-1 pr-1.5 transition-colors hover:bg-surface-3 ${
+                        movable ? "cursor-grab active:cursor-grabbing" : ""
+                      } ${dragging === video.id ? "opacity-40" : ""} ${published ? "opacity-60" : ""}`}>
+                      <div className="aspect-[9/16] w-5 shrink-0 overflow-hidden rounded-sm bg-surface-3">
+                        <Thumb url={video.url} />
+                      </div>
+                      {timeLabel(video, movable, "hover:bg-surface-1")}
+                      <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{video.title}</span>
+                      {movable && (
+                        <button type="button" aria-label="Devolver al banco" title="Devolver al banco"
+                          onClick={() => apply([{ id: video.id, at: null }])}
+                          className="hidden shrink-0 text-fg-3 group-hover:block hover:text-fg">
+                          <X className="size-3.5" strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="mx-auto grid w-full max-w-[1400px] flex-1 gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
       <section className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-lg border border-line p-0.5">
-              <button type="button" aria-label="Semana anterior" onClick={() => setWeek((w) => addDays(w, -7))}
+              <button type="button" aria-label="Anterior" onClick={() => move(-1)}
                 className="flex size-7 items-center justify-center rounded-md text-fg-3 hover:bg-surface-2 hover:text-fg">
                 <ChevronLeft className="size-4" strokeWidth={1.75} />
               </button>
-              <button type="button" onClick={() => setWeek(startOfWeek(new Date()))}
+              <button type="button" onClick={() => setCursor(new Date())}
                 className="h-7 rounded-md px-2.5 text-sm font-medium text-fg-2 hover:bg-surface-2 hover:text-fg">
                 Hoy
               </button>
-              <button type="button" aria-label="Semana siguiente" onClick={() => setWeek((w) => addDays(w, 7))}
+              <button type="button" aria-label="Siguiente" onClick={() => move(1)}
                 className="flex size-7 items-center justify-center rounded-md text-fg-3 hover:bg-surface-2 hover:text-fg">
                 <ChevronRight className="size-4" strokeWidth={1.75} />
               </button>
             </div>
-            <h2 className="text-md font-medium">{weekLabel(week)}</h2>
+            <h2 className="text-md font-medium first-letter:uppercase">
+              {view === "mes" ? cursor.toLocaleDateString("es", { month: "long", year: "numeric" }) : weekLabel(startOfWeek(cursor))}
+            </h2>
           </div>
-          <Button variant="primary" onClick={fillWeek} disabled={bank.length === 0}>
-            <Sparkles className="size-4" strokeWidth={1.75} />
-            Llenar la semana
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 rounded-lg border border-line p-0.5">
+              {(["mes", "semana"] as const).map((v) => (
+                <button key={v} type="button" onClick={() => changeView(v)}
+                  className={`flex h-7 items-center rounded-md px-2.5 text-sm font-medium capitalize transition-colors duration-150 ${
+                    view === v ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
+                  }`}>
+                  {v}
+                </button>
+              ))}
+            </div>
+            <Button variant="primary" onClick={fill} disabled={bank.length === 0}>
+              <Sparkles className="size-4" strokeWidth={1.75} />
+              {view === "mes" ? "Llenar el mes" : "Llenar la semana"}
+            </Button>
+          </div>
         </div>
 
         {error && <Notice tone="danger">{error}</Notice>}
 
+        {view === "mes" ? monthGrid : (
         <div className="overflow-x-auto">
           <div className="grid min-w-[840px] grid-cols-7 gap-2">
             {days.map((day) => {
               const key = day.toDateString();
               const past = isPast(day);
-              const isToday = sameDay(day, today);
               const items = onDay(day);
               const empty = past ? 0 : Math.max(0, perDay - items.length);
               return (
@@ -242,11 +360,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
                     <span className={`text-xs font-medium capitalize ${past ? "text-fg-4" : "text-fg-3"}`}>
                       {day.toLocaleDateString("es", { weekday: "short" }).replace(".", "")}
                     </span>
-                    <span className={`flex size-6 items-center justify-center rounded-full text-sm font-medium tabular-nums ${
-                      isToday ? "bg-fg text-canvas" : past ? "text-fg-4" : "text-fg"
-                    }`}>
-                      {day.getDate()}
-                    </span>
+                    {dayNumber(day, past)}
                   </div>
 
                   {items.map((video) => {
@@ -259,18 +373,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
                         } ${dragging === video.id ? "opacity-40" : ""} ${published ? "opacity-70" : ""}`}>
                         <Thumb url={video.url} />
                         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.8)] to-transparent px-2 pt-8 pb-2 text-[#fff]">
-                          {movable ? (
-                            // Clic en la hora para cambiarla
-                            <button type="button" title="Cambiar la hora" draggable={false}
-                              onClick={(e) => setPicking({ id: video.id, anchor: e.currentTarget.getBoundingClientRect() })}
-                              className="pointer-events-auto -mx-1 rounded px-1 text-xs font-medium tabular-nums underline-offset-2 hover:bg-[rgb(255_255_255/0.18)] hover:underline">
-                              {clock(new Date(video.at!))}
-                            </button>
-                          ) : (
-                            <p className="text-xs font-medium tabular-nums">
-                              {published ? "Publicado" : clock(new Date(video.at!))}
-                            </p>
-                          )}
+                          {timeLabel(video, movable, "hover:bg-[rgb(255_255_255/0.18)]")}
                           <p className="truncate text-2xs text-[rgb(255_255_255/0.8)]">{video.title}</p>
                         </div>
                         {movable && (
@@ -294,6 +397,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             })}
           </div>
         </div>
+        )}
       </section>
 
       <aside {...dropProps("bank", (id) => apply([{ id, at: null }]))}
