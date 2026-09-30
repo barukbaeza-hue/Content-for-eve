@@ -1,10 +1,12 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Clock, LoaderCircle, Play, RotateCcw, type LucideIcon } from "lucide-react";
+import { CircleAlert, CircleCheck, Clock, LoaderCircle, RotateCcw, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteVideo, retryVideo } from "./actions";
+import { Lightbox } from "./lightbox";
+import { Player } from "./player";
 import { VideoMenu } from "./video-menu";
 
 export type VideoItem = {
@@ -69,69 +71,61 @@ export function VideoList({ videos }: { videos: VideoItem[] }) {
 function VideoCard({ video }: { video: VideoItem }) {
   const [pending, startTransition] = useTransition();
   const player = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [expanded, setExpanded] = useState<number | null>(null);
   const s = status(video);
   const Icon = s.icon;
   const busy = video.editStatus === "queued" || video.editStatus === "processing";
 
-  // Clic para reproducir o pausar; doble clic para pantalla completa
-  function toggle() {
+  // Doble clic amplía el vídeo en un lightbox y sigue desde el mismo punto
+  function expand() {
     const v = player.current;
     if (!v) return;
-    if (v.paused) v.play().catch(() => {});
-    else v.pause();
+    v.pause();
+    setExpanded(v.currentTime);
   }
+
+  const info = (hidden: boolean, padded: boolean) => (
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.8)] via-[rgb(0_0_0/0.35)] to-transparent px-3 pt-16 text-[#fff] transition-opacity duration-200 ${
+      padded ? "pb-7" : "pb-3"
+    } ${hidden ? "opacity-0" : ""}`}>
+      <p className="truncate text-sm font-medium">{video.title}</p>
+      <p className="mt-0.5 flex items-center gap-1 text-xs text-[rgb(255_255_255/0.75)]">
+        <Icon className={`size-3 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
+        {s.label}
+        {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
+      </p>
+      {video.error && (
+        <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={video.error}>{video.error}</p>
+      )}
+      {video.editStatus === "failed" && (
+        <Button size="sm" variant="secondary" disabled={pending} className="pointer-events-auto mt-2"
+          onClick={() => startTransition(() => retryVideo(video.id))}>
+          <RotateCcw className="size-3.5" strokeWidth={1.75} />
+          Reintentar
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <li className="group relative aspect-[9/16] min-w-0 overflow-hidden rounded-lg bg-surface-2">
       {video.url ? (
-        <video ref={player} src={video.url} playsInline preload="metadata"
-          className="size-full cursor-pointer object-cover"
-          onClick={toggle}
-          onDoubleClick={() => player.current?.requestFullscreen?.().catch(() => {})}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))} />
+        <Player src={video.url} player={player} className="size-full" onDoubleClick={expand}
+          overlay={({ playing, started }) => info(playing, started)} />
       ) : (
-        <div className="flex size-full items-center justify-center pb-16 text-fg-3">
-          <Icon className={`size-6 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.5} />
-        </div>
+        <>
+          <div className="flex size-full items-center justify-center pb-16 text-fg-3">
+            <Icon className={`size-6 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.5} />
+          </div>
+          {info(false, false)}
+        </>
       )}
 
-      {video.url && !playing && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-[rgb(0_0_0/0.35)] text-[#fff] opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100">
-            <Play className="ml-0.5 size-5" fill="currentColor" strokeWidth={0} />
-          </span>
-        </div>
-      )}
-
-      <div className={`pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.8)] via-[rgb(0_0_0/0.35)] to-transparent px-3 pt-16 pb-3 text-[#fff] transition-opacity duration-200 ${
-        playing ? "opacity-0" : ""
-      }`}>
-        <p className="truncate text-sm font-medium">{video.title}</p>
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-[rgb(255_255_255/0.75)]">
-          <Icon className={`size-3 ${s.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
-          {s.label}
-          {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
-        </p>
-        {video.error && (
-          <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={video.error}>{video.error}</p>
-        )}
-        {video.editStatus === "failed" && (
-          <Button size="sm" variant="secondary" disabled={pending} className="pointer-events-auto mt-2"
-            onClick={() => startTransition(() => retryVideo(video.id))}>
-            <RotateCcw className="size-3.5" strokeWidth={1.75} />
-            Reintentar
-          </Button>
-        )}
-      </div>
-
-      {playing && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[rgb(255_255_255/0.25)]">
-          <div className="h-full bg-[#fff]" style={{ width: `${progress * 100}%` }} />
-        </div>
+      {video.url && expanded !== null && (
+        <Lightbox src={video.url} title={video.title} startAt={expanded} onClose={(time) => {
+          if (player.current) player.current.currentTime = time;
+          setExpanded(null);
+        }} />
       )}
 
       <VideoMenu
