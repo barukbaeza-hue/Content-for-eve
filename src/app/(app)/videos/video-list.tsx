@@ -76,6 +76,15 @@ function VideoCard({ video }: { video: VideoItem }) {
   const Icon = s.icon;
   const busy = video.editStatus === "queued" || video.editStatus === "processing";
 
+  const actions = {
+    id: video.id,
+    title: video.title,
+    url: video.url,
+    downloadUrl: video.downloadUrl,
+    canEditSubtitles: video.canEditSubtitles && !busy,
+    onDelete: () => startTransition(() => deleteVideo(video.id)),
+  };
+
   // Doble clic amplía el vídeo en un lightbox y sigue desde el mismo punto
   function expand() {
     const v = player.current;
@@ -122,20 +131,13 @@ function VideoCard({ video }: { video: VideoItem }) {
       )}
 
       {video.url && expanded !== null && (
-        <Lightbox src={video.url} title={video.title} startAt={expanded} onClose={(time) => {
+        <Lightbox {...actions} url={video.url} startAt={expanded} onClose={(time) => {
           if (player.current) player.current.currentTime = time;
           setExpanded(null);
         }} />
       )}
 
-      <VideoMenu
-        id={video.id}
-        title={video.title}
-        url={video.url}
-        downloadUrl={video.downloadUrl}
-        canEditSubtitles={video.canEditSubtitles && !busy}
-        onDelete={() => startTransition(() => deleteVideo(video.id))}
-      />
+      <VideoMenu {...actions} />
     </li>
   );
 }
