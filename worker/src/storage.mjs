@@ -1,7 +1,8 @@
 // Vídeos en Cloudflare R2 (compatible con S3) y datos en Supabase.
 import { createReadStream, createWriteStream } from "node:fs";
+import { open } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
-import { DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./config.mjs";
@@ -16,9 +17,37 @@ const s3 = new S3Client({
   credentials: { accessKeyId: config.r2.accessKeyId, secretAccessKey: config.r2.secretAccessKey },
 });
 
+const PART = 8 * 1024 * 1024;
+const PARALLEL = 8;
+
+// Descarga en trozos a la vez: con el bucket lejos (EE. UU.), una sola conexión va lenta.
 export async function download(key, file) {
-  const res = await s3.send(new GetObjectCommand({ Bucket: config.r2.bucket, Key: key }));
-  await pipeline(res.Body, createWriteStream(file));
+  const head = await s3.send(new HeadObjectCommand({ Bucket: config.r2.bucket, Key: key }));
+  const size = head.ContentLength ?? 0;
+  if (size <= PART) {
+    const res = await s3.send(new GetObjectCommand({ Bucket: config.r2.bucket, Key: key }));
+    await pipeline(res.Body, createWriteStream(file));
+    return;
+  }
+  const handle = await open(file, "w");
+  try {
+    const ranges = [];
+    for (let start = 0; start < size; start += PART) ranges.push([start, Math.min(size, start + PART) - 1]);
+    await Promise.all(
+      Array.from({ length: PARALLEL }, async () => {
+        for (let range = ranges.shift(); range; range = ranges.shift()) {
+          const [start, end] = range;
+          const res = await s3.send(
+            new GetObjectCommand({ Bucket: config.r2.bucket, Key: key, Range: `bytes=${start}-${end}` }),
+          );
+          const bytes = await res.Body.transformToByteArray();
+          await handle.write(bytes, 0, bytes.length, start);
+        }
+      }),
+    );
+  } finally {
+    await handle.close();
+  }
 }
 
 export async function upload(file, key, contentType = "video/mp4") {
