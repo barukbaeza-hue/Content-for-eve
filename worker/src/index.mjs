@@ -1,6 +1,6 @@
 // Worker de edición: toma vídeos de la cola de Supabase y los edita uno a uno.
 import { config } from "./config.mjs";
-import { editVideo } from "./edit.mjs";
+import { editVideo, resubtitleVideo } from "./edit.mjs";
 import { supabase } from "./storage.mjs";
 import { checkTools } from "./tools.mjs";
 
@@ -34,15 +34,25 @@ async function main() {
       continue;
     }
 
-    console.log(`\n[${time()}] Editando "${video.title}" (${video.id})`);
+    const what = video.edit_job === "subtitulos" ? "Corrigiendo subtítulos de" : "Editando";
+    console.log(`\n[${time()}] ${what} "${video.title}" (${video.id})`);
     const started = Date.now();
     try {
-      await editVideo(video, (msg) => console.log(`  ${msg}`));
+      const job = video.edit_job === "subtitulos" ? resubtitleVideo : editVideo;
+      await job(video, (msg) => console.log(`  ${msg}`));
       console.log(`[${time()}] Terminado en ${Math.round((Date.now() - started) / 1000)} s`);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      const failed = video.edit_attempts >= MAX_ATTEMPTS;
       console.error(`[${time()}] Error: ${message}`);
+      if (video.edit_job === "subtitulos") {
+        // El vídeo editado sigue bien: vuelve a "listo" con el aviso de que la corrección no se aplicó
+        await supabase
+          .from("videos")
+          .update({ edit_status: "edited", edit_job: "completa", edit_error: `No se pudieron corregir los subtítulos: ${message}`.slice(0, 2000) })
+          .eq("id", video.id);
+        continue;
+      }
+      const failed = video.edit_attempts >= MAX_ATTEMPTS;
       console.error(failed ? "  Se marca como fallido." : "  Vuelve a la cola para reintentar.");
       await supabase
         .from("videos")

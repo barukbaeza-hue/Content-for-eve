@@ -5,6 +5,7 @@ import path from "node:path";
 import { ROOT, config } from "./config.mjs";
 import { alignWords, detectSilences, framingPlan, keepSegments, remapWords, snapToOnsets, totalDuration } from "./cuts.mjs";
 import { download, remove, supabase, upload } from "./storage.mjs";
+import { applyCorrections, whisperPrompt } from "./dictionary.mjs";
 import { buildAss } from "./subtitles.mjs";
 import { run, tools } from "./tools.mjs";
 
@@ -23,6 +24,13 @@ export async function editVideo(video, log = console.log) {
       mark = Date.now();
     };
 
+    // Diccionario de la marca: palabras propias (pista para Whisper) y correcciones anteriores
+    const { data: brand } = await supabase
+      .from("brand_profiles")
+      .select("vocabulary, corrections")
+      .eq("user_id", video.user_id)
+      .maybeSingle();
+
     log("Descargando el original…");
     await download(video.raw_path, raw);
     const { duration, width, height } = await probe(raw);
@@ -36,7 +44,7 @@ export async function editVideo(video, log = console.log) {
     const took = (label) => (r) => (log(`  ${label}: ${((Date.now() - t0) / 1000).toFixed(1)} s`), r);
     const [audio, rawWords] = await Promise.all([
       prepareAudio(voice, dir, log).then(took("audio limpio")),
-      transcribe(voice, dir, duration, log).then(took("transcripción")),
+      transcribe(voice, dir, duration, log, whisperPrompt(brand?.vocabulary)).then(took("transcripción")),
     ]);
     mark = Date.now();
 
@@ -48,7 +56,7 @@ export async function editVideo(video, log = console.log) {
     const segments = keepSegments(detection.silences, duration);
     // Tiempos de cada palabra corregidos con los silencios reales, para que los subtítulos vayan a tiempo
     // y con el inicio de cada palabra ajustado a cuando empieza a sonar
-    const words = snapToOnsets(alignWords(rawWords, detection.silences), detection);
+    const words = applyCorrections(snapToOnsets(alignWords(rawWords, detection.silences), detection), brand?.corrections);
     log(`  ${detection.silences.length} pausas (ruido ${detection.noiseDb} dB, voz ${detection.voiceDb} dB)`);
     step("silencios");
     const editedWords = remapWords(words, segments);
@@ -59,12 +67,15 @@ export async function editVideo(video, log = console.log) {
 
     log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
     const output = path.join(dir, "editado.mp4");
-    await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, dir });
+    // Copia sin subtítulos en la misma pasada: permite corregirlos luego sin reeditar todo el vídeo
+    const clean = path.join(dir, "limpio.mp4");
+    await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, clean, dir });
     step("montaje");
 
     const key = `videos/${video.user_id}/${video.id}/editado.mp4`;
+    const cleanKey = `videos/${video.user_id}/${video.id}/sin-subtitulos.mp4`;
     log("Subiendo el vídeo editado…");
-    await upload(output, key);
+    await Promise.all([upload(output, key), upload(clean, cleanKey)]);
     step("subida");
 
     if (config.keepLocalCopy) {
@@ -79,8 +90,10 @@ export async function editVideo(video, log = console.log) {
       .from("videos")
       .update({
         storage_path: key,
+        clean_path: cleanKey,
         status: "ready",
         edit_status: "edited",
+        edit_job: "completa",
         edit_error: null,
         edited_at: new Date().toISOString(),
         duration_seconds: editedDuration,
@@ -177,11 +190,13 @@ let dtwOption;
 
 // Whisper con el tiempo de cada palabra. Primero con DTW (alinea cada palabra con el audio, mucho más preciso);
 // si esta versión de whisper.cpp no lo admite, con el método simple de una palabra por segmento.
-async function transcribe(audioFile, dir, duration, log) {
+async function transcribe(audioFile, dir, duration, log, prompt) {
   const audio = path.join(dir, "voz16k.wav");
   await run(tools.ffmpeg, ["-y", "-hide_banner", "-i", audioFile, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", audio]);
   // Greedy (-bs 1 -bo 1): una sola pasada por palabra, 2-3 veces más rápido que buscar 5 alternativas
   const common = ["-m", config.whisperModel, "-f", audio, "-l", config.language, "-t", String(config.threads), "-np", "-bs", "1", "-bo", "1"];
+  // Palabras de la marca como pista, para que Whisper las escriba bien (por ejemplo "Mova" y no "Moba")
+  if (prompt) common.push("--prompt", prompt);
   const clamp = (words) =>
     words
       .filter((w) => w.start < duration)
@@ -243,35 +258,39 @@ export function wordsFromTokens(json) {
   return words.filter((w) => w.text && !/^\[.*\]$/.test(w.text));
 }
 
-// Corta los planos (con zoom alterno), quema los subtítulos y deja el formato de Reels (H.264, AAC estéreo 48 kHz).
-async function render({ raw, audio, pieces, words, title, width, height, output, dir }) {
+/** Subtítulos (.ass) y tipografías (Geist) en la carpeta temporal, para que la ruta sea simple en Windows. */
+async function prepareSubtitles(words, title, width, height, dir) {
+  await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width, height }, { title }));
+  await cp(path.join(ROOT, "fonts"), path.join(dir, "fonts"), { recursive: true });
+}
+
+const H264 = ["-c:v", "libx264", "-preset", "veryfast"];
+const AAC = ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"];
+
+// Corta los planos (con zoom alterno si se pidió), quema los subtítulos y deja el formato de Reels
+// (H.264, AAC estéreo 48 kHz). En la misma pasada sale la copia sin subtítulos.
+async function render({ raw, audio, pieces, words, title, width, height, output, clean, dir }) {
   const outWidth = Math.min(1080, width) - (Math.min(1080, width) % 2);
   const outHeight = Math.round((height * outWidth) / width / 2) * 2;
-  await writeFile(path.join(dir, "subtitulos.ass"), buildAss(words, { width: outWidth, height: outHeight }, { title }));
-  // Tipografías de los subtítulos (Geist), junto al archivo para que la ruta sea simple en Windows
-  await cp(path.join(ROOT, "fonts"), path.join(dir, "fonts"), { recursive: true });
-
-  const graph = buildGraph(pieces, outWidth, outHeight);
+  await prepareSubtitles(words, title, outWidth, outHeight, dir);
 
   // Con muchos tramos el filtro no cabe en la línea de comandos de Windows: va en un archivo.
   // ffmpeg corre dentro de la carpeta temporal para que la ruta de los subtítulos sea simple.
-  await writeFile(path.join(dir, "filtro.txt"), graph);
+  await writeFile(path.join(dir, "filtro.txt"), buildGraph(pieces, outWidth, outHeight));
   await run(
     tools.ffmpeg,
     [
-      // Decodificación por hardware si el equipo la tiene (acelera mucho los originales HEVC del iPhone)
+      // Decodificación por hardware si el equipo la tiene (acelera los originales HEVC del iPhone)
       "-y", "-hide_banner", "-hwaccel", "auto", "-i", raw, "-i", audio,
       "-/filter_complex", "filtro.txt",
-      "-map", "[vo]", "-map", "[ao]",
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-      "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
-      output,
+      "-map", "[vo]", "-map", "[ao]", ...H264, "-crf", "21", ...AAC, output,
+      "-map", "[vc2]", "-map", "[ac2]", ...H264, "-crf", "20", ...AAC, clean,
     ],
     { cwd: dir },
   );
 }
 
-/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos y audio en formato de Reels. */
+/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos, copia sin subtítulos y audio de Reels. */
 export function buildGraph(pieces, outWidth, outHeight) {
   const parts = pieces.map((p, i) => {
     // Plano cerrado: recorta el centro (algo por encima, donde está la cara) y lo vuelve a escalar
@@ -285,9 +304,61 @@ export function buildGraph(pieces, outWidth, outHeight) {
   return (
     parts.join("") +
     `${inputs}concat=n=${pieces.length}:v=1:a=1[vc][ac];` +
-    `[vc]fps=30,subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
-    `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[ao]`
+    `[vc]fps=30,format=yuv420p,split=2[vs][vc2];` +
+    `[vs]subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
+    `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[ao][ac2]`
   );
+}
+
+/**
+ * Solo vuelve a poner los subtítulos (tras corregirlos en Mova) sobre la copia sin subtítulos.
+ * Tarda poco: no hay que limpiar audio, transcribir ni cortar otra vez.
+ * @param {Record<string, any>} video fila de public.videos
+ */
+export async function resubtitleVideo(video, log = console.log) {
+  if (!video.clean_path) {
+    throw new Error("Este vídeo se editó antes de poder corregir subtítulos. Súbelo de nuevo para corregirlos.");
+  }
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mova-"));
+  try {
+    const input = path.join(dir, "limpio.mp4");
+    log("Descargando la copia sin subtítulos…");
+    await download(video.clean_path, input);
+    const { stdout } = await run(tools.ffprobe, [
+      "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", input,
+    ]);
+    const [width, height] = stdout.trim().split(",").map(Number);
+    const words = video.transcript?.edited_words ?? [];
+    await prepareSubtitles(words, video.card?.estilo?.titulo ?? null, width, height, dir);
+
+    log(`Poniendo los subtítulos corregidos (${words.length} palabras)…`);
+    const output = path.join(dir, "editado.mp4");
+    await run(
+      tools.ffmpeg,
+      [
+        "-y", "-hide_banner", "-i", input,
+        "-vf", "subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p",
+        ...H264, "-crf", "21", "-c:a", "copy", "-movflags", "+faststart", output,
+      ],
+      { cwd: dir },
+    );
+
+    log("Subiendo el vídeo…");
+    await upload(output, video.storage_path);
+    if (config.keepLocalCopy) {
+      const folder = path.join(ROOT, "salida");
+      await mkdir(folder, { recursive: true });
+      await copyFile(output, path.join(folder, `${safeName(video.title)}-${video.id.slice(0, 8)}.mp4`));
+    }
+    const { error } = await supabase
+      .from("videos")
+      .update({ edit_status: "edited", edit_job: "completa", edit_error: null, edited_at: new Date().toISOString() })
+      .eq("id", video.id);
+    if (error) throw new Error(`No se pudo guardar el resultado: ${error.message}`);
+    log("Listo: subtítulos actualizados");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 function safeName(title) {
