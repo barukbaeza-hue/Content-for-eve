@@ -222,7 +222,6 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     && new Date(data.items[data.items.length - 1].postedAt).getTime() >= since);
 
   const sorted = items;
-  const account = filter !== "todas" ? accounts?.find((a) => a.platform === filter) : undefined;
   const tab = (active: boolean) =>
     `flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
       active ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
@@ -235,10 +234,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
-              Resumen{" "}
-              <span className="text-fg-4">
-                · {filter === "todas" ? "Instagram y TikTok" : `${NAMES[filter]}${account?.username ? ` @${account.username}` : ""}`} · {period.title}
-              </span>
+              Resumen
             </h2>
             <div className="flex flex-wrap gap-2">
               <div className="flex gap-1 rounded-lg border border-line p-0.5">
