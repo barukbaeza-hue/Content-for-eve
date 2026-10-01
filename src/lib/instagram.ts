@@ -155,23 +155,24 @@ export type Reel = {
   views?: number;
 };
 
-// Últimos Reels con sus métricas.
-export async function recentReels(token: string, limit: number): Promise<Reel[]> {
-  // Instagram da las publicaciones por páginas (fotos incluidas): se piden hasta reunir `limit` vídeos
+// Una página de Reels con sus métricas (las vistas solo se piden para los de esa página).
+export async function reelsPage(token: string, page: number, perPage: number): Promise<{ items: Reel[]; hasMore: boolean }> {
+  const want = page * perPage + 1;
+  // Instagram da las publicaciones por páginas (fotos incluidas): se piden hasta reunir los vídeos necesarios
   const videos: Media[] = [];
-  let page = await graph<{ data: Media[]; paging?: { next?: string } }>("/me/media", token, {
+  let res = await graph<{ data: Media[]; paging?: { next?: string } }>("/me/media", token, {
     fields: "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,thumbnail_url",
     limit: "50",
   });
-  for (let i = 0; i < 8; i++) {
-    videos.push(...page.data.filter((m) => m.media_type === "VIDEO" || m.media_product_type === "REELS"));
-    if (videos.length >= limit || !page.paging?.next) break;
-    page = await graph(page.paging.next, token);
+  for (let i = 0; i < 20; i++) {
+    videos.push(...res.data.filter((m) => m.media_type === "VIDEO" || m.media_product_type === "REELS"));
+    if (videos.length >= want || !res.paging?.next) break;
+    res = await graph(res.paging.next, token);
   }
-  videos.splice(limit);
+  const slice = videos.slice((page - 1) * perPage, page * perPage);
 
-  return Promise.all(
-    videos.map(async (m) => ({
+  const items = await Promise.all(
+    slice.map(async (m) => ({
       id: m.id,
       caption: m.caption ?? "",
       permalink: m.permalink,
@@ -182,6 +183,11 @@ export async function recentReels(token: string, limit: number): Promise<Reel[]>
       views: await mediaViews(m.id, token),
     })),
   );
+  return { items, hasMore: videos.length > page * perPage };
+}
+
+export async function recentReels(token: string, limit: number): Promise<Reel[]> {
+  return (await reelsPage(token, 1, limit)).items;
 }
 
 // Últimos vídeos con métricas y comentarios, para crear el perfil.

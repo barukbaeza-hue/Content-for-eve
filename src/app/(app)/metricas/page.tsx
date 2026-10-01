@@ -4,9 +4,12 @@ import { Page } from "@/components/shell/page";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
-import { instagramConfigured, recentReels, type Reel } from "@/lib/instagram";
+import { Pagination } from "@/components/ui/pagination";
+import { instagramConfigured, reelsPage, type Reel } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
-import { freshToken, getFollowers, recentVideos as recentTikToks, TikTokError, tiktokConfigured } from "@/lib/tiktok";
+import { freshToken, getStats, TikTokError, tiktokConfigured, videosPage } from "@/lib/tiktok";
+
+const PER_PAGE = 20;
 
 const number = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 const fmt = (n?: number) => (n === undefined ? "—" : number.format(n));
@@ -35,8 +38,8 @@ const LABELS: Record<Network, { name: string; item: string; best: string }> = {
 export default async function MetricasPage({ searchParams }: PageProps<"/metricas">) {
   const params = await searchParams;
   const byViews = params.orden === "vistas";
-  // Cuántos vídeos se cargan: de 20 en 20 con "Ver más", hasta 100
-  const count = Math.min(100, Math.max(20, Number(params.n) || 20));
+  // 20 vídeos por página
+  const page = Math.min(50, Math.max(1, Math.floor(Number(params.p)) || 1));
   const supabase = await createClient();
   const { data: accounts } = await supabase
     .from("social_accounts")
@@ -48,7 +51,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   const account = accounts?.find((a) => a.platform === network);
   const label = LABELS[network];
   const href = (query: Record<string, string>) =>
-    `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...(count > 20 ? { n: String(count) } : {}), ...query })}`;
+    `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...(page > 1 ? { p: String(page) } : {}), ...query })}`;
 
   if (!connected.length) {
     return (
@@ -66,13 +69,15 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   }
 
   let reels: Reel[] = [];
+  let hasMore = false;
+  let totalPages: number | undefined;
   let failed: string | null = null;
   let followers = account?.followers_count ?? undefined;
   if (!account) {
     failed = `${label.name} no está conectado. Conéctalo en Mi marca.`;
   } else if (network === "instagram") {
     try {
-      reels = await recentReels(account.access_token, count);
+      ({ items: reels, hasMore } = await reelsPage(account.access_token, page, PER_PAGE));
     } catch (error) {
       console.error("Error al leer Instagram:", error);
       failed = "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca.";
@@ -80,8 +85,10 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   } else {
     try {
       const token = await freshToken(account, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", account.id); });
-      const [videos, total] = await Promise.all([recentTikToks(token, count), getFollowers(token).catch(() => undefined)]);
-      reels = videos;
+      const [result, stats] = await Promise.all([videosPage(token, page, PER_PAGE), getStats(token).catch(() => undefined)]);
+      ({ items: reels, hasMore } = result);
+      if (stats?.videos) totalPages = Math.ceil(stats.videos / PER_PAGE);
+      const total = stats?.followers;
       if (total !== undefined) {
         followers = total;
         if (total !== account.followers_count) await supabase.from("social_accounts").update({ followers_count: total }).eq("id", account.id);
@@ -126,10 +133,10 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
-              {label.item} <span className="text-fg-4">· @{account?.username} · últimos {reels.length}</span>
+              {label.item} <span className="text-fg-4">· @{account?.username}{page > 1 ? ` · página ${page}` : ""}</span>
             </h2>
             <div className="flex gap-1 rounded-lg border border-line p-0.5">
-              <Link href={`/metricas?red=${network}${count > 20 ? `&n=${count}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
+              <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
               <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
             </div>
           </div>
@@ -171,14 +178,11 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
             })}
           </ul>
 
-          {/* Si la red devolvió todos los pedidos, puede haber más */}
-          {reels.length >= count && count < 100 && (
-            <div className="flex justify-center pt-2">
-              <Link href={href({ n: String(count + 20) })} scroll={false} className={buttonClasses("secondary")}>
-                Ver más
-              </Link>
-            </div>
-          )}
+          {/* Si la red no da el total, se conoce hasta la página siguiente */}
+          <div className="pt-2">
+            <Pagination current={page} last={Math.max(page, totalPages ?? 0, hasMore ? page + 1 : page)}
+              href={(p) => href({ p: String(p) })} />
+          </div>
         </section>
       </div>
     </Page>

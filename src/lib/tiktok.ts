@@ -98,9 +98,10 @@ async function api<T>(path: string, token: string, init: RequestInit = {}): Prom
   return body.data as T;
 }
 
-export async function getFollowers(token: string) {
-  const data = await api<{ user: { follower_count?: number } }>("/user/info/?fields=follower_count", token);
-  return data.user.follower_count;
+// Seguidores y número de vídeos publicados
+export async function getStats(token: string) {
+  const data = await api<{ user: { follower_count?: number; video_count?: number } }>("/user/info/?fields=follower_count,video_count", token);
+  return { followers: data.user.follower_count, videos: data.user.video_count };
 }
 
 export type TikTokVideo = {
@@ -114,11 +115,13 @@ export type TikTokVideo = {
   views?: number;
 };
 
-// Últimos vídeos publicados con sus métricas. TikTok los da de 20 en 20: se piden páginas hasta llegar a `limit`.
-export async function recentVideos(token: string, limit: number): Promise<TikTokVideo[]> {
+// Una página de vídeos con sus métricas. TikTok los da de 20 en 20 con un cursor: se avanza hasta la página pedida.
+export async function videosPage(token: string, page: number, perPage: number): Promise<{ items: TikTokVideo[]; hasMore: boolean }> {
+  const limit = page * perPage;
   const fields = "id,title,video_description,cover_image_url,share_url,create_time,view_count,like_count,comment_count";
   const all: Record<string, string | number | undefined>[] = [];
   let cursor: number | undefined;
+  let more = false;
   while (all.length < limit) {
     const data = await api<{ videos?: Record<string, string | number | undefined>[]; cursor?: number; has_more?: boolean }>(
       `/video/list/?fields=${fields}`,
@@ -126,10 +129,11 @@ export async function recentVideos(token: string, limit: number): Promise<TikTok
       { method: "POST", body: JSON.stringify({ max_count: Math.min(limit - all.length, 20), ...(cursor ? { cursor } : {}) }) },
     );
     all.push(...(data.videos ?? []));
-    if (!data.has_more || !data.cursor) break;
+    more = Boolean(data.has_more && data.cursor);
+    if (!more) break;
     cursor = data.cursor;
   }
-  return all.map((v) => ({
+  const items = all.slice((page - 1) * perPage, limit).map((v) => ({
     id: String(v.id),
     caption: String(v.video_description || v.title || ""),
     permalink: String(v.share_url ?? ""),
@@ -139,6 +143,7 @@ export async function recentVideos(token: string, limit: number): Promise<TikTok
     comments: v.comment_count === undefined ? undefined : Number(v.comment_count),
     views: v.view_count === undefined ? undefined : Number(v.view_count),
   }));
+  return { items, hasMore: more || all.length > limit };
 }
 
 export async function getProfile(token: string) {
