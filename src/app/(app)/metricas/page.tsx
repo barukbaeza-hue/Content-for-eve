@@ -30,9 +30,16 @@ function change(views: number | undefined, avg: number | undefined) {
   return pct === 0 ? "= media" : `${pct > 0 ? "+" : "−"}${Math.abs(pct)} % vs media`;
 }
 
-// Inicio de la ventana del resumen
-function thirtyDaysAgo() {
-  return Date.now() - 30 * 24 * 3600 * 1000;
+// Periodos del resumen: días y cuántos vídeos recientes de cada red se leen para cubrirlo
+const PERIODS = [
+  { days: 7, label: "7 días", videos: 20 },
+  { days: 30, label: "30 días", videos: 40 },
+  { days: 90, label: "90 días", videos: 60 },
+  { days: 365, label: "1 año", videos: 100 },
+] as const;
+
+function daysAgo(days: number) {
+  return Date.now() - days * 24 * 3600 * 1000;
 }
 
 type Network = "instagram" | "tiktok";
@@ -46,6 +53,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   const byViews = params.orden === "vistas";
   // 20 vídeos por página
   const page = Math.min(50, Math.max(1, Math.floor(Number(params.p)) || 1));
+  const period = PERIODS.find((x) => String(x.days) === params.periodo) ?? PERIODS[1];
   const supabase = await createClient();
   const { data: accounts } = await supabase
     .from("social_accounts")
@@ -57,7 +65,13 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   const account = accounts?.find((a) => a.platform === network);
   const label = LABELS[network];
   const href = (query: Record<string, string>) =>
-    `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...(page > 1 ? { p: String(page) } : {}), ...query })}`;
+    `/metricas?${new URLSearchParams({
+      red: network,
+      ...(byViews ? { orden: "vistas" } : {}),
+      ...(page > 1 ? { p: String(page) } : {}),
+      ...(period.days !== 30 ? { periodo: String(period.days) } : {}),
+      ...query,
+    })}`;
 
   if (!connected.length) {
     return (
@@ -77,12 +91,12 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   type Loaded = { items: Reel[]; hasMore: boolean; totalPages?: number; followers?: number; error?: string };
 
   // Lee una página de vídeos de una red, con sus seguidores
-  async function load(n: Network, p: number): Promise<Loaded> {
+  async function load(n: Network, p: number, perPage = PER_PAGE): Promise<Loaded> {
     const acc = accounts?.find((a) => a.platform === n);
     if (!acc) return { items: [], hasMore: false, error: `${LABELS[n].name} no está conectado. Conéctalo en Mi marca.` };
     if (n === "instagram") {
       try {
-        return { ...(await reelsPage(acc.access_token, p, PER_PAGE)), followers: acc.followers_count ?? undefined };
+        return { ...(await reelsPage(acc.access_token, p, perPage)), followers: acc.followers_count ?? undefined };
       } catch (error) {
         console.error("Error al leer Instagram:", error);
         return { items: [], hasMore: false, error: "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca." };
@@ -90,7 +104,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     }
     try {
       const token = await freshToken(acc, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", acc.id); });
-      const [result, stats] = await Promise.all([videosPage(token, p, PER_PAGE), getStats(token).catch(() => undefined)]);
+      const [result, stats] = await Promise.all([videosPage(token, p, perPage), getStats(token).catch(() => undefined)]);
       if (stats?.followers !== undefined && stats.followers !== acc.followers_count) {
         await supabase.from("social_accounts").update({ followers_count: stats.followers }).eq("id", acc.id);
       }
@@ -112,11 +126,11 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   const { items: reels, hasMore, totalPages, followers } = current;
   const failed = current.error ?? null;
 
-  // Resumen de las dos redes juntas: los últimos 30 días (de sus vídeos más recientes)
+  // Resumen de las dos redes juntas en el periodo elegido (a partir de sus vídeos más recientes)
   const both = connected.length > 1
-    ? await Promise.all(connected.map(async (n) => ({ n, data: n === network && page === 1 ? current : await load(n, 1) })))
+    ? await Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
     : [];
-  const since = thirtyDaysAgo();
+  const since = daysAgo(period.days);
   const summary = both.map(({ n, data }) => {
     const recent = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
     return {
@@ -126,6 +140,9 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
       videos: recent.length,
     };
   });
+  // Si en el periodo hay más vídeos de los que se leyeron, el resumen se queda corto: se avisa
+  const partial = both.some(({ data }) => data.hasMore && data.items.length > 0
+    && new Date(data.items[data.items.length - 1].postedAt).getTime() >= since);
   const sum = (key: "followers" | "views" | "videos") => summary.reduce((t, x) => t + (x[key] ?? 0), 0);
   const detail = (key: "followers" | "views" | "videos") =>
     summary.map((x) => `${LABELS[x.n].name} ${fmt(x[key] ?? undefined)}`).join(" · ");
@@ -146,19 +163,31 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
       <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
         {summary.length > 1 && (
           <section className="space-y-3">
-            <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · últimos 30 días</span></h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · últimos {period.label}</span></h2>
+              <div className="flex gap-1 rounded-lg border border-line p-0.5">
+                {PERIODS.map((x) => (
+                  <Link key={x.days} href={href({ periodo: String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
+                    {x.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Stat label="Seguidores" value={fmt(sum("followers"))} detail={detail("followers")} />
               <Stat label="Vistas" value={fmt(sum("views"))} detail={detail("views")} />
               <Stat label="Vídeos publicados" value={fmt(sum("videos"))} detail={detail("videos")} />
             </div>
+            {partial && (
+              <p className="text-xs text-fg-4">Cuenta los últimos {period.videos} vídeos de cada red; en este periodo publicaste más.</p>
+            )}
           </section>
         )}
 
         {connected.length > 1 && (
           <div className="flex w-fit gap-1 rounded-lg border border-line p-0.5">
             {connected.map((n) => (
-              <Link key={n} href={`/metricas?red=${n}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
+              <Link key={n} href={`/metricas?red=${n}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
             ))}
           </div>
         )}
@@ -178,7 +207,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               {label.item} <span className="text-fg-4">· @{account?.username}{page > 1 ? ` · página ${page}` : ""}</span>
             </h2>
             <div className="flex gap-1 rounded-lg border border-line p-0.5">
-              <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
+              <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
               <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
             </div>
           </div>
