@@ -192,32 +192,34 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
           </section>
         )}
 
-        {connected.length > 1 && (
-          <div className="flex w-fit gap-1 rounded-lg border border-line p-0.5">
-            {connected.map((n) => (
-              <Link key={n} href={`/metricas?red=${n}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
-            ))}
-          </div>
-        )}
-
-        {failed && <Notice tone="danger">{failed}</Notice>}
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Seguidores" value={fmt(followers)} />
-          <Stat label="Vistas medias" value={fmt(avgViews)} />
-          <Stat label="Me gusta medios" value={fmt(avgLikes)} />
-          <Stat label={label.best} value={best ? fmt(best.views) : "—"} />
-        </div>
-
+        {/* Cada red por separado: la red y el orden se eligen juntos, arriba de sus cifras */}
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
               {label.item} <span className="text-fg-4">· @{account?.username}{page > 1 ? ` · página ${page}` : ""}</span>
             </h2>
-            <div className="flex gap-1 rounded-lg border border-line p-0.5">
-              <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
-              <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
+            <div className="flex flex-wrap gap-2">
+              {connected.length > 1 && (
+                <div className="flex gap-1 rounded-lg border border-line p-0.5">
+                  {connected.map((n) => (
+                    <Link key={n} href={`/metricas?red=${n}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-1 rounded-lg border border-line p-0.5">
+                <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
+                <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
+              </div>
             </div>
+          </div>
+
+          {failed && <Notice tone="danger">{failed}</Notice>}
+
+          <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">
+            <Stat label="Seguidores" value={fmt(followers)} />
+            <Stat label="Vistas medias" value={fmt(avgViews)} />
+            <Stat label="Me gusta medios" value={fmt(avgLikes)} />
+            <Stat label={label.best} value={best ? fmt(best.views) : "—"} />
           </div>
 
           {/* Misma tarjeta que el banco de vídeos: la portada a sangre y los números sobre un degradado */}
