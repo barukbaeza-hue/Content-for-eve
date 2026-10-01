@@ -114,14 +114,22 @@ export type TikTokVideo = {
   views?: number;
 };
 
-// Últimos vídeos publicados con sus métricas
+// Últimos vídeos publicados con sus métricas. TikTok los da de 20 en 20: se piden páginas hasta llegar a `limit`.
 export async function recentVideos(token: string, limit: number): Promise<TikTokVideo[]> {
   const fields = "id,title,video_description,cover_image_url,share_url,create_time,view_count,like_count,comment_count";
-  const data = await api<{ videos: Record<string, string | number | undefined>[] }>(`/video/list/?fields=${fields}`, token, {
-    method: "POST",
-    body: JSON.stringify({ max_count: Math.min(limit, 20) }),
-  });
-  return (data.videos ?? []).map((v) => ({
+  const all: Record<string, string | number | undefined>[] = [];
+  let cursor: number | undefined;
+  while (all.length < limit) {
+    const data = await api<{ videos?: Record<string, string | number | undefined>[]; cursor?: number; has_more?: boolean }>(
+      `/video/list/?fields=${fields}`,
+      token,
+      { method: "POST", body: JSON.stringify({ max_count: Math.min(limit - all.length, 20), ...(cursor ? { cursor } : {}) }) },
+    );
+    all.push(...(data.videos ?? []));
+    if (!data.has_more || !data.cursor) break;
+    cursor = data.cursor;
+  }
+  return all.map((v) => ({
     id: String(v.id),
     caption: String(v.video_description || v.title || ""),
     permalink: String(v.share_url ?? ""),

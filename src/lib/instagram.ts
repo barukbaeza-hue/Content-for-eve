@@ -157,11 +157,18 @@ export type Reel = {
 
 // Últimos Reels con sus métricas.
 export async function recentReels(token: string, limit: number): Promise<Reel[]> {
-  const res = await graph<{ data: Media[] }>("/me/media", token, {
+  // Instagram da las publicaciones por páginas (fotos incluidas): se piden hasta reunir `limit` vídeos
+  const videos: Media[] = [];
+  let page = await graph<{ data: Media[]; paging?: { next?: string } }>("/me/media", token, {
     fields: "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,thumbnail_url",
-    limit: String(Math.min(limit * 2, 50)),
+    limit: "50",
   });
-  const videos = res.data.filter((m) => m.media_type === "VIDEO" || m.media_product_type === "REELS").slice(0, limit);
+  for (let i = 0; i < 8; i++) {
+    videos.push(...page.data.filter((m) => m.media_type === "VIDEO" || m.media_product_type === "REELS"));
+    if (videos.length >= limit || !page.paging?.next) break;
+    page = await graph(page.paging.next, token);
+  }
+  videos.splice(limit);
 
   return Promise.all(
     videos.map(async (m) => ({

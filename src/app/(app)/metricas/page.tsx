@@ -35,6 +35,8 @@ const LABELS: Record<Network, { name: string; item: string; best: string }> = {
 export default async function MetricasPage({ searchParams }: PageProps<"/metricas">) {
   const params = await searchParams;
   const byViews = params.orden === "vistas";
+  // Cuántos vídeos se cargan: de 20 en 20 con "Ver más", hasta 100
+  const count = Math.min(100, Math.max(20, Number(params.n) || 20));
   const supabase = await createClient();
   const { data: accounts } = await supabase
     .from("social_accounts")
@@ -45,7 +47,8 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   const network: Network = params.red === "tiktok" || params.red === "instagram" ? params.red : connected[0] ?? "instagram";
   const account = accounts?.find((a) => a.platform === network);
   const label = LABELS[network];
-  const href = (query: Record<string, string>) => `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...query })}`;
+  const href = (query: Record<string, string>) =>
+    `/metricas?${new URLSearchParams({ red: network, ...(byViews ? { orden: "vistas" } : {}), ...(count > 20 ? { n: String(count) } : {}), ...query })}`;
 
   if (!connected.length) {
     return (
@@ -69,7 +72,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     failed = `${label.name} no está conectado. Conéctalo en Mi marca.`;
   } else if (network === "instagram") {
     try {
-      reels = await recentReels(account.access_token, 20);
+      reels = await recentReels(account.access_token, count);
     } catch (error) {
       console.error("Error al leer Instagram:", error);
       failed = "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca.";
@@ -77,11 +80,11 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   } else {
     try {
       const token = await freshToken(account, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", account.id); });
-      const [videos, count] = await Promise.all([recentTikToks(token, 20), getFollowers(token).catch(() => undefined)]);
+      const [videos, total] = await Promise.all([recentTikToks(token, count), getFollowers(token).catch(() => undefined)]);
       reels = videos;
-      if (count !== undefined) {
-        followers = count;
-        if (count !== account.followers_count) await supabase.from("social_accounts").update({ followers_count: count }).eq("id", account.id);
+      if (total !== undefined) {
+        followers = total;
+        if (total !== account.followers_count) await supabase.from("social_accounts").update({ followers_count: total }).eq("id", account.id);
       }
     } catch (error) {
       console.error("Error al leer TikTok:", error);
@@ -126,7 +129,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               {label.item} <span className="text-fg-4">· @{account?.username} · últimos {reels.length}</span>
             </h2>
             <div className="flex gap-1 rounded-lg border border-line p-0.5">
-              <Link href={`/metricas?red=${network}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
+              <Link href={`/metricas?red=${network}${count > 20 ? `&n=${count}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
               <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
             </div>
           </div>
@@ -167,6 +170,15 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               );
             })}
           </ul>
+
+          {/* Si la red devolvió todos los pedidos, puede haber más */}
+          {reels.length >= count && count < 100 && (
+            <div className="flex justify-center pt-2">
+              <Link href={href({ n: String(count + 20) })} scroll={false} className={buttonClasses("secondary")}>
+                Ver más
+              </Link>
+            </div>
+          )}
         </section>
       </div>
     </Page>
