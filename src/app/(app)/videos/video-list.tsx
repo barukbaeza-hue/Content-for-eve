@@ -4,6 +4,7 @@ import { CalendarClock, CircleAlert, Send, CircleCheck, Clock, LoaderCircle, Rot
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import type { TikTokSettings } from "@/lib/tiktok";
 import { deleteVideo, retryVideo, type Platform } from "./actions";
 import { Lightbox } from "./lightbox";
 import { Player } from "./player";
@@ -22,6 +23,7 @@ export type VideoItem = {
   scheduledAt: string | null;
   caption: string;
   platforms: Platform[];
+  tiktok: TikTokSettings | null;
   // Estado de publicación por red
   publications: { platform: Platform; status: "pending" | "processing" | "published" | "failed"; permalink: string | null; error: string | null }[];
   published: boolean;
@@ -105,6 +107,8 @@ function VideoCard({ video }: { video: VideoItem }) {
     canEditSubtitles: video.canEditSubtitles && !busy,
     caption: video.caption,
     platforms: video.platforms,
+    tiktok: video.tiktok,
+    duration: video.duration,
     onDelete: () => startTransition(() => deleteVideo(video.id)),
   };
 

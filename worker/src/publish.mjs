@@ -143,9 +143,16 @@ async function stepTikTok(pub, video, account, log) {
 
   if (!pub.job_id) {
     // 1. Pide la subida directa y sube el archivo por trozos
+    // Se publica con lo que eligió el usuario en "Descripción y redes" (TikTok no permite valores por defecto)
+    const settings = video.tiktok_settings;
+    if (!settings?.privacy) {
+      throw new PublishError("TikTok: elige quién puede ver el vídeo en «Descripción y redes» y vuelve a programarlo.", true);
+    }
     const creator = await tiktok("/post/publish/creator_info/query/", token);
-    const options = creator.privacy_level_options ?? [];
-    let privacy = options.includes(config.tiktok.privacy) ? config.tiktok.privacy : options.includes("SELF_ONLY") ? "SELF_ONLY" : options[0];
+    if (!(creator.privacy_level_options ?? []).includes(settings.privacy)) {
+      throw new PublishError("TikTok: tu cuenta ya no permite la privacidad elegida. Cámbiala en «Descripción y redes».", true);
+    }
+    const privacy = settings.privacy;
 
     const dir = await mkdtemp(path.join(os.tmpdir(), "mova-tiktok-"));
     const file = path.join(dir, "video.mp4");
@@ -153,27 +160,28 @@ async function stepTikTok(pub, video, account, log) {
       await download(video.storage_path, file);
       const { size } = await stat(file);
       const { chunkSize, count } = chunks(size);
-      const init = (privacy_level) => tiktok("/post/publish/video/init/", token, {
-        post_info: {
-          title: video.caption ?? "",
-          privacy_level,
-          disable_comment: creator.comment_disabled ?? false,
-          disable_duet: creator.duet_disabled ?? false,
-          disable_stitch: creator.stitch_disabled ?? false,
-          video_cover_timestamp_ms: 1000,
-        },
-        source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunkSize, total_chunk_count: count },
-      });
-
       let started;
       try {
-        started = await init(privacy);
+        started = await tiktok("/post/publish/video/init/", token, {
+          post_info: {
+            title: video.caption ?? "",
+            privacy_level: privacy,
+            // Lo que la cuenta tiene desactivado en TikTok se respeta aunque se haya marcado
+            disable_comment: creator.comment_disabled || !settings.allowComment,
+            disable_duet: creator.duet_disabled || !settings.allowDuet,
+            disable_stitch: creator.stitch_disabled || !settings.allowStitch,
+            brand_organic_toggle: Boolean(settings.brandOrganic),
+            brand_content_toggle: Boolean(settings.brandContent),
+            video_cover_timestamp_ms: 1000,
+          },
+          source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunkSize, total_chunk_count: count },
+        });
       } catch (e) {
-        // Mientras TikTok no apruebe la app, solo deja publicar en privado
-        if (e.code !== "unaudited_client_can_only_post_to_private_accounts" || privacy === "SELF_ONLY") throw e;
-        log("TikTok: la app aún no está aprobada, se publica en privado");
-        privacy = "SELF_ONLY";
-        started = await init(privacy);
+        // Mientras TikTok no apruebe la app, solo deja publicar en cuentas privadas
+        if (e.code === "unaudited_client_can_only_post_to_private_accounts") {
+          throw new PublishError("TikTok: Mova aún no está aprobada por TikTok y solo puede publicar en cuentas privadas.", true);
+        }
+        throw e;
       }
 
       const handle = await open(file, "r");
@@ -197,7 +205,7 @@ async function stepTikTok(pub, video, account, log) {
       } finally {
         await handle.close();
       }
-      log(`TikTok: vídeo subido${privacy === "SELF_ONLY" ? " (privado)" : ""}, esperando a que lo procese`);
+      log(`TikTok: vídeo subido${privacy === "SELF_ONLY" ? " (solo tú)" : ""}, esperando a que lo procese`);
       return { status: "processing", job_id: started.publish_id };
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -270,7 +278,7 @@ async function processVideo(video, log) {
 export async function publishDue(log) {
   const { data: videos, error } = await supabase
     .from("videos")
-    .select("id, user_id, title, caption, platforms, storage_path, scheduled_at")
+    .select("id, user_id, title, caption, platforms, tiktok_settings, storage_path, scheduled_at")
     .eq("status", "scheduled")
     .eq("edit_status", "edited")
     .lte("scheduled_at", new Date().toISOString())

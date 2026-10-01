@@ -27,8 +27,6 @@ export const config = {
   tiktok: {
     clientKey: process.env.TIKTOK_CLIENT_KEY?.trim() || "",
     clientSecret: process.env.TIKTOK_CLIENT_SECRET?.trim() || "",
-    // PUBLIC_TO_EVERYONE necesita la app aprobada por TikTok; mientras tanto se publica en privado (SELF_ONLY)
-    privacy: process.env.TIKTOK_PRIVACY?.trim() || "PUBLIC_TO_EVERYONE",
   },
   instagramGraph: `https://graph.instagram.com/${process.env.INSTAGRAM_GRAPH_VERSION?.trim() || "v23.0"}`,
   publishSeconds: Number(process.env.PUBLISH_SECONDS) || 30,

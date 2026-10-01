@@ -36,7 +36,7 @@ Con `GUARDAR_COPIA=1` (por defecto), cada vídeo editado se guarda también en `
 Mientras el worker está encendido, cada 30 s revisa el calendario. Cuando llega la hora de un vídeo programado lo publica en las redes elegidas (Instagram y/o TikTok) con su descripción:
 
 - **Instagram:** Instagram descarga el vídeo desde R2 con un enlace temporal, lo procesa y el worker lo publica como Reel.
-- **TikTok:** el worker sube el archivo y TikTok lo publica. Mientras TikTok no apruebe la app, los vídeos salen en **privado** (solo tú los ves).
+- **TikTok:** el worker sube el archivo y TikTok lo publica con los ajustes elegidos en «Descripción y redes» (quién puede verlo, comentarios, dúos, stitch y contenido comercial). Mientras TikTok no apruebe la app, solo se puede publicar en cuentas privadas.
 
 El estado de cada red se ve en Vídeos ("Publicando…", "Publicado en…", o el error). Si una red falla, el vídeo vuelve al banco para reprogramarlo. **Si el PC está apagado a la hora programada, el vídeo se publica en cuanto se encienda el worker.**
 

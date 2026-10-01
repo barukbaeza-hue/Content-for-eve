@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
+import type { TikTokSettings } from "@/lib/tiktok";
 import type { Platform } from "./actions";
 import { PostDialog } from "./post-dialog";
 import { RenameDialog } from "./rename-dialog";
@@ -28,6 +29,8 @@ export type VideoActionsProps = {
   canEditSubtitles: boolean;
   caption: string;
   platforms: Platform[];
+  tiktok: TikTokSettings | null;
+  duration: number | null;
   onDelete: () => void;
 };
 
@@ -52,7 +55,7 @@ async function shareVideo(url: string, title: string) {
 
 // Acciones de un vídeo con sus diálogos. Se usan en el menú de tres puntos y en el panel del lightbox.
 // `render` recibe la lista de opciones; `onPick` se llama al elegir una (para cerrar el menú).
-export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, caption, platforms, onDelete, onPick, render }: VideoActionsProps & {
+export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, caption, platforms, tiktok, duration, onDelete, onPick, render }: VideoActionsProps & {
   onPick?: () => void;
   render: (items: React.ReactNode, active: boolean) => React.ReactNode;
 }) {
@@ -110,7 +113,8 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, ca
   return (
     <>
       {render(items, confirming || renaming || posting)}
-      {posting && <PostDialog id={id} caption={caption} platforms={platforms} onClose={() => setPosting(false)} />}
+      {posting && <PostDialog id={id} caption={caption} platforms={platforms} tiktok={tiktok} duration={duration}
+        onClose={() => setPosting(false)} />}
       {renaming && <RenameDialog id={id} title={title} onClose={() => setRenaming(false)} />}
       <ConfirmDialog
         open={confirming}

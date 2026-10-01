@@ -146,6 +146,51 @@ export async function videosPage(token: string, page: number, perPage: number): 
   return { items, hasMore: more || all.length > limit };
 }
 
+// Ajustes de publicación que exige TikTok: lo que puede elegir cada cuenta antes de publicar
+export type TikTokSettings = {
+  privacy: string;
+  allowComment: boolean;
+  allowDuet: boolean;
+  allowStitch: boolean;
+  // Contenido comercial: marca propia ("Promotional content") o patrocinado ("Paid partnership")
+  brandOrganic: boolean;
+  brandContent: boolean;
+};
+
+export type CreatorInfo = {
+  username?: string;
+  nickname?: string;
+  avatarUrl?: string;
+  privacyOptions: string[];
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
+  maxDuration?: number;
+};
+
+export async function creatorInfo(token: string): Promise<CreatorInfo> {
+  const data = await api<{
+    creator_username?: string;
+    creator_nickname?: string;
+    creator_avatar_url?: string;
+    privacy_level_options?: string[];
+    comment_disabled?: boolean;
+    duet_disabled?: boolean;
+    stitch_disabled?: boolean;
+    max_video_post_duration_sec?: number;
+  }>("/post/publish/creator_info/query/", token, { method: "POST" });
+  return {
+    username: data.creator_username,
+    nickname: data.creator_nickname,
+    avatarUrl: data.creator_avatar_url,
+    privacyOptions: data.privacy_level_options ?? [],
+    commentDisabled: Boolean(data.comment_disabled),
+    duetDisabled: Boolean(data.duet_disabled),
+    stitchDisabled: Boolean(data.stitch_disabled),
+    maxDuration: data.max_video_post_duration_sec,
+  };
+}
+
 export async function getProfile(token: string) {
   const res = await fetch(`${API}/user/info/?fields=open_id,avatar_url,display_name,username`, {
     headers: { Authorization: `Bearer ${token}` },

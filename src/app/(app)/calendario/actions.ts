@@ -10,6 +10,19 @@ export async function scheduleVideos(items: { id: string; at: string | null }[],
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) return { error: "Sesión caducada. Vuelve a entrar." };
 
+  // TikTok exige que el usuario elija quién puede ver el vídeo: sin eso no se deja programar
+  const toSchedule = items.filter((i) => i.at).map((i) => i.id);
+  if (toSchedule.length) {
+    const { data: pending } = await supabase
+      .from("videos")
+      .select("title, platforms, tiktok_settings")
+      .in("id", toSchedule);
+    const missing = (pending ?? []).find((v) => v.platforms?.includes("tiktok") && !v.tiktok_settings?.privacy);
+    if (missing) {
+      return { error: `Antes de programar "${missing.title}", elige en «Descripción y redes» quién puede verlo en TikTok.` };
+    }
+  }
+
   for (const { id, at } of items.slice(0, 60)) {
     if (at && Number.isNaN(Date.parse(at))) return { error: "Fecha no válida." };
     const { error } = await supabase

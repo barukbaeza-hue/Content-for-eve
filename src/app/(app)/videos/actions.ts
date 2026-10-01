@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { r2Configured, removeObjects, signUpload } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { applyLineEdits, type Word } from "@/lib/subtitles";
+import { creatorInfo, freshToken, TikTokError, type CreatorInfo, type TikTokSettings } from "@/lib/tiktok";
 
 const MAX_FILES = 20;
 const MAX_BYTES = 2 * 1024 ** 3; // 2 GB por vídeo
@@ -77,13 +78,46 @@ export async function retryVideo(id: string) {
 const PLATFORMS = ["instagram", "tiktok"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
-// Texto de la publicación y redes donde saldrá el vídeo
-export async function updatePost(id: string, caption: string, platforms: Platform[]): Promise<{ error?: string }> {
+// Datos de la cuenta de TikTok para publicar: quién publica y qué opciones permite (los pide TikTok antes de publicar)
+export async function tiktokCreator(): Promise<{ info?: CreatorInfo; error?: string }> {
+  const { supabase } = await currentUser();
+  const { data: account } = await supabase
+    .from("social_accounts")
+    .select("id, access_token, token_expires_at, refresh_token")
+    .eq("platform", "tiktok")
+    .maybeSingle();
+  if (!account) return { error: "TikTok no está conectado. Conéctalo en Mi marca." };
+  try {
+    const token = await freshToken(account, async (fields) => {
+      await supabase.from("social_accounts").update(fields).eq("id", account.id);
+    });
+    return { info: await creatorInfo(token) };
+  } catch (e) {
+    return { error: e instanceof TikTokError ? e.message : "No se pudo leer tu cuenta de TikTok." };
+  }
+}
+
+// Texto de la publicación, redes donde saldrá el vídeo y ajustes de TikTok
+export async function updatePost(
+  id: string,
+  caption: string,
+  platforms: Platform[],
+  tiktok: TikTokSettings | null,
+): Promise<{ error?: string }> {
   const chosen = PLATFORMS.filter((p) => platforms.includes(p));
   if (!chosen.length) return { error: "Elige al menos una red." };
   if (caption.length > 2200) return { error: "El texto no puede pasar de 2.200 caracteres." };
+  if (chosen.includes("tiktok")) {
+    if (!tiktok?.privacy) return { error: "Elige quién puede ver el vídeo en TikTok." };
+    if (tiktok.brandContent && tiktok.privacy === "SELF_ONLY") {
+      return { error: "El contenido patrocinado no puede ser privado en TikTok." };
+    }
+  }
   const { supabase } = await currentUser();
-  const { error } = await supabase.from("videos").update({ caption: caption.trim() || null, platforms: chosen }).eq("id", id);
+  const { error } = await supabase
+    .from("videos")
+    .update({ caption: caption.trim() || null, platforms: chosen, tiktok_settings: chosen.includes("tiktok") ? tiktok : null })
+    .eq("id", id);
   if (error) return { error: "No se pudo guardar." };
   revalidatePath("/videos");
   revalidatePath("/calendario");
