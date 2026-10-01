@@ -14,11 +14,12 @@ const PER_PAGE = 20;
 const number = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 const fmt = (n?: number) => (n === undefined ? "—" : number.format(n));
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="rounded-lg border border-line p-4">
       <p className="text-xs text-fg-3">{label}</p>
       <p className="mt-1 text-xl font-medium tabular-nums">{value}</p>
+      {detail && <p className="mt-1 text-xs text-fg-3 tabular-nums">{detail}</p>}
     </div>
   );
 }
@@ -27,6 +28,11 @@ function change(views: number | undefined, avg: number | undefined) {
   if (views === undefined || !avg) return null;
   const pct = Math.round((views / avg - 1) * 100);
   return pct === 0 ? "= media" : `${pct > 0 ? "+" : "−"}${Math.abs(pct)} % vs media`;
+}
+
+// Inicio de la ventana del resumen
+function thirtyDaysAgo() {
+  return Date.now() - 30 * 24 * 3600 * 1000;
 }
 
 type Network = "instagram" | "tiktok";
@@ -68,36 +74,61 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     );
   }
 
-  let reels: Reel[] = [];
-  let hasMore = false;
-  let totalPages: number | undefined;
-  let failed: string | null = null;
-  let followers = account?.followers_count ?? undefined;
-  if (!account) {
-    failed = `${label.name} no está conectado. Conéctalo en Mi marca.`;
-  } else if (network === "instagram") {
-    try {
-      ({ items: reels, hasMore } = await reelsPage(account.access_token, page, PER_PAGE));
-    } catch (error) {
-      console.error("Error al leer Instagram:", error);
-      failed = "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca.";
-    }
-  } else {
-    try {
-      const token = await freshToken(account, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", account.id); });
-      const [result, stats] = await Promise.all([videosPage(token, page, PER_PAGE), getStats(token).catch(() => undefined)]);
-      ({ items: reels, hasMore } = result);
-      if (stats?.videos) totalPages = Math.ceil(stats.videos / PER_PAGE);
-      const total = stats?.followers;
-      if (total !== undefined) {
-        followers = total;
-        if (total !== account.followers_count) await supabase.from("social_accounts").update({ followers_count: total }).eq("id", account.id);
+  type Loaded = { items: Reel[]; hasMore: boolean; totalPages?: number; followers?: number; error?: string };
+
+  // Lee una página de vídeos de una red, con sus seguidores
+  async function load(n: Network, p: number): Promise<Loaded> {
+    const acc = accounts?.find((a) => a.platform === n);
+    if (!acc) return { items: [], hasMore: false, error: `${LABELS[n].name} no está conectado. Conéctalo en Mi marca.` };
+    if (n === "instagram") {
+      try {
+        return { ...(await reelsPage(acc.access_token, p, PER_PAGE)), followers: acc.followers_count ?? undefined };
+      } catch (error) {
+        console.error("Error al leer Instagram:", error);
+        return { items: [], hasMore: false, error: "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca." };
       }
+    }
+    try {
+      const token = await freshToken(acc, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", acc.id); });
+      const [result, stats] = await Promise.all([videosPage(token, p, PER_PAGE), getStats(token).catch(() => undefined)]);
+      if (stats?.followers !== undefined && stats.followers !== acc.followers_count) {
+        await supabase.from("social_accounts").update({ followers_count: stats.followers }).eq("id", acc.id);
+      }
+      return {
+        ...result,
+        totalPages: stats?.videos ? Math.ceil(stats.videos / PER_PAGE) : undefined,
+        followers: stats?.followers ?? acc.followers_count ?? undefined,
+      };
     } catch (error) {
       console.error("Error al leer TikTok:", error);
-      failed = error instanceof TikTokError ? error.message : "No se pudieron leer tus vídeos de TikTok. Vuelve a conectar la cuenta desde Mi marca.";
+      return {
+        items: [], hasMore: false,
+        error: error instanceof TikTokError ? error.message : "No se pudieron leer tus vídeos de TikTok. Vuelve a conectar la cuenta desde Mi marca.",
+      };
     }
   }
+
+  const current = await load(network, page);
+  const { items: reels, hasMore, totalPages, followers } = current;
+  const failed = current.error ?? null;
+
+  // Resumen de las dos redes juntas: los últimos 30 días (de sus vídeos más recientes)
+  const both = connected.length > 1
+    ? await Promise.all(connected.map(async (n) => ({ n, data: n === network && page === 1 ? current : await load(n, 1) })))
+    : [];
+  const since = thirtyDaysAgo();
+  const summary = both.map(({ n, data }) => {
+    const recent = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
+    return {
+      n,
+      followers: data.followers,
+      views: recent.reduce((sum, r) => sum + (r.views ?? 0), 0),
+      videos: recent.length,
+    };
+  });
+  const sum = (key: "followers" | "views" | "videos") => summary.reduce((t, x) => t + (x[key] ?? 0), 0);
+  const detail = (key: "followers" | "views" | "videos") =>
+    summary.map((x) => `${LABELS[x.n].name} ${fmt(x[key] ?? undefined)}`).join(" · ");
 
   const withViews = reels.filter((r) => r.views !== undefined);
   const avgViews = withViews.length ? withViews.reduce((sum, r) => sum + (r.views ?? 0), 0) / withViews.length : undefined;
@@ -113,6 +144,17 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   return (
     <Page title="Métricas">
       <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
+        {summary.length > 1 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · últimos 30 días</span></h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Stat label="Seguidores" value={fmt(sum("followers"))} detail={detail("followers")} />
+              <Stat label="Vistas" value={fmt(sum("views"))} detail={detail("views")} />
+              <Stat label="Vídeos publicados" value={fmt(sum("videos"))} detail={detail("videos")} />
+            </div>
+          </section>
+        )}
+
         {connected.length > 1 && (
           <div className="flex w-fit gap-1 rounded-lg border border-line p-0.5">
             {connected.map((n) => (

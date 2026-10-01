@@ -195,7 +195,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | Banco de vídeos | Subida por lotes, copy con IA, cola con días de contenido | Clave de Anthropic |
 | Edición automática | Cortes, audio limpio, subtítulos animados, zooms y música, en cola | Worker con Whisper, ffmpeg, DeepFilterNet y Remotion; Cloudflare R2 |
 | Calendario y publicación | Programar la semana y publicar solo en Instagram y TikTok | Apps de Meta y TikTok |
-| Métricas | Alcance e interacción de cada vídeo, y qué te funciona | Apps de Meta y TikTok |
+| Métricas | Alcance e interacción de cada vídeo, y qué te funciona. Decisión: cada red por separado (las vistas no se cuentan igual) con un resumen conjunto arriba de los últimos 30 días; más adelante, cada vídeo publicado desde Mova con sus resultados de las dos redes lado a lado | Apps de Meta y TikTok |
 
 ## Hoja de ruta
 
