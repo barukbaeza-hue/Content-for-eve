@@ -212,6 +212,26 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 6 · Comunidad | Conversar | Bandeja de comentarios, respuestas sugeridas, automatizaciones tipo ManyChat (primero en Instagram) | |
 | 7 · Resultados | Aprender | Métricas por vídeo que vuelven a la memoria | |
 
+## MVP
+
+Decisión: primero se termina el producto mínimo y después se hacen las conexiones reales (revisión de TikTok y Meta) para que lo prueben usuarios. El usuario final no va a cambiar nada en su cuenta (por ejemplo, ponerla privada), así que no se prueba con usuarios hasta que las apps estén aprobadas.
+
+**Hecho**
+- Vídeos: subida, edición automática (audio, silencios, subtítulos), corrección de subtítulos, nombre, menú y lightbox.
+- Calendario: mes y semana (FullCalendar), banco, arrastrar, cambiar la hora y lo pasado en gris.
+- Métricas: Instagram y TikTok, resumen por periodo, filtro, orden y paginación.
+- Publicación: el worker publica en Instagram y TikTok (pendiente de probar con cuentas reales).
+
+**Falta para el MVP (en este orden)**
+1. Ajustes de publicación de TikTok en "Descripción y redes": privacidad, comentarios, dúos, stitch y contenido comercial (lo exige la revisión de TikTok).
+2. Ajustes del calendario: horas de publicación y vídeos al día.
+3. Música libre de derechos en la edición.
+4. Efectos con Remotion (títulos, zooms y otros recursos visuales, por prompt o por estilo aprendido). Licencia: gratis para equipos de hasta 3 personas; con más, licencia de empresa.
+5. IA con Anthropic: ideas y guiones, copys automáticos, perfil de marca, indicaciones de edición y títulos.
+6. Servidor en la nube para editar y publicar (hoy depende del PC del equipo).
+
+**Después del MVP:** conexiones reales, revisión de TikTok y Meta, y pruebas con usuarios. Fuera del MVP: b-roll, bandeja de comentarios y agente.
+
 ## Reglas de plataforma
 
 Mova es un producto comercial, así que solo usa las vías oficiales:
