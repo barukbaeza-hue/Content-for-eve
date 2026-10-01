@@ -1,4 +1,5 @@
 import { BarChart3, Eye, Heart, MessageCircle } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { Page } from "@/components/shell/page";
 import { buttonClasses } from "@/components/ui/button";
@@ -30,12 +31,18 @@ function change(views: number | undefined, avg: number | undefined) {
   return pct === 0 ? "= media" : `${pct > 0 ? "+" : "−"}${Math.abs(pct)} % vs media`;
 }
 
+// Lo que se lee de Instagram y TikTok se guarda 10 minutos: moverse por Métricas no vuelve a pedirlo todo
+const CACHE = { revalidate: 600 };
+const cachedReels = unstable_cache((token: string, p: number, n: number) => reelsPage(token, p, n), ["metricas-ig"], CACHE);
+const cachedTikToks = unstable_cache((token: string, p: number, n: number) => videosPage(token, p, n), ["metricas-tt"], CACHE);
+const cachedStats = unstable_cache((token: string) => getStats(token), ["metricas-tt-stats"], CACHE);
+
 // Periodos del resumen: días y cuántos vídeos recientes de cada red se leen para cubrirlo
 const PERIODS = [
-  { days: 7, label: "7 días", videos: 20 },
-  { days: 30, label: "30 días", videos: 40 },
-  { days: 90, label: "90 días", videos: 60 },
-  { days: 365, label: "1 año", videos: 100 },
+  { days: 7, label: "7 días", title: "últimos 7 días", videos: 20 },
+  { days: 30, label: "1 mes", title: "último mes", videos: 40 },
+  { days: 90, label: "3 meses", title: "últimos 3 meses", videos: 60 },
+  { days: 365, label: "1 año", title: "último año", videos: 100 },
 ] as const;
 
 function daysAgo(days: number) {
@@ -96,7 +103,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     if (!acc) return { items: [], hasMore: false, error: `${LABELS[n].name} no está conectado. Conéctalo en Mi marca.` };
     if (n === "instagram") {
       try {
-        return { ...(await reelsPage(acc.access_token, p, perPage)), followers: acc.followers_count ?? undefined };
+        return { ...(await cachedReels(acc.access_token, p, perPage)), followers: acc.followers_count ?? undefined };
       } catch (error) {
         console.error("Error al leer Instagram:", error);
         return { items: [], hasMore: false, error: "No se pudieron leer tus Reels de Instagram. Vuelve a conectar la cuenta desde Mi marca." };
@@ -104,7 +111,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     }
     try {
       const token = await freshToken(acc, async (fields) => { await supabase.from("social_accounts").update(fields).eq("id", acc.id); });
-      const [result, stats] = await Promise.all([videosPage(token, p, perPage), getStats(token).catch(() => undefined)]);
+      const [result, stats] = await Promise.all([cachedTikToks(token, p, perPage), cachedStats(token).catch(() => undefined)]);
       if (stats?.followers !== undefined && stats.followers !== acc.followers_count) {
         await supabase.from("social_accounts").update({ followers_count: stats.followers }).eq("id", acc.id);
       }
@@ -122,14 +129,15 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     }
   }
 
-  const current = await load(network, page);
+  // La lista de la red elegida y el resumen de las dos redes se cargan a la vez
+  const [current, both] = await Promise.all([
+    load(network, page),
+    connected.length > 1
+      ? Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
+      : Promise.resolve([]),
+  ]);
   const { items: reels, hasMore, totalPages, followers } = current;
   const failed = current.error ?? null;
-
-  // Resumen de las dos redes juntas en el periodo elegido (a partir de sus vídeos más recientes)
-  const both = connected.length > 1
-    ? await Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
-    : [];
   const since = daysAgo(period.days);
   const summary = both.map(({ n, data }) => {
     const recent = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
@@ -164,7 +172,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
         {summary.length > 1 && (
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · últimos {period.label}</span></h2>
+              <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · {period.title}</span></h2>
               <div className="flex gap-1 rounded-lg border border-line p-0.5">
                 {PERIODS.map((x) => (
                   <Link key={x.days} href={href({ periodo: String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
