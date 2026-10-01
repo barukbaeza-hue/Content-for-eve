@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Page } from "@/components/shell/page";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { MenuButton } from "@/components/ui/menu-button";
 import { Notice } from "@/components/ui/notice";
 import { Pagination } from "@/components/ui/pagination";
 import { instagramConfigured, reelsPage, type Reel } from "@/lib/instagram";
@@ -50,35 +51,59 @@ function daysAgo(days: number) {
 }
 
 type Network = "instagram" | "tiktok";
-const LABELS: Record<Network, { name: string; item: string; best: string }> = {
-  instagram: { name: "Instagram", item: "Reels", best: "Mejor Reel" },
-  tiktok: { name: "TikTok", item: "Vídeos", best: "Mejor vídeo" },
+type Filter = Network | "todas";
+const NAMES: Record<Network, string> = { instagram: "Instagram", tiktok: "TikTok" };
+
+const SORTS = {
+  recientes: { label: "Más recientes", value: (i: Item) => new Date(i.postedAt).getTime() },
+  vistas: { label: "Más vistos", value: (i: Item) => i.views ?? -1 },
+  likes: { label: "Más me gusta", value: (i: Item) => i.likes ?? -1 },
+  comentarios: { label: "Más comentarios", value: (i: Item) => i.comments ?? -1 },
+} as const;
+type Sort = keyof typeof SORTS;
+
+// Un vídeo en la lista. Si se publicó desde Mova en las dos redes, es una sola tarjeta con sus dos redes.
+type Item = {
+  key: string;
+  caption: string;
+  thumbnailUrl?: string;
+  postedAt: string;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  networks: { network: Network; permalink: string; views?: number }[];
 };
+
+const add = (a?: number, b?: number) => (a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0));
 
 export default async function MetricasPage({ searchParams }: PageProps<"/metricas">) {
   const params = await searchParams;
-  const byViews = params.orden === "vistas";
-  // 20 vídeos por página
   const page = Math.min(50, Math.max(1, Math.floor(Number(params.p)) || 1));
   const period = PERIODS.find((x) => String(x.days) === params.periodo) ?? PERIODS[1];
+  const sort: Sort = typeof params.orden === "string" && params.orden in SORTS ? (params.orden as Sort) : "recientes";
   const supabase = await createClient();
-  const { data: accounts } = await supabase
-    .from("social_accounts")
-    .select("id, platform, username, followers_count, access_token, token_expires_at, refresh_token");
+  const [{ data: accounts }, { data: pubs }] = await Promise.all([
+    supabase.from("social_accounts").select("id, platform, username, followers_count, access_token, token_expires_at, refresh_token"),
+    // Vídeos publicados desde Mova: sirven para juntar el mismo vídeo de las dos redes en una tarjeta
+    supabase.from("publications").select("video_id, platform, post_id").eq("status", "published").not("post_id", "is", null),
+  ]);
 
-  // Por defecto, la primera red conectada (Instagram si están las dos)
   const connected = (["instagram", "tiktok"] as const).filter((n) => accounts?.some((a) => a.platform === n));
-  const network: Network = params.red === "tiktok" || params.red === "instagram" ? params.red : connected[0] ?? "instagram";
-  const account = accounts?.find((a) => a.platform === network);
-  const label = LABELS[network];
-  const href = (query: Record<string, string>) =>
-    `/metricas?${new URLSearchParams({
-      red: network,
-      ...(byViews ? { orden: "vistas" } : {}),
-      ...(page > 1 ? { p: String(page) } : {}),
-      ...(period.days !== 30 ? { periodo: String(period.days) } : {}),
+  const filter: Filter = params.red === "instagram" || params.red === "tiktok"
+    ? params.red
+    : connected.length > 1 ? "todas" : connected[0] ?? "todas";
+
+  const href = (query: Record<string, string | undefined>) => {
+    const all: Record<string, string | undefined> = {
+      red: filter === "todas" ? undefined : filter,
+      orden: sort === "recientes" ? undefined : sort,
+      p: page > 1 ? String(page) : undefined,
+      periodo: period.days !== 30 ? String(period.days) : undefined,
       ...query,
-    })}`;
+    };
+    const qs = new URLSearchParams(Object.entries(all).filter(([, v]) => v) as [string, string][]);
+    return `/metricas${qs.size ? `?${qs}` : ""}`;
+  };
 
   if (!connected.length) {
     return (
@@ -100,7 +125,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   // Lee una página de vídeos de una red, con sus seguidores
   async function load(n: Network, p: number, perPage = PER_PAGE): Promise<Loaded> {
     const acc = accounts?.find((a) => a.platform === n);
-    if (!acc) return { items: [], hasMore: false, error: `${LABELS[n].name} no está conectado. Conéctalo en Mi marca.` };
+    if (!acc) return { items: [], hasMore: false, error: `${NAMES[n]} no está conectado. Conéctalo en Mi marca.` };
     if (n === "instagram") {
       try {
         return { ...(await cachedReels(acc.access_token, p, perPage)), followers: acc.followers_count ?? undefined };
@@ -129,42 +154,68 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     }
   }
 
-  // La lista de la red elegida y el resumen de las dos redes se cargan a la vez
-  const [current, both] = await Promise.all([
-    load(network, page),
+  // Con "Todas", cada red da hasta esta página entera y se mezclan por fecha; con una red, solo su página
+  const shown: Network[] = filter === "todas" ? [...connected] : [filter];
+  const [lists, both] = await Promise.all([
+    Promise.all(shown.map(async (n) => ({ n, data: filter === "todas" ? await load(n, 1, page * PER_PAGE) : await load(n, page) }))),
     connected.length > 1
       ? Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
       : Promise.resolve([]),
   ]);
-  const { items: reels, hasMore, totalPages, followers } = current;
-  const failed = current.error ?? null;
+  const errors = lists.map(({ data }) => data.error).filter(Boolean) as string[];
+
+  // El mismo vídeo publicado desde Mova en las dos redes se junta en una sola tarjeta
+  const videoOf = new Map((pubs ?? []).map((p) => [`${p.platform}:${p.post_id}`, p.video_id as string]));
+  const grouped = new Map<string, Item>();
+  for (const { n, data } of lists) {
+    for (const r of data.items) {
+      const key = videoOf.get(`${n}:${r.id}`) ?? `${n}:${r.id}`;
+      const prev = grouped.get(key);
+      const net = { network: n, permalink: r.permalink, views: r.views };
+      grouped.set(key, prev
+        ? {
+          ...prev,
+          views: add(prev.views, r.views),
+          likes: add(prev.likes, r.likes),
+          comments: add(prev.comments, r.comments),
+          postedAt: prev.postedAt < r.postedAt ? prev.postedAt : r.postedAt,
+          networks: [...prev.networks, net],
+        }
+        : { key, caption: r.caption, thumbnailUrl: r.thumbnailUrl, postedAt: r.postedAt, views: r.views, likes: r.likes, comments: r.comments, networks: [net] });
+    }
+  }
+  let items = [...grouped.values()].sort((a, b) => b.postedAt.localeCompare(a.postedAt));
+  if (filter === "todas") items = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const hasMore = lists.some(({ data }) => data.hasMore) || grouped.size > page * PER_PAGE;
+  const totalPages = filter === "todas" ? undefined : lists[0]?.data.totalPages;
+  const lastPage = Math.max(page, totalPages ?? 0, hasMore ? page + 1 : page);
+
+  // Resumen de las dos redes juntas en el periodo elegido
   const since = daysAgo(period.days);
   const summary = both.map(({ n, data }) => {
     const recent = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
-    return {
-      n,
-      followers: data.followers,
-      views: recent.reduce((sum, r) => sum + (r.views ?? 0), 0),
-      videos: recent.length,
-    };
+    return { n, followers: data.followers, views: recent.reduce((s, r) => s + (r.views ?? 0), 0), videos: recent.length };
   });
-  // Si en el periodo hay más vídeos de los que se leyeron, el resumen se queda corto: se avisa
   const partial = both.some(({ data }) => data.hasMore && data.items.length > 0
     && new Date(data.items[data.items.length - 1].postedAt).getTime() >= since);
   const sum = (key: "followers" | "views" | "videos") => summary.reduce((t, x) => t + (x[key] ?? 0), 0);
   const detail = (key: "followers" | "views" | "videos") =>
-    summary.map((x) => `${LABELS[x.n].name} ${fmt(x[key] ?? undefined)}`).join(" · ");
+    summary.map((x) => `${NAMES[x.n]} ${fmt(x[key] ?? undefined)}`).join(" · ");
 
-  const withViews = reels.filter((r) => r.views !== undefined);
-  const avgViews = withViews.length ? withViews.reduce((sum, r) => sum + (r.views ?? 0), 0) / withViews.length : undefined;
-  const avgLikes = reels.length ? reels.reduce((sum, r) => sum + (r.likes ?? 0), 0) / reels.length : undefined;
-  const best = [...withViews].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0];
+  // Cifras de una red concreta (con "Todas" no se mezclan medias de redes distintas)
+  const single = filter !== "todas" ? lists[0]?.data : undefined;
+  const withViews = items.filter((i) => i.views !== undefined);
+  const avgViews = withViews.length ? withViews.reduce((s, i) => s + (i.views ?? 0), 0) / withViews.length : undefined;
+  const avgLikes = items.length ? items.reduce((s, i) => s + (i.likes ?? 0), 0) / items.length : undefined;
+  const best = filter !== "todas" ? [...withViews].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0] : undefined;
 
-  const sorted = byViews ? [...reels].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)) : reels;
+  const sorted = sort === "recientes" ? items : [...items].sort((a, b) => SORTS[sort].value(b) - SORTS[sort].value(a));
+  const account = filter !== "todas" ? accounts?.find((a) => a.platform === filter) : undefined;
   const tab = (active: boolean) =>
     `flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
       active ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
     }`;
+  const pill = "rounded-full bg-[rgb(0_0_0/0.4)] px-2 py-0.5 text-2xs font-medium text-[#fff] backdrop-blur-md";
 
   return (
     <Page title="Métricas">
@@ -175,7 +226,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · {period.title}</span></h2>
               <div className="flex gap-1 rounded-lg border border-line p-0.5">
                 {PERIODS.map((x) => (
-                  <Link key={x.days} href={href({ periodo: String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
+                  <Link key={x.days} href={href({ periodo: x.days === 30 ? undefined : String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
                     {x.label}
                   </Link>
                 ))}
@@ -192,77 +243,91 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
           </section>
         )}
 
-        {/* Cada red por separado: la red y el orden se eligen juntos, arriba de sus cifras */}
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
-              {label.item} <span className="text-fg-4">· @{account?.username}{page > 1 ? ` · página ${page}` : ""}</span>
+              Vídeos{" "}
+              <span className="text-fg-4">
+                · {filter === "todas" ? "Instagram y TikTok" : `${NAMES[filter]}${account?.username ? ` @${account.username}` : ""}`}
+                {page > 1 ? ` · página ${page}` : ""}
+              </span>
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {connected.length > 1 && (
-                <div className="flex gap-1 rounded-lg border border-line p-0.5">
-                  {connected.map((n) => (
-                    <Link key={n} href={`/metricas?red=${n}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(network === n)} scroll={false}>{LABELS[n].name}</Link>
-                  ))}
-                </div>
+                <MenuButton icon="filtro" label="Filtrar por red" title="Red"
+                  options={(["todas", ...connected] as Filter[]).map((f) => ({
+                    label: f === "todas" ? "Todas las redes" : NAMES[f],
+                    href: href({ red: f === "todas" ? undefined : f, p: undefined }),
+                    active: f === filter,
+                  }))} />
               )}
-              <div className="flex gap-1 rounded-lg border border-line p-0.5">
-                <Link href={`/metricas?red=${network}${page > 1 ? `&p=${page}` : ""}${period.days !== 30 ? `&periodo=${period.days}` : ""}`} className={tab(!byViews)} scroll={false}>Recientes</Link>
-                <Link href={href({ orden: "vistas" })} className={tab(byViews)} scroll={false}>Más vistos</Link>
-              </div>
+              <MenuButton icon="orden" label="Ordenar" title="Ordenar por"
+                options={(Object.keys(SORTS) as Sort[]).map((s) => ({
+                  label: SORTS[s].label,
+                  href: href({ orden: s === "recientes" ? undefined : s }),
+                  active: s === sort,
+                }))} />
             </div>
           </div>
 
-          {failed && <Notice tone="danger">{failed}</Notice>}
+          {errors.map((e) => <Notice key={e} tone="danger">{e}</Notice>)}
 
-          <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">
-            <Stat label="Seguidores" value={fmt(followers)} />
-            <Stat label="Vistas medias" value={fmt(avgViews)} />
-            <Stat label="Me gusta medios" value={fmt(avgLikes)} />
-            <Stat label={label.best} value={best ? fmt(best.views) : "—"} />
-          </div>
+          {single && (
+            <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">
+              <Stat label="Seguidores" value={fmt(single.followers)} />
+              <Stat label="Vistas medias" value={fmt(avgViews)} />
+              <Stat label="Me gusta medios" value={fmt(avgLikes)} />
+              <Stat label="Mejor vídeo" value={best ? fmt(best.views) : "—"} />
+            </div>
+          )}
 
-          {/* Misma tarjeta que el banco de vídeos: la portada a sangre y los números sobre un degradado */}
+          {/* Misma tarjeta que el banco de vídeos: portada a sangre, la red arriba y los números sobre un degradado */}
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {sorted.map((reel) => {
-              const vsAvg = change(reel.views, avgViews);
+            {sorted.map((item) => {
+              const vsAvg = single ? change(item.views, avgViews) : null;
               return (
-                <li key={reel.id}>
-                  <a href={reel.permalink} target="_blank" rel="noopener noreferrer" title={reel.caption || undefined}
-                    className="group relative block aspect-[9/16] overflow-hidden rounded-lg bg-surface-2">
-                    {reel.thumbnailUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={reel.thumbnailUrl} alt="" loading="lazy"
-                        className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
-                    )}
-                    {best && reel.id === best.id && (
-                      <span className="absolute top-2 left-2 rounded-full bg-[rgb(0_0_0/0.35)] px-2 py-0.5 text-xs font-medium text-[#fff] backdrop-blur-md">
-                        {label.best}
-                      </span>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.85)] via-[rgb(0_0_0/0.4)] to-transparent px-3 pt-20 pb-3 text-[#fff]">
-                      <p className="flex items-center gap-1.5 text-lg font-medium tabular-nums">
-                        <Eye className="size-4" strokeWidth={1.75} />
-                        {fmt(reel.views)}
+                <li key={item.key} className="group relative aspect-[9/16] overflow-hidden rounded-lg bg-surface-2">
+                  {item.thumbnailUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.thumbnailUrl} alt="" loading="lazy"
+                      className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                  )}
+                  {/* Toda la tarjeta abre el vídeo en su red (la primera, si está en las dos) */}
+                  <a href={item.networks[0].permalink} target="_blank" rel="noopener noreferrer" title={item.caption || undefined}
+                    aria-label={`Abrir en ${NAMES[item.networks[0].network]}`} className="absolute inset-0" />
+                  <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                    {item.networks.map((n) => (
+                      <a key={n.network} href={n.permalink} target="_blank" rel="noopener noreferrer" className={`${pill} hover:bg-[rgb(0_0_0/0.6)]`}>
+                        {NAMES[n.network]}
+                      </a>
+                    ))}
+                  </div>
+                  {best && item.key === best.key && <span className={`${pill} absolute top-2 right-2`}>Mejor</span>}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgb(0_0_0/0.85)] via-[rgb(0_0_0/0.4)] to-transparent px-3 pt-20 pb-3 text-[#fff]">
+                    <p className="flex items-center gap-1.5 text-lg font-medium tabular-nums">
+                      <Eye className="size-4" strokeWidth={1.75} />
+                      {fmt(item.views)}
+                    </p>
+                    {item.networks.length > 1 && (
+                      <p className="text-xs text-[rgb(255_255_255/0.7)] tabular-nums">
+                        {item.networks.map((n) => `${NAMES[n.network]} ${fmt(n.views)}`).join(" · ")}
                       </p>
-                      {vsAvg && <p className="text-xs text-[rgb(255_255_255/0.7)]">{vsAvg}</p>}
-                      <p className="mt-2 line-clamp-2 text-xs text-[rgb(255_255_255/0.85)]">{reel.caption || "Sin descripción"}</p>
-                      <div className="mt-2 flex items-center gap-3 text-xs text-[rgb(255_255_255/0.7)] tabular-nums">
-                        <span className="inline-flex items-center gap-1"><Heart className="size-3.5" strokeWidth={1.75} />{fmt(reel.likes)}</span>
-                        <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5" strokeWidth={1.75} />{fmt(reel.comments)}</span>
-                        <span className="ml-auto">{new Date(reel.postedAt).toLocaleDateString("es", { day: "numeric", month: "short" })}</span>
-                      </div>
+                    )}
+                    {vsAvg && <p className="text-xs text-[rgb(255_255_255/0.7)]">{vsAvg}</p>}
+                    <p className="mt-2 line-clamp-2 text-xs text-[rgb(255_255_255/0.85)]">{item.caption || "Sin descripción"}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-[rgb(255_255_255/0.7)] tabular-nums">
+                      <span className="inline-flex items-center gap-1"><Heart className="size-3.5" strokeWidth={1.75} />{fmt(item.likes)}</span>
+                      <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5" strokeWidth={1.75} />{fmt(item.comments)}</span>
+                      <span className="ml-auto">{new Date(item.postedAt).toLocaleDateString("es", { day: "numeric", month: "short" })}</span>
                     </div>
-                  </a>
+                  </div>
                 </li>
               );
             })}
           </ul>
 
-          {/* Si la red no da el total, se conoce hasta la página siguiente */}
           <div className="pt-2">
-            <Pagination current={page} last={Math.max(page, totalPages ?? 0, hasMore ? page + 1 : page)}
-              href={(p) => href({ p: String(p) })} />
+            <Pagination current={page} last={lastPage} href={(p) => href({ p: p > 1 ? String(p) : undefined })} />
           </div>
         </section>
       </div>

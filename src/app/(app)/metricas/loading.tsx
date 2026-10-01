@@ -17,14 +17,11 @@ export default function Loading() {
         </section>
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Skeleton className="h-4 w-44 rounded" />
+            <Skeleton className="h-4 w-56 rounded" />
             <div className="flex gap-2">
-              <Skeleton className="h-8 w-40" />
-              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-8 w-36" />
+              <Skeleton className="h-8 w-36" />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }, (_, i) => <StatSkeleton key={i} />)}
           </div>
           <VideoGridSkeleton />
         </section>
