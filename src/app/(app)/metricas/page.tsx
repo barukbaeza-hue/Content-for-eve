@@ -241,14 +241,6 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               </span>
             </h2>
             <div className="flex flex-wrap gap-2">
-              {connected.length > 1 && (
-                <MenuButton icon="filtro" label="Filtrar por red" title="Red"
-                  options={(["todas", ...connected] as Filter[]).map((f) => ({
-                    label: f === "todas" ? "Todas las redes" : NAMES[f],
-                    href: href({ red: f === "todas" ? undefined : f, p: undefined }),
-                    active: f === filter,
-                  }))} />
-              )}
               <div className="flex gap-1 rounded-lg border border-line p-0.5">
                 {PERIODS.map((x) => (
                   <Link key={x.days} href={href({ periodo: x.days === 30 ? undefined : String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
@@ -277,6 +269,14 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
               Vídeos <span className="text-fg-4">· {SORTS[sort].label.toLowerCase()}{page > 1 ? ` · página ${page}` : ""}</span>
             </h2>
             <div className="flex gap-2">
+              {connected.length > 1 && (
+                <MenuButton icon="filtro" label="Filtrar por red" title="Red"
+                  options={(["todas", ...connected] as Filter[]).map((f) => ({
+                    label: f === "todas" ? "Todas las redes" : NAMES[f],
+                    href: href({ red: f === "todas" ? undefined : f, p: undefined }),
+                    active: f === filter,
+                  }))} />
+              )}
               <MenuButton icon="orden" label="Ordenar" title="Ordenar por"
                 options={(Object.keys(SORTS) as Sort[]).map((s) => ({
                   label: SORTS[s].label,

@@ -9,10 +9,7 @@ export default function Loading() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Skeleton className="h-4 w-72 rounded" />
-            <div className="flex gap-2">
-              <Skeleton className="h-8 w-36" />
-              <Skeleton className="h-8 w-72" />
-            </div>
+            <Skeleton className="h-8 w-72" />
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => <StatSkeleton key={i} detail={i < 3} />)}
@@ -21,7 +18,10 @@ export default function Loading() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Skeleton className="h-4 w-40 rounded" />
-            <Skeleton className="h-8 w-36" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-36" />
+              <Skeleton className="h-8 w-36" />
+            </div>
           </div>
           <VideoGridSkeleton />
         </section>
