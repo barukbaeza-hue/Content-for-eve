@@ -165,61 +165,61 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
       n,
       data: global ? await load(n, 1, MAX_SORTED) : filter === "todas" ? await load(n, 1, page * PER_PAGE) : await load(n, page),
     }))),
-    connected.length > 1
-      ? Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
-      : Promise.resolve([]),
+    // El resumen usa las mismas redes que el filtro y los vídeos del periodo elegido
+    Promise.all(shown.map(async (n) => ({ n, data: await load(n, 1, period.videos) }))),
   ]);
   const errors = lists.map(({ data }) => data.error).filter(Boolean) as string[];
 
   // El mismo vídeo publicado desde Mova en las dos redes se junta en una sola tarjeta
   const videoOf = new Map((pubs ?? []).map((p) => [`${p.platform}:${p.post_id}`, p.video_id as string]));
-  const grouped = new Map<string, Item>();
-  for (const { n, data } of lists) {
-    for (const r of data.items) {
-      const key = videoOf.get(`${n}:${r.id}`) ?? `${n}:${r.id}`;
-      const prev = grouped.get(key);
-      const net = { network: n, permalink: r.permalink, views: r.views };
-      grouped.set(key, prev
-        ? {
-          ...prev,
-          views: add(prev.views, r.views),
-          likes: add(prev.likes, r.likes),
-          comments: add(prev.comments, r.comments),
-          postedAt: prev.postedAt < r.postedAt ? prev.postedAt : r.postedAt,
-          networks: [...prev.networks, net],
-        }
-        : { key, caption: r.caption, thumbnailUrl: r.thumbnailUrl, postedAt: r.postedAt, views: r.views, likes: r.likes, comments: r.comments, networks: [net] });
+  function group(sources: { n: Network; data: Loaded }[]) {
+    const grouped = new Map<string, Item>();
+    for (const { n, data } of sources) {
+      for (const r of data.items) {
+        const key = videoOf.get(`${n}:${r.id}`) ?? `${n}:${r.id}`;
+        const prev = grouped.get(key);
+        const net = { network: n, permalink: r.permalink, views: r.views };
+        grouped.set(key, prev
+          ? {
+            ...prev,
+            views: add(prev.views, r.views),
+            likes: add(prev.likes, r.likes),
+            comments: add(prev.comments, r.comments),
+            postedAt: prev.postedAt < r.postedAt ? prev.postedAt : r.postedAt,
+            networks: [...prev.networks, net],
+          }
+          : { key, caption: r.caption, thumbnailUrl: r.thumbnailUrl, postedAt: r.postedAt, views: r.views, likes: r.likes, comments: r.comments, networks: [net] });
+      }
     }
+    return [...grouped.values()];
   }
-  const all = [...grouped.values()].sort((a, b) =>
+
+  const all = group(lists).sort((a, b) =>
     global ? SORTS[sort].value(b) - SORTS[sort].value(a) : b.postedAt.localeCompare(a.postedAt));
   const items = global || filter === "todas" ? all.slice((page - 1) * PER_PAGE, page * PER_PAGE) : all;
-  const hasMore = global ? all.length > page * PER_PAGE : lists.some(({ data }) => data.hasMore) || grouped.size > page * PER_PAGE;
+  const hasMore = global ? all.length > page * PER_PAGE : lists.some(({ data }) => data.hasMore) || all.length > page * PER_PAGE;
   const totalPages = global ? Math.ceil(all.length / PER_PAGE) : filter === "todas" ? undefined : lists[0]?.data.totalPages;
   const lastPage = Math.max(page, totalPages ?? 0, hasMore ? page + 1 : page);
   // Si alguna red tiene más vídeos de los que se leen para ordenar, se avisa
   const capped = global && lists.some(({ data }) => data.hasMore);
 
-  // Resumen de las dos redes juntas en el periodo elegido
+  // Resumen del periodo con las redes del filtro (con varias redes, cada cifra lleva su desglose)
   const since = daysAgo(period.days);
-  const summary = both.map(({ n, data }) => {
-    const recent = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
-    return { n, followers: data.followers, views: recent.reduce((s, r) => s + (r.views ?? 0), 0), videos: recent.length };
+  const recent = group(both).filter((i) => new Date(i.postedAt).getTime() >= since);
+  const withViews = recent.filter((i) => i.views !== undefined);
+  const views = withViews.reduce((t, i) => t + (i.views ?? 0), 0);
+  const avgViews = withViews.length ? views / withViews.length : undefined;
+  const avgLikes = recent.length ? recent.reduce((t, i) => t + (i.likes ?? 0), 0) / recent.length : undefined;
+  const best = [...withViews].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0];
+  const followers = both.reduce<number | undefined>((t, { data }) => add(t, data.followers), undefined);
+  const perNetwork = both.map(({ n, data }) => {
+    const mine = data.items.filter((r) => new Date(r.postedAt).getTime() >= since);
+    return { n, followers: data.followers, views: mine.reduce((t, r) => t + (r.views ?? 0), 0), videos: mine.length };
   });
+  const detail = (key: "followers" | "views" | "videos") =>
+    perNetwork.length > 1 ? perNetwork.map((x) => `${NAMES[x.n]} ${fmt(x[key] ?? undefined)}`).join(" · ") : undefined;
   const partial = both.some(({ data }) => data.hasMore && data.items.length > 0
     && new Date(data.items[data.items.length - 1].postedAt).getTime() >= since);
-  const sum = (key: "followers" | "views" | "videos") => summary.reduce((t, x) => t + (x[key] ?? 0), 0);
-  const detail = (key: "followers" | "views" | "videos") =>
-    summary.map((x) => `${NAMES[x.n]} ${fmt(x[key] ?? undefined)}`).join(" · ");
-
-  // Cifras de una red concreta (con "Todas" no se mezclan medias de redes distintas)
-  const single = filter !== "todas" ? lists[0]?.data : undefined;
-  // Al ordenar se leyeron todos: las medias y el mejor vídeo salen de todos, no solo de esta página
-  const pool = global ? all : items;
-  const withViews = pool.filter((i) => i.views !== undefined);
-  const avgViews = withViews.length ? withViews.reduce((s, i) => s + (i.views ?? 0), 0) / withViews.length : undefined;
-  const avgLikes = pool.length ? pool.reduce((s, i) => s + (i.likes ?? 0), 0) / pool.length : undefined;
-  const best = filter !== "todas" ? [...withViews].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0] : undefined;
 
   const sorted = items;
   const account = filter !== "todas" ? accounts?.find((a) => a.platform === filter) : undefined;
@@ -232,39 +232,15 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
   return (
     <Page title="Métricas">
       <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
-        {summary.length > 1 && (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-fg-2">Resumen <span className="text-fg-4">· Instagram y TikTok · {period.title}</span></h2>
-              <div className="flex gap-1 rounded-lg border border-line p-0.5">
-                {PERIODS.map((x) => (
-                  <Link key={x.days} href={href({ periodo: x.days === 30 ? undefined : String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
-                    {x.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Stat label="Seguidores" value={fmt(sum("followers"))} detail={detail("followers")} />
-              <Stat label="Vistas" value={fmt(sum("views"))} detail={detail("views")} />
-              <Stat label="Vídeos publicados" value={fmt(sum("videos"))} detail={detail("videos")} />
-            </div>
-            {partial && (
-              <p className="text-xs text-fg-4">Cuenta los últimos {period.videos} vídeos de cada red; en este periodo publicaste más.</p>
-            )}
-          </section>
-        )}
-
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-fg-2">
-              Vídeos{" "}
+              Resumen{" "}
               <span className="text-fg-4">
-                · {filter === "todas" ? "Instagram y TikTok" : `${NAMES[filter]}${account?.username ? ` @${account.username}` : ""}`}
-                {page > 1 ? ` · página ${page}` : ""}
+                · {filter === "todas" ? "Instagram y TikTok" : `${NAMES[filter]}${account?.username ? ` @${account.username}` : ""}`} · {period.title}
               </span>
             </h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {connected.length > 1 && (
                 <MenuButton icon="filtro" label="Filtrar por red" title="Red"
                   options={(["todas", ...connected] as Filter[]).map((f) => ({
@@ -273,6 +249,34 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
                     active: f === filter,
                   }))} />
               )}
+              <div className="flex gap-1 rounded-lg border border-line p-0.5">
+                {PERIODS.map((x) => (
+                  <Link key={x.days} href={href({ periodo: x.days === 30 ? undefined : String(x.days) })} scroll={false} className={tab(x.days === period.days)}>
+                    {x.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Stat label="Seguidores" value={fmt(followers)} detail={detail("followers")} />
+            <Stat label="Vistas" value={fmt(views)} detail={detail("views")} />
+            <Stat label="Vídeos publicados" value={fmt(recent.length)} detail={detail("videos")} />
+            <Stat label="Vistas medias por vídeo" value={fmt(avgViews)} />
+            <Stat label="Me gusta medios" value={fmt(avgLikes)} />
+            <Stat label="Mejor vídeo" value={best ? fmt(best.views) : "—"} />
+          </div>
+          {partial && (
+            <p className="text-xs text-fg-4">Cuenta los últimos {period.videos} vídeos de cada red; en este periodo publicaste más.</p>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-fg-2">
+              Vídeos <span className="text-fg-4">· {SORTS[sort].label.toLowerCase()}{page > 1 ? ` · página ${page}` : ""}</span>
+            </h2>
+            <div className="flex gap-2">
               <MenuButton icon="orden" label="Ordenar" title="Ordenar por"
                 options={(Object.keys(SORTS) as Sort[]).map((s) => ({
                   label: SORTS[s].label,
@@ -285,19 +289,10 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
           {errors.map((e) => <Notice key={e} tone="danger">{e}</Notice>)}
           {capped && <p className="text-xs text-fg-4">Ordenado entre tus últimos {MAX_SORTED} vídeos de cada red.</p>}
 
-          {single && (
-            <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">
-              <Stat label="Seguidores" value={fmt(single.followers)} />
-              <Stat label="Vistas medias" value={fmt(avgViews)} />
-              <Stat label="Me gusta medios" value={fmt(avgLikes)} />
-              <Stat label="Mejor vídeo" value={best ? fmt(best.views) : "—"} />
-            </div>
-          )}
-
           {/* Misma tarjeta que el banco de vídeos: portada a sangre, la red arriba y los números sobre un degradado */}
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {sorted.map((item) => {
-              const vsAvg = single ? change(item.views, avgViews) : null;
+              const vsAvg = change(item.views, avgViews);
               return (
                 <li key={item.key} className="group relative aspect-[9/16] overflow-hidden rounded-lg bg-surface-2">
                   {item.thumbnailUrl && (
