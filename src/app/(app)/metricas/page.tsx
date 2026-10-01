@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/server";
 import { freshToken, getStats, TikTokError, tiktokConfigured, videosPage } from "@/lib/tiktok";
 
 const PER_PAGE = 20;
+// Para ordenar por vistas, me gusta o comentarios se leen todos los vídeos (hasta este máximo por red) y se ordenan juntos
+const MAX_SORTED = 200;
 
 const number = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 const fmt = (n?: number) => (n === undefined ? "—" : number.format(n));
@@ -154,10 +156,15 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
     }
   }
 
-  // Con "Todas", cada red da hasta esta página entera y se mezclan por fecha; con una red, solo su página
+  // Por fecha: cada red da su página (con "Todas", hasta esta página entera, y se mezclan).
+  // Por vistas, me gusta o comentarios: se leen todos los vídeos y se ordenan juntos, sin importar la página.
   const shown: Network[] = filter === "todas" ? [...connected] : [filter];
+  const global = sort !== "recientes";
   const [lists, both] = await Promise.all([
-    Promise.all(shown.map(async (n) => ({ n, data: filter === "todas" ? await load(n, 1, page * PER_PAGE) : await load(n, page) }))),
+    Promise.all(shown.map(async (n) => ({
+      n,
+      data: global ? await load(n, 1, MAX_SORTED) : filter === "todas" ? await load(n, 1, page * PER_PAGE) : await load(n, page),
+    }))),
     connected.length > 1
       ? Promise.all(connected.map(async (n) => ({ n, data: await load(n, 1, period.videos) })))
       : Promise.resolve([]),
@@ -184,11 +191,14 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
         : { key, caption: r.caption, thumbnailUrl: r.thumbnailUrl, postedAt: r.postedAt, views: r.views, likes: r.likes, comments: r.comments, networks: [net] });
     }
   }
-  let items = [...grouped.values()].sort((a, b) => b.postedAt.localeCompare(a.postedAt));
-  if (filter === "todas") items = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const hasMore = lists.some(({ data }) => data.hasMore) || grouped.size > page * PER_PAGE;
-  const totalPages = filter === "todas" ? undefined : lists[0]?.data.totalPages;
+  const all = [...grouped.values()].sort((a, b) =>
+    global ? SORTS[sort].value(b) - SORTS[sort].value(a) : b.postedAt.localeCompare(a.postedAt));
+  const items = global || filter === "todas" ? all.slice((page - 1) * PER_PAGE, page * PER_PAGE) : all;
+  const hasMore = global ? all.length > page * PER_PAGE : lists.some(({ data }) => data.hasMore) || grouped.size > page * PER_PAGE;
+  const totalPages = global ? Math.ceil(all.length / PER_PAGE) : filter === "todas" ? undefined : lists[0]?.data.totalPages;
   const lastPage = Math.max(page, totalPages ?? 0, hasMore ? page + 1 : page);
+  // Si alguna red tiene más vídeos de los que se leen para ordenar, se avisa
+  const capped = global && lists.some(({ data }) => data.hasMore);
 
   // Resumen de las dos redes juntas en el periodo elegido
   const since = daysAgo(period.days);
@@ -204,12 +214,14 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
 
   // Cifras de una red concreta (con "Todas" no se mezclan medias de redes distintas)
   const single = filter !== "todas" ? lists[0]?.data : undefined;
-  const withViews = items.filter((i) => i.views !== undefined);
+  // Al ordenar se leyeron todos: las medias y el mejor vídeo salen de todos, no solo de esta página
+  const pool = global ? all : items;
+  const withViews = pool.filter((i) => i.views !== undefined);
   const avgViews = withViews.length ? withViews.reduce((s, i) => s + (i.views ?? 0), 0) / withViews.length : undefined;
-  const avgLikes = items.length ? items.reduce((s, i) => s + (i.likes ?? 0), 0) / items.length : undefined;
+  const avgLikes = pool.length ? pool.reduce((s, i) => s + (i.likes ?? 0), 0) / pool.length : undefined;
   const best = filter !== "todas" ? [...withViews].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0] : undefined;
 
-  const sorted = sort === "recientes" ? items : [...items].sort((a, b) => SORTS[sort].value(b) - SORTS[sort].value(a));
+  const sorted = items;
   const account = filter !== "todas" ? accounts?.find((a) => a.platform === filter) : undefined;
   const tab = (active: boolean) =>
     `flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
@@ -271,6 +283,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
           </div>
 
           {errors.map((e) => <Notice key={e} tone="danger">{e}</Notice>)}
+          {capped && <p className="text-xs text-fg-4">Ordenado entre tus últimos {MAX_SORTED} vídeos de cada red.</p>}
 
           {single && (
             <div className="grid grid-cols-2 gap-3 pb-3 lg:grid-cols-4">

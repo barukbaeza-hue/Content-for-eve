@@ -155,6 +155,13 @@ export type Reel = {
   views?: number;
 };
 
+// Ejecuta `fn` para cada elemento, como mucho `size` a la vez (para no saturar la API de Instagram)
+async function inBatches<T, R>(list: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < list.length; i += size) out.push(...(await Promise.all(list.slice(i, i + size).map(fn))));
+  return out;
+}
+
 // Una página de Reels con sus métricas (las vistas solo se piden para los de esa página).
 export async function reelsPage(token: string, page: number, perPage: number): Promise<{ items: Reel[]; hasMore: boolean }> {
   const want = page * perPage + 1;
@@ -171,8 +178,7 @@ export async function reelsPage(token: string, page: number, perPage: number): P
   }
   const slice = videos.slice((page - 1) * perPage, page * perPage);
 
-  const items = await Promise.all(
-    slice.map(async (m) => ({
+  const items = await inBatches(slice, 10, async (m) => ({
       id: m.id,
       caption: m.caption ?? "",
       permalink: m.permalink,
@@ -181,8 +187,7 @@ export async function reelsPage(token: string, page: number, perPage: number): P
       likes: m.like_count,
       comments: m.comments_count,
       views: await mediaViews(m.id, token),
-    })),
-  );
+    }));
   return { items, hasMore: videos.length > page * perPage };
 }
 
