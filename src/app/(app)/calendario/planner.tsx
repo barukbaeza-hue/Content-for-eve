@@ -3,6 +3,7 @@
 import type { DatesSetArg, EventContentArg, EventDropArg } from "@fullcalendar/core";
 import esLocale from "@fullcalendar/core/locales/es";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin, { Draggable, type DateClickArg, type DropArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ export type CalendarVideo = {
 };
 
 type Change = { id: string; at: string | null };
-type View = "dayGridMonth" | "dayGridWeek";
+type View = "dayGridMonth" | "timeGridWeek";
 
 const noop = () => () => {};
 const VIEW_KEY = "mova.calendario.vista";
@@ -94,9 +95,9 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   const bankRef = useRef<HTMLElement>(null);
   const [view, setView] = useState<View>(() => {
     try {
-      return localStorage.getItem(VIEW_KEY) === "dayGridMonth" ? "dayGridMonth" : "dayGridWeek";
+      return localStorage.getItem(VIEW_KEY) === "dayGridMonth" ? "dayGridMonth" : "timeGridWeek";
     } catch {
-      return "dayGridWeek";
+      return "timeGridWeek";
     }
   });
   const [title, setTitle] = useState("");
@@ -248,31 +249,31 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       );
     }
 
-    // Semana: hora, vídeo grande, hashtags, nombre y descripción, y las redes en círculos
+    // Semana: la tarjeta ocupa su bloque de horas; hora, vídeo, hashtags, nombre y descripción, y las redes en círculos
     const { text, tags } = splitCaption(video.caption);
     return (
-      <div className={`mova-card group flex w-full min-w-0 flex-col gap-2.5 rounded-xl p-2.5 ${published ? "opacity-60" : ""}`}>
+      <div className={`mova-card group flex size-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg p-2 ${published ? "opacity-60" : ""}`}>
         <div className="flex items-center justify-between gap-1">
-          {timeLabel(video, movable, event.start!, "text-sm font-medium text-fg")}
+          {timeLabel(video, movable, event.start!, "text-xs font-medium text-fg")}
           {remove}
         </div>
-        <span className="block aspect-[4/5] w-full overflow-hidden rounded-lg bg-surface-3"><Thumb url={video.url} /></span>
+        <span className="block min-h-8 flex-1 overflow-hidden rounded-md bg-surface-3"><Thumb url={video.url} /></span>
         {tags.length > 0 && (
-          <span className="flex flex-wrap gap-1">
-            {tags.slice(0, 4).map((t) => (
-              <span key={t} className="max-w-full truncate rounded-full bg-surface-3 px-2 py-0.5 text-2xs text-fg-2">{t}</span>
+          <span className="flex gap-1 overflow-hidden">
+            {tags.slice(0, 3).map((t) => (
+              <span key={t} className="max-w-full shrink-0 truncate rounded-full bg-surface-3 px-1.5 py-px text-2xs text-fg-2">{t}</span>
             ))}
           </span>
         )}
-        <p className="line-clamp-4 text-xs whitespace-normal">
+        <p className="line-clamp-2 shrink-0 text-xs whitespace-normal">
           <span className="font-medium text-fg">{video.title}.</span>{" "}
           <span className="text-fg-3">{text || "Sin descripción."}</span>
         </p>
-        <span className="flex gap-1.5">
+        <span className="flex shrink-0 gap-1">
           {video.platforms.map((p) => (
             <span key={p} aria-label={p === "instagram" ? "Instagram" : "TikTok"} data-tip={p === "instagram" ? "Instagram" : "TikTok"}
-              className="flex size-7 items-center justify-center rounded-full bg-surface-3 text-fg-2">
-              {p === "instagram" ? <InstagramIcon className="size-3.5" /> : <TikTokIcon className="size-3.5" />}
+              className="flex size-6 items-center justify-center rounded-full bg-surface-3 text-fg-2">
+              {p === "instagram" ? <InstagramIcon className="size-3" /> : <TikTokIcon className="size-3" />}
             </span>
           ))}
         </span>
@@ -318,7 +319,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         </div>
         <div className="flex items-center gap-2">
         <div className="flex gap-1 rounded-lg border border-line p-0.5">
-          {([["dayGridWeek", "Semana"], ["dayGridMonth", "Mes"]] as const).map(([v, label]) => (
+          {([["timeGridWeek", "Semana"], ["dayGridMonth", "Mes"]] as const).map(([v, label]) => (
             <button key={v} type="button" onClick={() => changeView(v)}
               className={`flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
                 view === v ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
@@ -342,14 +343,21 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <div className="mova-calendar min-h-[560px] flex-1">
         <FullCalendar
           ref={calendar}
-          plugins={[dayGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView={view}
           locale={esLocale}
           firstDay={1}
           headerToolbar={false}
-          // En la semana, cada día crece con sus tarjetas; el mes ocupa la pantalla
-          height={view === "dayGridWeek" ? "auto" : "100%"}
-          dayMaxEvents={view === "dayGridMonth" ? 4 : false}
+          height="100%"
+          dayMaxEvents={4}
+          // Semana: cuadrícula por horas (líneas cada hora); cada vídeo ocupa un bloque de 2 h para que quepa su tarjeta
+          allDaySlot={false}
+          slotDuration="01:00:00"
+          snapDuration="00:15:00"
+          slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+          scrollTime="08:00:00"
+          defaultTimedEventDuration="02:00:00"
+          nowIndicator
           fixedWeekCount={false}
           eventOrder="start"
           dayHeaderContent={renderDayHeader}

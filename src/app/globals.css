@@ -270,39 +270,36 @@
   background: var(--surface-3);
 }
 
-/* Semana: columnas por día sin cuadrícula; días en píldoras y tarjetas apiladas por hora */
-.mova-calendar .fc-dayGridWeek-view .fc-scrollgrid,
-.mova-calendar .fc-dayGridWeek-view td,
-.mova-calendar .fc-dayGridWeek-view th {
-  border: 0;
-}
-.mova-calendar .fc-dayGridWeek-view .fc-col-header-cell {
+/* Semana: cuadrícula por horas con líneas; días en píldoras y tarjetas que ocupan su bloque */
+.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell {
   background: transparent;
-  padding: 0 4px 10px;
+  padding: 0 4px 8px;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-col-header-cell-cushion {
+.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell-cushion {
   display: flex;
   width: 100%;
   padding: 0;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-daygrid-day-frame {
-  min-height: 60vh;
-  padding: 0 4px;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot {
+  height: 88px;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-daygrid-day-top {
-  display: none;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label {
+  vertical-align: top;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-daygrid-event-harness {
-  margin-bottom: 8px;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label-cushion {
+  display: block;
+  padding: 4px 10px 0 6px;
+  font-variant-numeric: tabular-nums;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-daygrid-event {
-  margin: 0;
-  white-space: normal;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-col:not(.fc-day-past) {
+  cursor: pointer;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-bg-event.mova-past {
-  border-radius: 10px;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event {
+  margin: 2px 3px;
 }
-.mova-calendar .fc-dayGridWeek-view .fc-day-past .fc-daygrid-day-frame {
-  background: rgb(128 128 128 / 0.07);
-  border-radius: 10px;
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event-harness-inset .fc-timegrid-event {
+  box-shadow: none;
+}
+.mova-calendar .fc-timegrid-now-indicator-line {
+  border-width: 1px 0 0;
 }
