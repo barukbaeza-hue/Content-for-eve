@@ -249,83 +249,172 @@
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
   html { scroll-behavior: smooth; }
+
+  /* Subpáginas (como en Notion): cada página es un <article data-page>, solo se ve la activa */
+  .nav a.child { padding-left: 22px; }
+  .nav a .glyph { width: 14px; height: 14px; margin-right: 8px; flex-shrink: 0; opacity: .7; }
+  .crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .crumbs a { text-decoration: none; color: var(--fg-3); }
+  .crumbs a:hover { color: var(--fg); }
+  .crumbs .sep { color: var(--fg-4); }
+
+  .children { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .children li + li { border-top: 1px solid var(--line); }
+  .children a {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+    padding: 12px 16px; text-decoration: none; color: var(--fg); transition: background-color .15s;
+  }
+  .children a:hover { background: var(--surface-2); }
+  .children .glyph { width: 16px; height: 16px; color: var(--fg-3); }
+  .children .title { font-weight: var(--medium); }
+  .children .desc { display: block; color: var(--fg-3); font-weight: var(--regular); }
+  .children .go { color: var(--fg-4); }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); text-decoration: none; }
+  .back:hover { color: var(--fg); }
+  .pager { display: flex; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .pager a { text-decoration: none; color: var(--fg-3); display: flex; flex-direction: column; gap: 2px; max-width: 48%; }
+  .pager a:hover { color: var(--fg); }
+  .pager a.next { text-align: right; margin-left: auto; }
+  .pager .label { color: var(--fg-4); }
+
+  /* Estado de cada cosa: la forma también lo dice, no solo el texto */
+  .st { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; font-size: 11px; line-height: 16px; font-weight: var(--medium); white-space: nowrap; border: 1px solid var(--line); color: var(--fg-3); }
+  .st.done { background: var(--fg); border-color: var(--fg); color: var(--canvas); }
+  .st.doing { border-color: var(--fg); color: var(--fg); }
+  .st.open { border-style: dashed; color: var(--fg-3); }
+
+  .updated { color: var(--fg-3); }
+  [data-page][hidden] { display: none !important; }
 </style>
 </head>
 <body>
-
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
       <span class="logo" aria-hidden="true">M</span>
       <span class="name t-sm" style="font-weight: var(--medium)">Mova</span>
     </div>
-    <nav class="nav t-sm" aria-label="Secciones">
+    <nav class="nav t-sm" aria-label="Páginas">
       <span class="nav-label t-xs">Documento</span>
-      <a href="#icp" class="active">ICP</a>
-      <a href="#pilares">Pilares</a>
-      <a href="#edicion">Edición</a>
-      <a href="#costos">Costos</a>
-      <a href="#descripcion">Descripción</a>
-      <a href="#idea-original">Idea original</a>
+      <a href="#inicio" data-link="inicio"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Mova</a>
+      <a href="#producto" data-link="producto" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Producto</a>
+      <a href="#ideas" data-link="ideas" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Ideas e Inspiración</a>
+      <a href="#edicion" data-link="edicion" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Edición automática</a>
+      <a href="#publicacion" data-link="publicacion" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Publicación</a>
+      <a href="#metricas" data-link="metricas" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Métricas</a>
+      <a href="#ia" data-link="ia" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>IA y agentes</a>
+      <a href="#diseno" data-link="diseno" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Diseño</a>
+      <a href="#reglas" data-link="reglas" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Reglas de plataforma</a>
+      <a href="#mvp" data-link="mvp" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>MVP y hoja de ruta</a>
+      <a href="#costos" data-link="costos" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Costos</a>
+      <a href="#decidir" data-link="decidir" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Por decidir</a>
+      <a href="#historia" data-link="historia" class="child"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg>Origen</a>
     </nav>
   </aside>
 
   <main class="main">
     <div class="panel">
       <header class="panel-header t-sm">
-        <span style="font-weight: var(--medium)">Mova</span>
-        <span class="meta t-xs">Notion · 28 sep 2026</span>
+        <span class="crumbs"><a href="#inicio">Mova</a><span class="sep" data-crumb-sep hidden>/</span><span data-crumb style="font-weight: var(--medium)"></span></span>
+        <span class="meta t-xs">Actualizado · 2 oct 2026</span>
       </header>
 
-      <article class="doc">
+      <!-- ============ INICIO ============ -->
+      <article class="doc" data-page="inicio" data-title="Mova">
         <div class="hero">
           <h1 class="t-3xl">Mova</h1>
-          <p class="tagline t-lg"><strong>Crea. Mueve. Crece.</strong> — El sistema operativo de contenido para founder creators.</p>
+          <p class="tagline t-lg"><strong>Crea. Mueve. Crece.</strong> El sistema operativo de contenido para founder creators.</p>
         </div>
 
-        <section id="icp">
-          <div class="section-head">
-            <h2 class="t-xl">ICP</h2>
-            <span class="badge t-2xs">Decidido</span>
-          </div>
-          <p class="lead"><strong>Founder creators:</strong> fundadores y dueños de negocio que publican vídeos cortos y sencillos (hablando a cámara, poca edición) en Instagram y TikTok para conseguir clientes, documentar el proceso y generar confiaza y comunidad.</p>
-          <ul class="list">
-            <li><strong>Qué les duele:</strong> no tienen tiempo, no saben qué contar, les cuesta la cámara y no son constantes.</li>
-            <li><strong>Por qué ellos:</strong> pagan más, hay un hueco en vídeo corto (la competencia se centra en LinkedIn) y sus vídeos sencillos son ideales para editar de forma automática.</li>
-            <li><strong>Propuesta:</strong> de tu negocio a tus vídeos, con tu forma de hablar. Mova aprende de tus vídeos → ideas desde tu negocio → guion en tu voz → grabas → Mova edita automáticamente → copy y publicación.</li>
-            <li><strong>Reglas:</strong> solo vías oficiales. Cada usuario conecta sus cuentas por OAuth; no se extrae contenido de otras cuentas con scraping.</li>
-            <li>Evelyn es la primera usuaria de prueba.</li>
-            <li>Hoja de ruta completa en el repo: <a href="https://github.com/barukbaeza-hue/Content-for-eve/blob/claude/friendly-euler-8atx28/PRODUCTO.md" target="_blank" rel="noopener">PRODUCTO.md</a></li>
-          </ul>
+        <p class="callout"><strong>Idea central:</strong> Mova es un agente con una memoria única del founder. Todas las partes leen de ella y escriben en ella. Nunca hay que repetirle nada.</p>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">En una frase</h2></div>
+          <p class="lead">Para <strong>founder creators</strong>: fundadores que construyen su marca personal con vídeos cortos en Instagram y TikTok. De tu historia a tus vídeos publicados: Mova te da ideas y guiones en tu voz, edita lo que grabas, lo programa y lo publica, y te dice qué funciona. Lo único que haces fuera de Mova es grabar.</p>
           <figure class="fig">
             <ol class="flow" aria-label="Recorrido de un vídeo en Mova">
               <li style="--i:0"><span class="who t-2xs">Mova</span><span class="what t-sm">Aprende de tus vídeos</span></li>
-              <li style="--i:1"><span class="who t-2xs">Mova</span><span class="what t-sm">Ideas desde tu negocio</span></li>
+              <li style="--i:1"><span class="who t-2xs">Mova</span><span class="what t-sm">Ideas desde tu marca personal</span></li>
               <li style="--i:2"><span class="who t-2xs">Mova</span><span class="what t-sm">Guion en tu voz</span></li>
               <li class="outside" style="--i:3"><span class="who t-2xs">Tú</span><span class="what t-sm">Grabas</span></li>
               <li style="--i:4"><span class="who t-2xs">Mova</span><span class="what t-sm">Edita automáticamente</span></li>
               <li style="--i:5"><span class="who t-2xs">Mova</span><span class="what t-sm">Copy y publicación</span></li>
             </ol>
             <div class="legend t-xs"><span><i></i>Lo hace Mova</span><span><i class="dashed"></i>Lo haces tú, fuera de Mova</span></div>
-            <figcaption class="t-sm">Del negocio al vídeo publicado. Todo el recorrido pasa por Mova; lo único que haces fuera es grabar.</figcaption>
+            <figcaption class="t-sm">De tu historia al vídeo publicado. Todo el recorrido pasa por Mova; lo único que haces fuera es grabar.</figcaption>
           </figure>
         </section>
 
-        <section id="pilares">
-          <div class="section-head">
-            <h2 class="t-xl">Pilares</h2>
-            <span class="badge t-2xs">Decididos</span>
-          </div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Estado</h2><span class="badge t-2xs">MVP</span></div>
+          <ul class="list">
+            <li><span class="st done">Hecho</span> Vídeos y edición básica, calendario, métricas de Instagram y TikTok, publicación desde el worker, ajustes de TikTok y del calendario, diseño de Inspiración.</li>
+            <li><span class="st doing">Siguiente</span> Música libre de derechos, efectos con Remotion, IA que orquesta todo con servidor MCP, servidor en la nube.</li>
+            <li><span class="st open">Después</span> Conexiones reales: revisión de Meta y auditoría de TikTok, y pruebas con usuarios.</li>
+          </ul>
+          <p class="prose t-sm"><a href="#mvp">Ver el MVP y la hoja de ruta</a></p>
+        </section>
 
-          <p class="callout"><strong>Idea central:</strong> Mova es un agente con una memoria única del founder. Todas las partes leen de ella y escriben en ella.</p>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Páginas</h2></div>
+          <ul class="children t-sm">
+            <li><a href="#producto"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Producto</span><span class="desc">ICP, propuesta de valor, los 6 pilares y los principios</span></span><span class="go">→</span></a></li>
+            <li><a href="#ideas"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Ideas e Inspiración</span><span class="desc">Chat de ideas, guiones y el feed de referencias</span></span><span class="go">→</span></a></li>
+            <li><a href="#edicion"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Edición automática</span><span class="desc">Qué hace, qué está hecho, subtítulos, worker, tiempos y almacenamiento</span></span><span class="go">→</span></a></li>
+            <li><a href="#publicacion"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Calendario y publicación</span><span class="desc">Banco, semana por horas, mes y publicación en Instagram y TikTok</span></span><span class="go">→</span></a></li>
+            <li><a href="#metricas"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Métricas</span><span class="desc">Instagram y TikTok juntas, resumen por periodo, filtros y orden</span></span><span class="go">→</span></a></li>
+            <li><a href="#ia"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">IA y agentes</span><span class="desc">La IA propia orquesta; el agente del founder manda por MCP</span></span><span class="go">→</span></a></li>
+            <li><a href="#diseno"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Diseño</span><span class="desc">Monocromo estilo Linear, nada nativo, escritorio primero</span></span><span class="go">→</span></a></li>
+            <li><a href="#reglas"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Reglas de plataforma</span><span class="desc">Solo vías oficiales, revisiones de Meta y TikTok</span></span><span class="go">→</span></a></li>
+            <li><a href="#mvp"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">MVP y hoja de ruta</span><span class="desc">Qué está hecho, qué falta y en qué orden</span></span><span class="go">→</span></a></li>
+            <li><a href="#costos"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Costos</span><span class="desc">Por cliente, IA por acción, servicios y totales</span></span><span class="go">→</span></a></li>
+            <li><a href="#decidir"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Por decidir</span><span class="desc">Lo que aún no tiene decisión</span></span><span class="go">→</span></a></li>
+            <li><a href="#historia"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"/><path d="M9 1.75v3h3"/></svg><span><span class="title">Origen</span><span class="desc">Descripción y la idea original</span></span><span class="go">→</span></a></li>
+          </ul>
+        </section>
 
+        <p class="updated t-xs">Este documento es la fuente de verdad del producto. Cada decisión o idea confirmada se escribe aquí en el momento.</p>
+      </article>
+
+      <!-- ============ PRODUCTO ============ -->
+      <article class="doc" data-page="producto" data-title="Producto" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Producto</h1><p class="tagline t-lg">A quién servimos, qué le prometemos y cómo está pensado Mova.</p></div>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">ICP</h2><span class="badge t-2xs">Decidido</span></div>
+          <p class="lead"><strong>Founder creators:</strong> fundadores que construyen su <strong>marca personal</strong> con vídeos cortos en Instagram y TikTok. La marca personal es su vía de distribución y de confianza: documentan lo que construyen, comparten lo que saben y dan su opinión. No es contenido de venta de un negocio. Son vídeos sencillos: hablan a cámara y editan poco.</p>
+          <ul class="list">
+            <li><strong>Qué les duele:</strong> no tienen tiempo, no saben qué contar, les cuesta la cámara y no son constantes.</li>
+            <li><strong>Qué quieren:</strong> una marca personal que les dé alcance y confianza, sin que les coma el día.</li>
+            <li><strong>Por qué ellos y no los creadores freelance:</strong> pagan más y abandonan menos; casi nadie resuelve el vídeo corto para fundadores (las herramientas se centran en LinkedIn); y sus vídeos, hablando a cámara, son ideales para editar de forma automática y en cola.</li>
+            <li>Evelyn es la primera usuaria de prueba. Su red principal es TikTok.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Propuesta de valor</h2></div>
+          <p class="lead">De tu historia a tus vídeos publicados, a tu ritmo, sin perder horas:</p>
           <ol class="pillars">
-            <li><span class="n t-sm">1</span><span><strong>Conocer:</strong> quién eres, cómo hablas, tu negocio y tu contenido pasado.</span></li>
-            <li><span class="n t-sm">2</span><span><strong>Idear:</strong> ideas desde tu negocio y lo que funciona, con guion en tu voz (lo puedes afinar tú); plan semanal.</span></li>
-            <li><span class="n t-sm">3</span><span><strong>Editar:</strong> subes tus vídeos grabados (solo la grabación va fuera de Mova); Mova los edita automáticamente en cola, con su estilo y sus indicaciones, y escribe el copy.</span></li>
-            <li><span class="n t-sm">4</span><span><strong>Publicar:</strong> banco de vídeos, calendario y publicación en Instagram y TikTok.</span></li>
-            <li><span class="n t-sm">5</span><span><strong>Conversar:</strong> bandeja de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat.</span></li>
-            <li><span class="n t-sm">6</span><span><strong>Aprender:</strong> qué funciona; vuelve al pilar 1.</span></li>
+            <li><span class="n t-sm">1</span><span><strong>Mova te conoce:</strong> conectas tus redes y aprende cómo hablas, de qué hablas y qué te funciona.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Ideas y guiones desde tu marca personal:</strong> lo que construyes, tu historia, lo que sabes, tus opiniones y lo que te pregunta tu audiencia, convertidos en guiones con tu forma de hablar.</span></li>
+            <li><span class="n t-sm">3</span><span><strong>Solo grabar va fuera de Mova.</strong> Subes los vídeos y Mova los edita y les escribe el copy.</span></li>
+            <li><span class="n t-sm">4</span><span><strong>Tu banco de vídeos se publica solo</strong> en Instagram y TikTok, según tu plan.</span></li>
+            <li><span class="n t-sm">5</span><span><strong>Tu comunidad no se queda sin respuesta:</strong> comentarios atendidos y conversaciones que construyen confianza.</span></li>
+          </ol>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Los 6 pilares</h2><span class="badge t-2xs">Decididos</span></div>
+          <p class="prose">Forman un ciclo: lo que aprende el pilar 6 alimenta el pilar 1.</p>
+          <ol class="pillars">
+            <li><span class="n t-sm">1</span><span><strong>Conocer:</strong> tu marca personal: quién eres, cómo hablas, qué construyes, tu historia, lo que sabes, tus opiniones y tu contenido pasado.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Idear:</strong> ideas desde tu marca personal y lo que funciona, con guion en tu voz; Inspiración de tu nicho y tus referentes; plan semanal. <a href="#ideas">Ideas e Inspiración</a></span></li>
+            <li><span class="n t-sm">3</span><span><strong>Editar:</strong> subes tus vídeos y Mova los edita en cola, con tu estilo y tus indicaciones, y escribe el copy. <a href="#edicion">Edición automática</a></span></li>
+            <li><span class="n t-sm">4</span><span><strong>Publicar:</strong> banco de vídeos, calendario y publicación en Instagram y TikTok. <a href="#publicacion">Calendario y publicación</a></span></li>
+            <li><span class="n t-sm">5</span><span><strong>Conversar:</strong> bandeja de comentarios, respuestas en tu voz y automatizaciones tipo ManyChat (alguien comenta «INFO» y recibe un mensaje privado con tu enlace).</span></li>
+            <li><span class="n t-sm">6</span><span><strong>Aprender:</strong> qué vídeos traen alcance, confianza y conversaciones; vuelve al pilar 1. <a href="#metricas">Métricas</a></span></li>
           </ol>
           <figure class="fig">
             <svg viewBox="0 0 400 400" role="img" aria-label="Los seis pilares forman un ciclo alrededor de la memoria del founder; Aprender vuelve a Conocer.">
@@ -341,26 +430,21 @@
             </svg>
             <figcaption class="t-sm">Los seis pilares giran en ciclo. Cada uno lee de la memoria del founder y escribe en ella (líneas punteadas), y lo que se aprende en el pilar 6 vuelve al pilar 1.</figcaption>
           </figure>
+        </section>
 
+        <section>
+          <div class="section-head"><h2 class="t-xl">Principios</h2></div>
           <div class="sub">
-            <h3 class="t-lg">Inspiración <span class="note t-sm">(hay que hacerla; el método para obtener el contenido de las redes está por definir)</span></h3>
+            <h3 class="t-lg">Hecho para personas y para agentes</h3>
             <ul class="list">
-              <li>Mezcla dos fuentes en un mismo banco de ideas: <strong>ideas de fuera</strong> (competencia, referentes y tendencias del nicho) e <strong>ideas nuevas</strong> creadas con el agente desde tu negocio (el chat de ideas).</li>
-              <li>Feed estilo TikTok dentro de Mova con vídeos reales de Instagram y TikTok de tu nicho, tus referentes y las tendencias, recomendados según lo que haces.</li>
-              <li>Al tocar un vídeo se abre el reproductor y, al lado, un chat con ese vídeo como contexto para sacar ideas y guiones.</li>
-              <li>Métodos candidatos: Instagram Business Discovery API y Hashtag Search API (oficiales), oEmbed para reproducir vídeos, "Guardar en Mova" (extensión o compartir desde el móvil) y proveedores de terceros (riesgo por condiciones de uso). TikTok no tiene API oficial de descubrimiento para uso comercial: es el punto más difícil.</li>
+              <li><strong>Todo se puede hacer desde la interfaz o pidiéndoselo al agente.</strong> Son las mismas acciones: «calendarízame los últimos vídeos para esta semana» hace lo mismo que arrastrarlos al calendario. El agente puede ser el de Mova o el del founder por MCP (<a href="#ia">IA y agentes</a>).</li>
+              <li><strong>La interfaz humana no es secundaria:</strong> clara, rápida y agradable aunque nunca uses el chat.</li>
+              <li><strong>El agente siempre tiene contexto:</strong> está en todas las pantallas y sabe qué estás viendo.</li>
+              <li><strong>Proactivo, pero no decide por ti:</strong> te propone el plan de la semana, avisa si el banco se vacía, detecta dudas repetidas en los comentarios y te las propone como vídeo.</li>
+              <li><strong>Autonomía por niveles, la eliges tú:</strong> sugiere, prepara, ejecuta cuando lo apruebas, o automático solo con reglas que tú creaste.</li>
+              <li><strong>Transparente:</strong> todo queda registrado y se puede deshacer. Nunca publica ni responde nada que no hayas autorizado.</li>
             </ul>
-          </div>
-
-          <div class="sub">
-            <h3 class="t-lg">Principios</h3>
-            <ul class="list">
-              <li><strong>Hecho para personas y para agentes:</strong> el humano decide y el agente ejecuta. Todo se puede hacer desde la interfaz o pidiéndoselo al agente ("calendarízame los últimos vídeos para esta semana"). Autonomía por niveles: sugiere, prepara, ejecuta o automático.</li>
-              <li><strong>Agentes propios (MCP):</strong> el founder puede conectar su Claude o ChatGPT a Mova por MCP para ver vídeos, programar, leer métricas, guardar ideas y pedir ediciones. Su agente solo manda; la IA propia de Mova orquesta y ejecuta, también todo lo automático. Publicar siempre pide confirmación.</li>
-              <li><strong>Banco de vídeos:</strong> los vídeos listos entran en una cola que se vacía al publicar. Mova muestra cuántos días de contenido te quedan.</li>
-              <li><strong>Alto volumen y rapidez:</strong> 1 o 2 vídeos al día como mínimo; todo por lotes y el trabajo pesado en segundo plano.</li>
-            </ul>
-          <figure class="fig">
+            <figure class="fig">
             <svg viewBox="0 0 420 190" role="img" aria-label="La misma acción de calendarizar se puede lanzar desde la interfaz o pidiéndosela al agente en el chat.">
               <rect x="10" y="14" width="170" height="56" rx="8" class="svg-box"/>
               <text x="24" y="37" class="svg-text" font-size="13" font-weight="500">Interfaz</text>
@@ -379,7 +463,15 @@
             </svg>
             <figcaption class="t-sm">Hecho para personas y para agentes. Lo haces con la interfaz o se lo pides al agente, y el resultado es el mismo.</figcaption>
           </figure>
-          <figure class="fig">
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">El banco de vídeos</h3>
+            <ul class="list">
+              <li>Los vídeos editados y con copy entran en un <strong>banco</strong>, una cola de vídeos listos para publicar.</li>
+              <li>El calendario se llena desde el banco, a mano o con el agente, y el banco se vacía a medida que se publica.</li>
+              <li>Mova muestra siempre cuántos días de contenido te quedan y avisa antes de que se acabe.</li>
+            </ul>
+            <figure class="fig">
             <svg viewBox="0 0 420 170" role="img" aria-label="Los vídeos editados entran en el banco, se publican uno o dos al día y el banco se va vaciando.">
               <defs><clipPath id="belt-clip"><rect x="21" y="41" width="378" height="78" rx="7"/></clipPath></defs>
               <text x="20" y="28" class="svg-text svg-muted" font-size="12">Entran vídeos editados →</text>
@@ -394,217 +486,504 @@
             <figcaption class="t-sm">El banco de vídeos. Los vídeos listos esperan en cola, salen a medida que se publican y Mova te avisa antes de que el banco se vacíe.</figcaption>
           </figure>
           </div>
-        </section>
-
-        <section id="edicion">
-          <div class="section-head">
-            <h2 class="t-xl">Edición automática</h2>
-            <span class="badge t-2xs">Decidido</span>
-          </div>
-          <p class="lead">Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cada vídeo se edita <strong>con el contexto de los vídeos del founder</strong> y con <strong>sus indicaciones</strong>.</p>
           <div class="sub">
-            <h3 class="t-lg">Qué hace en la primera versión</h3>
+            <h3 class="t-lg">Alto volumen y rapidez</h3>
             <ul class="list">
-              <li>Corta silencios y tomas repetidas, usando el guion para quedarse con la mejor toma.</li>
-              <li>Limpia el audio: quita ruido y nivela el volumen.</li>
-              <li>Subtítulos animados y zooms suaves en momentos clave.</li>
-              <li>Música libre de derechos incluida en el vídeo: biblioteca propia de Mova, elegida según el tono y con volumen bajo mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.</li>
-              <li>Más adelante: b-roll (imágenes de apoyo encima de lo que dices).</li>
+              <li>Los founder creators publican uno o dos vídeos al día como mínimo. Mova aguanta ese ritmo sin fricción.</li>
+              <li>Todo por lotes: subir 10 vídeos de golpe, editarlos en cola, generar sus copys y programar la semana en una acción.</li>
+              <li>La interfaz responde al instante y el trabajo pesado va en segundo plano.</li>
             </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Editado con contexto</h3>
-            <ul class="list">
-              <li><strong>Estilo del founder:</strong> Mova aprende de sus vídeos cómo edita (ritmo de cortes, estilo de subtítulos, zooms, tipo de música y duración) y qué estilo le da mejores métricas. Los vídeos nuevos siguen ese estilo.</li>
-              <li><strong>Memoria del founder:</strong> usa el guion, su tono y las fichas de sus vídeos anteriores, por ejemplo para no repetir la misma música varios días seguidos.</li>
-              <li><strong>Indicaciones (prompt):</strong> el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat o desde su propio agente por MCP.</li>
-              <li><strong>Un solo orquestador, el de Mova:</strong> la IA propia de Mova siempre arma el plan de edición y el worker lo ejecuta. Las órdenes llegan por tres caminos: automático (estilo guardado), el founder en Mova o su agente por MCP. El agente externo solo manda; el de Mova hace.</li>
-              <li><strong>Prioridad:</strong> primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Estilo de subtítulos</h3>
-            <ul class="list">
-              <li><strong>Por defecto: solo subtítulos.</strong> Geist SemiBold en blanco, a la altura del pecho, líneas de 2 a 4 palabras en las que cada palabra aparece justo cuando empieza a decirse, sin rebotes ni colores, con una sombra difusa solo para que se lea. Acompaña, no roba protagonismo. Nada más.</li>
-              <li><strong>Edición más desarrollada:</strong> Mova la aplica si la ve en el perfil del founder (su estilo aprendido) o si la pide con un prompt. Por ejemplo: "empieza con un hook de b-roll y música de suspenso, después salgo yo hablando a cámara y al final un fragmento de una película". Claude arma el plan de edición y el worker lo monta con el material que el founder suba (b-roll, clips) y la biblioteca de música. Los fragmentos de películas tienen derechos de autor: Instagram puede silenciarlos o bloquear el vídeo.</li>
-              <li><strong>Tipografías de cada marca:</strong> en el onboarding, Claude analiza los vídeos del founder y define su estilo de subtítulos (tipografía, peso, tamaño, posición, color, mayúsculas y palabras a la vez). Elige la tipografía más parecida de <strong>Google Fonts</strong> (~1.800, uso comercial gratis) y el worker la descarga la primera vez. No se descargan tipografías de otros sitios: muchas son de pago.</li>
-              <li>El estilo queda guardado en su marca. El founder puede cambiarlo o subir su propia tipografía si tiene la licencia.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Visión: vídeo de referencia</h3>
-            <p class="prose">Estilo al que queremos llegar (vídeo de un founder, 35 s):</p>
-            <ul class="list">
-              <li><strong>Estilo más común de los founders (referencia 2):</strong> cámara frontal en casa, título arriba al empezar, subtítulos a la altura del pecho y cortes con zoom. Sirve para entender cómo graban la mayoría; no es el estilo por defecto.</li>
-              <li><strong>Gancho (primeros ~8 s):</strong> montaje con planos de apoyo cortados cada ~1 s, color oscuro y cinematográfico, textura de grano y líneas. Texto grande en el centro, palabra a palabra, mezclando una sans en negrita con una <strong>serif cursiva ligera</strong> para la palabra clave ("is very <em>important</em>", "cashflow <em>management</em>").</li>
-              <li><strong>Cuerpo:</strong> entrevista con varios planos (primer plano y plano general), color natural. Subtítulos pequeños en sans regular blanca, de 3 a 5 palabras, a veces con una caja oscura translúcida detrás.</li>
-              <li><strong>Qué puede hacer Mova:</strong> gancho tipográfico con palabra clave destacada (Claude elige cuál, Remotion lo anima), gradación de color y grano, subtítulos pequeños con caja opcional, y simular varios planos con una sola cámara (zoom de encuadre en cada corte). Música.</li>
-              <li><strong>Qué depende de la grabación:</strong> los planos de apoyo (b-roll) y los planos reales de varias cámaras necesitan que el founder grabe ese material. Mova puede pedirlo en el guion ("graba 3 planos de ti trabajando") y montarlo solo.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Cómo funciona</h3>
-            <ol class="pillars">
-              <li><span class="n t-sm">1</span><span><strong>Whisper</strong> transcribe con marcas de tiempo por palabra.</span></li>
-              <li><span class="n t-sm">2</span><span><strong>Claude</strong> decide los cortes y el plan de edición, con el contexto y las indicaciones.</span></li>
-              <li><span class="n t-sm">3</span><span><strong>ffmpeg</strong> corta el vídeo (el trabajo pesado, rápido y barato) y <strong>DeepFilterNet</strong> limpia el audio: quita el ruido y realza la voz.</span></li>
-              <li><span class="n t-sm">4</span><span><strong>Remotion</strong> añade los subtítulos animados, los zooms, los efectos y la música.</span></li>
-            </ol>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Dónde corre</h3>
-            <ul class="list">
-              <li>Por ahora en el computador del equipo (Windows, 16 GB de RAM, 512 GB de disco), como un programa (worker) que revisa una cola en Supabase.</li>
-              <li>El computador no queda expuesto a internet: el worker sale a buscar trabajo y no recibe conexiones.</li>
-              <li>Si el computador está apagado, los vídeos esperan en la cola.</li>
-              <li>Cuando haya clientes, el mismo worker pasa a un servidor en la nube sin reescribirlo.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Tiempos de edición</h3>
-            <p class="prose">Medido en el PC del equipo (Windows, procesador sin tarjeta gráfica dedicada): un vídeo de 21 s tardó 44-47 s. <strong>La edición tarda unas 2 veces lo que dura el vídeo</strong>, más el tiempo de subida.</p>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Vídeo</th><th>Tiempo de edición aprox.</th></tr></thead>
-              <tbody>
-                <tr><td>30 s</td><td class="num">~1 min</td></tr>
-                <tr><td>60 s</td><td class="num">~2 min</td></tr>
-                <tr><td>90 s</td><td class="num">~3 min</td></tr>
-                <tr><td>Lote de 10 vídeos de 45 s (se editan uno detrás de otro)</td><td class="num">~15 min</td></tr>
-              </tbody>
-            </table></div>
-            <ul class="list">
-              <li>Es una medida con un vídeo de WhatsApp (baja resolución). Un original del móvil en 1080p tardará algo más, y en 4K bastante más: conviene grabar en 1080p.</li>
-              <li>Cuando se sumen Remotion (efectos) y Claude (plan de edición), el tiempo subirá un poco.</li>
-              <li>En un servidor en la nube con más núcleos, o con varios workers a la vez, baja a ~1 vez la duración o menos.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Almacenamiento: Cloudflare R2</h3>
-            <ul class="list">
-              <li>10 GB gratis; después, ~$0,015 por GB al mes y sin costo por descargas.</li>
-              <li>Da el enlace público que Instagram necesita para publicar.</li>
-              <li>Ciclo de cada vídeo: el original se borra al editarlo, el editado vive en el banco y, al publicarse en Instagram, se borra de Mova.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Ficha de cada vídeo</h3>
-            <p class="prose">Antes de borrar el vídeo, Mova guarda su ficha en la memoria del founder. Es solo texto:</p>
-            <ul class="list">
-              <li><strong>Lo que dice:</strong> transcripción, temas, gancho y llamada a la acción.</li>
-              <li><strong>Lo que se ve:</strong> Claude mira unos fotogramas y anota ropa, lugar, encuadre, luz y si sale alguien más (~1 céntimo por vídeo).</li>
-              <li><strong>Cómo se editó:</strong> estilo, música e indicaciones usadas.</li>
-              <li><strong>Cómo rindió:</strong> las métricas de Instagram.</li>
-            </ul>
-            <p class="prose">Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual y la edición con las métricas ("tus vídeos en exteriores tienen el doble de vistas") y encontrar vídeos pasados ("¿en qué vídeo hablé de mi primera venta?").</p>
           </div>
         </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
 
-        <section id="costos">
-          <div class="section-head">
-            <h2 class="t-xl">Costos</h2>
-            <span class="badge t-2xs">Estimación</span>
-          </div>
-          <p class="lead">Estimación para una usuaria (Evelyn) con Instagram. La IA es <strong>Claude Sonnet 5</strong>: $2 por millón de tokens de entrada y $10 por millón de salida (precio oficial de Anthropic). Los tokens están estimados a partir del texto real que envía Mova.</p>
-          <div class="sub">
-            <h3 class="t-lg">Costo por cliente <span class="note t-sm">(la base para fijar el precio)</span></h3>
-            <p class="callout"><strong>~$1,50 a $2,10 por cliente al mes</strong> a 1 vídeo al día, más <strong>$45 al mes fijos</strong> para toda la plataforma. La edición automática cuesta $0 mientras corra en el computador del equipo.</p>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Concepto</th><th>Costo al mes</th></tr></thead>
-              <tbody>
-                <tr><td>Por cliente · IA a 1 vídeo al día</td><td class="num">~$1,50 a $2,10</td></tr>
-                <tr><td>Por cliente · IA a 2 vídeos al día</td><td class="num">~$3 a $4,20</td></tr>
-                <tr><td>Fijos · Vercel Pro + Supabase Pro, sin importar cuántos clientes haya</td><td class="num">$45</td></tr>
-              </tbody>
-            </table></div>
-            <ul class="list">
-              <li><strong>Edición automática:</strong> $0 mientras corra en el computador del equipo. La ficha visual de cada vídeo suma ~$0,30 por cliente al mes. En un servidor en la nube, sumar ~$20 a $40 al mes fijos.</li>
-            </ul>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">IA por acción</h3>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Acción</th><th>Coste aprox.</th></tr></thead>
-              <tbody>
-                <tr><td>Mensaje en el chat de ideas (con el historial reciente)</td><td class="num">~2 céntimos</td></tr>
-                <tr><td>Copy de un vídeo</td><td class="num">~1 céntimo</td></tr>
-                <tr><td>Análisis del perfil (últimos 20 vídeos)</td><td class="num">~6 céntimos</td></tr>
-                <tr class="total"><td>Por vídeo publicado (2 mensajes de ideas + 2 copys)</td><td class="num">~5 a 7 céntimos</td></tr>
-              </tbody>
-            </table></div>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">IA al mes</h3>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Ritmo</th><th>Coste al mes</th></tr></thead>
-              <tbody>
-                <tr><td>3 vídeos por semana (~12 al mes)</td><td class="num">~$0,70</td></tr>
-                <tr><td>1 vídeo al día (~30 al mes)</td><td class="num">~$1,50 a $2,10</td></tr>
-                <tr><td>2 vídeos al día (~60 al mes)</td><td class="num">~$3 a $4,20</td></tr>
-              </tbody>
-            </table></div>
-            <p class="prose">Una recarga de $5 da para unos 3 meses a 1 vídeo al día. Conviene poner un límite de gasto mensual en la consola de Anthropic.</p>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Otros servicios</h3>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Servicio</th><th>Coste</th></tr></thead>
-              <tbody>
-                <tr><td>API de Instagram (Meta): conexión, métricas y publicación</td><td class="num">Gratis</td></tr>
-                <tr><td>Vercel (la web). El plan gratuito es solo para uso no comercial</td><td class="num">Gratis · Pro $20/mes con clientes</td></tr>
-                <tr><td>Supabase (base de datos y archivos). Gratis hasta 500 MB de datos y 1 GB de archivos</td><td class="num">Gratis · Pro $25/mes al subir vídeos</td></tr>
-                <tr><td>Transcripción: whisper.cpp en el worker (modelo small, español). Groq queda como opción si hace falta más precisión o velocidad</td><td class="num">$0 · Groq &lt;1 céntimo por vídeo</td></tr>
-                <tr><td>Renderizado (edición automática): el worker con ffmpeg y Remotion. Remotion es gratis para equipos de hasta 3 personas</td><td class="num">$0 en el PC del equipo · ~$20 a $40/mes en un servidor en la nube</td></tr>
-              </tbody>
-            </table></div>
-          </div>
-          <div class="sub">
-            <h3 class="t-lg">Total al mes</h3>
-            <div class="table-wrap"><table class="costs t-sm">
-              <thead><tr><th>Escenario (1 vídeo al día por usuario)</th><th>Total al mes</th></tr></thead>
-              <tbody>
-                <tr><td>Prueba con Evelyn: servicios gratis + IA ~$2</td><td class="num">~$2</td></tr>
-                <tr><td>10 clientes: servicios $45 + IA $15 a $21</td><td class="num">~$60 a $66</td></tr>
-                <tr><td>50 clientes: servicios $45 + IA $75 a $105</td><td class="num">~$120 a $150</td></tr>
-              </tbody>
-            </table></div>
-            <p class="prose">Servicios = Vercel Pro ($20) + Supabase Pro ($25). Con muchos vídeos subidos, Supabase puede cobrar almacenamiento extra. El renderizado es $0 mientras el worker corra en el PC del equipo; al pasarlo a un servidor en la nube, sumar ~$20 a $40 al mes fijos.</p>
-          </div>
+      <!-- ============ IDEAS ============ -->
+      <article class="doc" data-page="ideas" data-title="Ideas e Inspiración" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Ideas e Inspiración</h1><p class="tagline t-lg">El pilar Idear: ideas nuevas desde tu marca personal e ideas de fuera, en un mismo banco de ideas que va a guion.</p></div>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Chat de ideas</h2><span class="st done">Hecho</span></div>
           <ul class="list">
-            <li>Precios a septiembre de 2026. Los de Vercel y Supabase hay que confirmarlos en sus webs antes de pagar.</li>
+            <li>Chat con la IA de Mova (Claude Sonnet 5) que conoce tu marca y propone ideas concretas, fáciles de grabar con el móvil, con gancho y guion breve.</li>
+            <li>Cada idea se guarda con un clic y pasa a <strong>Guardadas</strong>, con su estado.</li>
+            <li>Equilibra los tres objetivos del founder: distribuir su oferta, generar confianza y documentar su proceso. La oferta aparece con naturalidad, sin sonar a anuncio.</li>
           </ul>
         </section>
 
-        <section id="descripcion">
-          <div class="section-head"><h2 class="t-xl">Descripción</h2></div>
-          <p class="prose">Mova es una plataforma todo en uno para creadores de contenido en redes sociales. Reúne en un solo lugar todo el proceso de trabajo de un creador: encontrar ideas, crear el contenido, editarlo, programarlo, publicarlo y medir sus resultados. La plataforma analiza el nicho del creador y a su competencia para mostrarle qué está funcionando y darle ideas de contenido relevantes. Con inteligencia artificial, genera ideas y copys, y edita los videos siguiendo el estilo de marca del creador. Los videos se pueden dejar editándose en cola, sin tener que procesarlos uno por uno. Con el calendario, el creador programa sus publicaciones y la plataforma las sube automáticamente a sus redes, con la descripción y los hashtags que se añaden ahí mismo. Además, muestra las métricas del contenido publicado, para saber qué funciona y qué no. El objetivo es que el creador deje de saltar entre varias herramientas y gestione todo su contenido, de la idea a la publicación, desde un solo sitio.</p>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Guiones</h2><span class="st open">Pendiente</span></div>
+          <p class="prose">Guion completo en la voz del founder a partir de una idea, editable. Entra con la IA del MVP.</p>
         </section>
 
-        <section id="idea-original">
+        <section>
+          <div class="section-head"><h2 class="t-xl">Inspiración</h2><span class="st doing">Diseño hecho</span></div>
+          <p class="lead">Mezcla dos fuentes en el mismo banco de ideas: <strong>ideas de fuera</strong> (competencia, referentes y tendencias del nicho) e <strong>ideas nuevas</strong> creadas con el agente desde tu marca personal.</p>
+          <div class="sub">
+            <h3 class="t-lg">Cómo se ve</h3>
+            <ul class="list">
+              <li><strong>En el computador:</strong> Inspiración y el chat van en la misma página. Una rejilla de vídeos (se reproducen en silencio al pasar el ratón) con el chat abajo. Al abrir un vídeo se ve en un visor estilo TikTok, se pasa con la rueda, las flechas o el teclado, y el chat toma como contexto el vídeo que estás viendo.</li>
+              <li><strong>En el móvil:</strong> tres pestañas, Chat, Inspiración y Guardadas. Inspiración es el visor a pantalla completa con el chat abajo.</li>
+              <li>El chat ofrece «¿Por qué funciona?», «Adáptalo a mi marca» y «Dame el guion en mi voz». El agente recibe el texto, la cuenta y las cifras del vídeo; no ve el vídeo en sí.</li>
+              <li>Las ideas que salen de ahí se guardan como cualquier otra. En el chat, esas preguntas llevan la etiqueta «Sobre el vídeo de @cuenta».</li>
+              <li>Hoy funciona con <strong>datos de prueba</strong> (vídeos de Mixkit, cuentas y cifras inventadas).</li>
+            </ul>
+          </div>
+          <div class="sub">
+            <h3 class="t-lg">De dónde salen los vídeos <span class="st open">Por decidir</span></h3>
+            <div class="table-wrap"><table class="costs t-sm">
+              <thead><tr><th>Método</th><th>Qué da</th><th>Estado legal</th></tr></thead>
+              <tbody>
+                <tr><td>Instagram Business Discovery API</td><td>Publicaciones y métricas públicas de otras cuentas profesionales. No funciona con nuestro login de Instagram actual: necesitaría Facebook Login</td><td>Oficial. Requiere aprobación de Meta</td></tr>
+                <tr><td>Instagram Hashtag Search API</td><td>Publicaciones más populares y recientes de un hashtag. 30 hashtags por semana</td><td>Oficial. Requiere aprobación de Meta</td></tr>
+                <tr><td>Enlaces y referentes del founder</td><td>Pegas o compartes enlaces de vídeos y Mova los muestra con el reproductor oficial (embed)</td><td>Oficial</td></tr>
+                <tr><td>«Guardar en Mova»</td><td>Extensión o compartir desde el móvil; Mova los analiza y recomienda</td><td>Oficial. Lo aporta el usuario</td></tr>
+                <tr><td>Proveedores de terceros</td><td>Feed automático de TikTok e Instagram del nicho</td><td>Scraping: va contra las condiciones. Solo si se asume el riesgo</td></tr>
+              </tbody>
+            </table></div>
+            <p class="prose">TikTok no tiene API oficial de descubrimiento para uso comercial (la Research API es solo académica). Es el punto más difícil.</p>
+          </div>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ EDICIÓN ============ -->
+      <article class="doc" data-page="edicion" data-title="Edición automática" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Edición automática</h1><p class="tagline t-lg">Cada vídeo se edita en cola, con el contexto de los vídeos del founder y con sus indicaciones. Se empezó de cero: Scribe se hizo con ffmpeg y no funcionó bien.</p></div>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Qué está hecho y qué falta</h2></div>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Parte</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td>Transcripción con Whisper (whisper.cpp local, modelo small, español) y diccionario de palabras de la marca</td><td><span class="st done">Hecho</span></td></tr>
+              <tr><td>Limpieza de audio con DeepFilterNet, a la vez que transcribe</td><td><span class="st done">Hecho</span></td></tr>
+              <tr><td>Cortar silencios con ffmpeg, ajustando los tiempos de Whisper a los silencios reales</td><td><span class="st done">Hecho</span></td></tr>
+              <tr><td>Subtítulos palabra a palabra quemados en el vídeo, y corrección de subtítulos desde Mova</td><td><span class="st done">Hecho</span></td></tr>
+              <tr><td>Zoom alterno entre planos y título, solo si se piden</td><td><span class="st done">Hecho</span></td></tr>
+              <tr><td>Música libre de derechos</td><td><span class="st doing">Siguiente</span></td></tr>
+              <tr><td>Efectos con Remotion: títulos, zooms y recursos visuales</td><td><span class="st doing">Siguiente</span></td></tr>
+              <tr><td>Plan de edición con Claude: cortes, tomas repetidas, indicaciones y estilo aprendido</td><td><span class="st doing">Siguiente</span></td></tr>
+              <tr><td>B-roll (imágenes de apoyo)</td><td><span class="st open">Después del MVP</span></td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Qué hace</h2><span class="badge t-2xs">Decidido</span></div>
+          <ul class="list">
+            <li>Corta silencios y tomas repetidas, usando el guion para quedarse con la mejor toma.</li>
+            <li>Limpia el audio: quita ruido y nivela el volumen.</li>
+            <li>Subtítulos animados y zooms suaves en momentos clave.</li>
+            <li>Música libre de derechos incluida en el vídeo: biblioteca propia de Mova, elegida según el tono y con volumen bajo mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Editado con contexto</h2></div>
+          <ul class="list">
+            <li><strong>Estilo del founder:</strong> Mova aprende de sus vídeos cómo edita (ritmo de cortes, subtítulos, zooms, música y duración) y qué estilo le da mejores métricas. Los vídeos nuevos siguen ese estilo.</li>
+            <li><strong>Memoria del founder:</strong> usa el guion, su tono y las fichas de sus vídeos anteriores, por ejemplo para no repetir la misma música varios días seguidos.</li>
+            <li><strong>Indicaciones:</strong> el founder escribe cómo quiere la edición, para un vídeo, un lote o como preferencia fija («más dinámico», «música tranquila», «sin zooms»), en Mova o desde su propio agente por MCP.</li>
+            <li><strong>Un solo orquestador, el de Mova:</strong> la IA propia de Mova arma siempre el plan de edición y el worker lo ejecuta. Las órdenes llegan por tres caminos: automático (estilo guardado), el founder en Mova o su agente por MCP. El agente externo solo manda; el de Mova hace.</li>
+            <li><strong>Prioridad:</strong> primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Estilo de subtítulos</h2></div>
+          <ul class="list">
+            <li><strong>Por defecto, solo subtítulos:</strong> Geist SemiBold en blanco, a la altura del pecho, líneas de 2 a 4 palabras; cada palabra aparece cuando empieza a decirse, sin rebotes ni colores, con una sombra difusa solo para que se lea.</li>
+            <li><strong>Edición más desarrollada:</strong> se aplica si está en el estilo del founder o si la pide. Por ejemplo: «empieza con un hook de b-roll y música de suspenso, después salgo yo hablando a cámara». Claude arma el plan y el worker lo monta con el material que el founder suba. Los fragmentos de películas tienen derechos de autor: Instagram puede silenciarlos o bloquear el vídeo.</li>
+            <li><strong>Tipografía de cada marca:</strong> en el onboarding, Claude analiza los vídeos del founder y define su estilo de subtítulos. Elige la tipografía más parecida de Google Fonts (~1.800, uso comercial gratis). No se descargan tipografías de otros sitios. El founder puede cambiarla o subir la suya si tiene licencia.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Visión: vídeo de referencia</h2></div>
+          <ul class="list">
+            <li><strong>Lo más común entre founders:</strong> cámara frontal en casa, título arriba al empezar, subtítulos a la altura del pecho y cortes con zoom. Sirve para entender cómo graban; no es el estilo por defecto.</li>
+            <li><strong>Gancho (primeros ~8 s) de la referencia:</strong> planos de apoyo cortados cada ~1 s, color oscuro y cinematográfico, grano; texto grande en el centro palabra a palabra, con una serif cursiva ligera para la palabra clave.</li>
+            <li><strong>Cuerpo:</strong> varios planos, color natural, subtítulos pequeños de 3 a 5 palabras, a veces con caja translúcida.</li>
+            <li><strong>Qué puede hacer Mova:</strong> gancho tipográfico con palabra clave (Claude la elige, Remotion la anima), color y grano, subtítulos con caja opcional y simular varios planos con una sola cámara.</li>
+            <li><strong>Qué depende de la grabación:</strong> el b-roll y los planos de varias cámaras. Mova puede pedirlos en el guion («graba 3 planos de ti trabajando») y montarlos solo.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Cómo funciona</h2></div>
+          <ol class="pillars">
+            <li><span class="n t-sm">1</span><span><strong>Whisper</strong> transcribe con marcas de tiempo por palabra, en local.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Claude</strong> decide los cortes y el plan de edición con el contexto y las indicaciones. <span class="st doing">Siguiente</span></span></li>
+            <li><span class="n t-sm">3</span><span><strong>ffmpeg</strong> corta el vídeo y <strong>DeepFilterNet</strong> limpia la voz.</span></li>
+            <li><span class="n t-sm">4</span><span><strong>Remotion</strong> añade subtítulos animados, zooms, efectos y música. Hoy los subtítulos los pone ffmpeg. <span class="st doing">Siguiente</span></span></li>
+          </ol>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Dónde corre</h2></div>
+          <ul class="list">
+            <li>En el computador del equipo (Windows, 16 GB de RAM), como un programa (worker) que revisa una cola en Supabase. También publica los vídeos programados.</li>
+            <li>El computador no queda expuesto a internet: el worker sale a buscar trabajo y no recibe conexiones. Si está apagado, los vídeos esperan en la cola.</li>
+            <li>Para el MVP, el mismo worker pasa a un servidor en la nube sin reescribirlo.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Tiempos de edición</h2></div>
+          <p class="prose">Medido en el PC del equipo, sin tarjeta gráfica: un vídeo de 21 s tardó 44-47 s. <strong>La edición tarda unas 2 veces lo que dura el vídeo</strong>, más la subida.</p>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Vídeo</th><th>Tiempo aprox.</th></tr></thead>
+            <tbody>
+              <tr><td>30 s</td><td class="num">~1 min</td></tr>
+              <tr><td>60 s</td><td class="num">~2 min</td></tr>
+              <tr><td>90 s</td><td class="num">~3 min</td></tr>
+              <tr><td>Lote de 10 vídeos de 45 s, uno detrás de otro</td><td class="num">~15 min</td></tr>
+            </tbody>
+          </table></div>
+          <ul class="list">
+            <li>Medido con un vídeo de WhatsApp. En 1080p tarda algo más y en 4K bastante más: conviene grabar en 1080p.</li>
+            <li>Con Remotion y el plan de Claude subirá un poco. En la nube, con más núcleos o varios workers, baja a ~1 vez la duración.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Almacenamiento: Cloudflare R2</h2></div>
+          <ul class="list">
+            <li>10 GB gratis; después ~$0,015 por GB al mes, sin costo por descargas.</li>
+            <li>Da el enlace que Instagram y TikTok necesitan para publicar.</li>
+            <li>Ciclo de cada vídeo: el original se borra al editarlo, el editado vive en el banco y, cuando se publica en sus redes, se borra de Mova.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Ficha de cada vídeo</h2></div>
+          <p class="prose">Antes de borrar el vídeo, Mova guarda su ficha en la memoria del founder. Es solo texto:</p>
+          <ul class="list">
+            <li><strong>Lo que dice:</strong> transcripción, temas, gancho y llamada a la acción.</li>
+            <li><strong>Lo que se ve:</strong> Claude mira unos fotogramas y anota ropa, lugar, encuadre, luz y si sale alguien más (~1 céntimo por vídeo).</li>
+            <li><strong>Cómo se editó:</strong> estilo, música e indicaciones.</li>
+            <li><strong>Cómo rindió:</strong> las métricas de Instagram y TikTok.</li>
+          </ul>
+          <p class="prose">Con la ficha, el agente avisa si repites ropa o lugar, cruza lo visual con las métricas («tus vídeos en exteriores tienen el doble de vistas») y encuentra vídeos pasados.</p>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ PUBLICACIÓN ============ -->
+      <article class="doc" data-page="publicacion" data-title="Calendario y publicación" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Calendario y publicación</h1><p class="tagline t-lg">El banco se reparte en el calendario y el worker publica cada vídeo a su hora en Instagram y TikTok.</p></div>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Calendario</h2><span class="st done">Hecho</span></div>
+          <p class="prose">Copia lo que funciona en Later, Buffer, Metricool y Postiz, con componentes propios y el estilo de Mova. Sin librerías de calendario.</p>
+          <ul class="list">
+            <li><strong>Semana:</strong> una fila por hora y una columna por día. Cada fila crece con sus tarjetas: hora, vídeo, hashtags, nombre y descripción, y las redes en círculos. Las horas vacías quedan bajas y la línea roja marca la hora actual.</li>
+            <li><strong>Mes:</strong> una celda por día con los vídeos en filas compactas; si hay más de 4, «N más».</li>
+            <li><strong>Banco flotante</strong> abajo a la derecha, con los días de contenido que quedan.</li>
+            <li><strong>Arrastrar:</strong> del banco a una hora (queda en punto) o a un día (primera hora libre según tus horas de publicación); entre huecos manteniendo la hora o los minutos; y de vuelta al banco.</li>
+            <li>En cada hueco libre aparece un <strong>+</strong> para elegir un vídeo del banco. La hora de cada vídeo se cambia con un clic.</li>
+            <li>Lo pasado sale en gris y no acepta vídeos.</li>
+            <li><strong>Ajustes:</strong> vídeos al día (1 a 3) y horas de publicación.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Publicación</h2><span class="st doing">Falta probar con cuentas reales</span></div>
+          <ul class="list">
+            <li>El worker revisa cada 30 s los vídeos que toca publicar y los sube a cada red elegida.</li>
+            <li><strong>Instagram:</strong> Reels por la API oficial.</li>
+            <li><strong>TikTok:</strong> publicación directa por la API oficial. TikTok exige elegir antes quién puede verlo (sin valor por defecto), si se permiten comentarios, dúo y stitch, y marcar el contenido comercial; y mostrar su confirmación de uso de música. Está en «Descripción y redes» de cada vídeo.</li>
+            <li>Mientras TikTok no apruebe la app, solo se puede publicar en privado.</li>
+            <li>Cuando un vídeo sale en todas sus redes queda como publicado. Si falla, vuelve al banco con el motivo.</li>
+            <li>La descripción y los hashtags se escriben en el mismo vídeo; con la IA del MVP se generarán solos.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ MÉTRICAS ============ -->
+      <article class="doc" data-page="metricas" data-title="Métricas" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Métricas</h1><p class="tagline t-lg">El pilar Aprender: qué vídeos traen alcance y qué te funciona.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Cómo funciona</h2><span class="st done">Hecho</span></div>
+          <ul class="list">
+            <li><strong>Instagram y TikTok juntas</strong> en una sola lista. Un vídeo publicado en las dos redes sale una vez, con los resultados de cada red.</li>
+            <li><strong>Resumen</strong> arriba con 6 cifras, por periodo: 7 días, 1 mes, 3 meses o 1 año. El resumen sigue el filtro de redes.</li>
+            <li>En la lista de vídeos, <strong>filtro</strong> por red y <strong>orden</strong> (recientes, más vistos y otros). Al ordenar se ordena todo el historial, no solo la página.</li>
+            <li>Paginación con flechas y números. Los datos se guardan 10 minutos para que la página cargue rápido.</li>
+          </ul>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Más adelante</h2></div>
+          <ul class="list">
+            <li>Que las métricas vuelvan a la memoria del founder y a la ficha de cada vídeo, para cruzarlas con el estilo y el contenido.</li>
+            <li>Una pantalla para ver todos los vídeos con una misma etiqueta.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ IA ============ -->
+      <article class="doc" data-page="ia" data-title="IA y agentes" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">IA y agentes</h1><p class="tagline t-lg">La IA de Mova orquesta y ejecuta. El agente propio del founder puede conectarse por MCP para mandar.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">IA propia de Mova</h2><span class="badge t-2xs">Decidido</span></div>
+          <ul class="list">
+            <li>Modelo: <strong>Claude Sonnet 5</strong> (Anthropic).</li>
+            <li>Hoy se usa en el chat de ideas y en el análisis del perfil a partir de los vídeos de Instagram.</li>
+            <li>En el MVP orquesta todo: ideas y guiones, copys, títulos, perfil de marca y el plan de edición.</li>
+            <li>Es necesaria porque lo automático pasa en segundo plano, sin ninguna conversación abierta.</li>
+          </ul>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Agente propio del founder (MCP)</h2><span class="badge t-2xs">Decidido</span></div>
+          <ul class="list">
+            <li>Mova vende la infraestructura ya hecha; el founder puede conectar su Claude, ChatGPT u otro agente por MCP. Es un canal más: no reemplaza la IA de Mova.</li>
+            <li><strong>Su agente solo manda, el de Mova hace.</strong> Puede ver vídeos y el banco, programar y desprogramar, leer métricas, crear y guardar ideas y guiones, leer la marca, pedir una edición con indicaciones (la ejecuta el orquestador de Mova) y publicar con confirmación.</li>
+            <li><strong>Por qué no solo MCP:</strong> muchos creadores no van a conectar un agente; ChatGPT solo permite escribir por MCP en planes Business y Enterprise; y la calidad no puede depender del agente de cada uno. El ahorro sería pequeño: el chat cuesta 1 o 2 céntimos por mensaje.</li>
+            <li><strong>Seguridad:</strong> OAuth y permisos por acción, confirmación antes de publicar y defensa contra instrucciones escondidas en contenido ajeno, como la descripción de un vídeo de Inspiración.</li>
+          </ul>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Precio</h2><span class="st open">Por decidir</span></div>
+          <p class="prose">Suscripción por la infraestructura, con la IA de Mova incluida hasta un límite. Falta fijar el precio y el límite.</p>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ DISEÑO ============ -->
+      <article class="doc" data-page="diseno" data-title="Diseño" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Diseño</h1><p class="tagline t-lg">Cómo se ve y se siente Mova. El detalle técnico vive en DESIGN.md del repositorio.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Principios</h2><span class="badge t-2xs">Decidido</span></div>
+          <ul class="list">
+            <li><strong>Monocromo, estilo Linear:</strong> grises con tokens, Geist en 400 y 500, tema claro y oscuro.</li>
+            <li><strong>Menús de cristal</strong> con las mismas clases en todos (tres puntos, banco del calendario, selectores). Solo cambia el fondo que tienen detrás.</li>
+            <li><strong>Nada nativo del navegador:</strong> casillas, selectores, interruptores, horas, avisos y tooltips son componentes propios con el estilo de Mova. Lo nativo se ve amateur.</li>
+            <li><strong>Escritorio primero,</strong> y que funcione en el móvil.</li>
+            <li><strong>Barra lateral contraíble</strong> a solo iconos, sin cambiar los espacios entre enlaces.</li>
+            <li><strong>Esqueletos de carga</strong> con la misma forma que la pantalla final.</li>
+            <li><strong>No reinventar la rueda:</strong> se copia lo que funciona en las herramientas líderes y se adapta al estilo de Mova.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ REGLAS ============ -->
+      <article class="doc" data-page="reglas" data-title="Reglas de plataforma" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Reglas de plataforma</h1><p class="tagline t-lg">Mova es un producto comercial: solo usa vías oficiales.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Cuentas propias</h2></div>
+          <ul class="list">
+            <li>Cada usuario conecta sus cuentas con OAuth.</li>
+            <li><strong>Instagram:</strong> requiere cuenta profesional y la revisión de la app por Meta.</li>
+            <li><strong>TikTok:</strong> Login Kit, datos de la cuenta y publicación directa. Hasta que TikTok audite la app, solo publica en privado. La auditoría pide un vídeo de demostración real.</li>
+            <li>Mientras tanto, las dos funcionan en modo desarrollo con cuentas de prueba. La cuenta de TikTok de Evelyn ya está conectada y sus métricas funcionan.</li>
+            <li>Mova tiene páginas públicas de términos y privacidad, que piden las dos plataformas.</li>
+          </ul>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Pruebas con usuarios</h2><span class="badge t-2xs">Decidido</span></div>
+          <p class="prose">El usuario final no va a cambiar nada en su cuenta (por ejemplo, ponerla privada). Por eso no se prueba con usuarios hasta que las apps de Meta y TikTok estén aprobadas. Primero se termina el MVP.</p>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Comentarios y contenido ajeno</h2></div>
+          <ul class="list">
+            <li>Instagram permite, por su API, responder comentarios y mandar un mensaje privado a quien comenta, como ManyChat. En TikTok las opciones oficiales son más limitadas.</li>
+            <li>El contenido de otras cuentas no se extrae con scraping. Solo vías oficiales o enlaces que aporte el usuario.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ MVP ============ -->
+      <article class="doc" data-page="mvp" data-title="MVP y hoja de ruta" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">MVP y hoja de ruta</h1><p class="tagline t-lg">Primero se termina el producto mínimo; después, las conexiones reales y las pruebas con usuarios.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Hecho</h2></div>
+          <ul class="list">
+            <li><span class="st done">Hecho</span> Base: web, login con Google y correo, sistema de diseño y Mi marca.</li>
+            <li><span class="st done">Hecho</span> Mi marca automática: conectar Instagram y TikTok y crear el perfil a partir de los vídeos de Instagram.</li>
+            <li><span class="st done">Hecho</span> Ideas: chat con IA, ideas guardables con guion breve.</li>
+            <li><span class="st done">Hecho</span> Vídeos: subida por lotes, edición automática (audio, silencios, subtítulos), corrección de subtítulos, nombre, menú y lightbox.</li>
+            <li><span class="st done">Hecho</span> Calendario: semana por horas y mes, banco, arrastrar, cambiar la hora, lo pasado en gris y ajustes.</li>
+            <li><span class="st done">Hecho</span> Publicación en Instagram y TikTok desde el worker, con los ajustes que exige TikTok. Falta probarla con cuentas reales.</li>
+            <li><span class="st done">Hecho</span> Métricas de Instagram y TikTok juntas.</li>
+            <li><span class="st doing">Diseño hecho</span> Inspiración, con datos de prueba.</li>
+          </ul>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Falta para el MVP, en este orden</h2></div>
+          <ol class="pillars">
+            <li><span class="n t-sm">1</span><span><strong>Música libre de derechos</strong> en la edición.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Efectos con Remotion:</strong> títulos, zooms y recursos visuales, por indicación o por estilo aprendido. Gratis para equipos de hasta 3 personas.</span></li>
+            <li><span class="n t-sm">3</span><span><strong>IA que orquesta todo + servidor MCP:</strong> guiones, copys automáticos, perfil de marca, plan de edición, indicaciones y títulos; y el MCP para el agente del founder.</span></li>
+            <li><span class="n t-sm">4</span><span><strong>Servidor en la nube</strong> para editar y publicar (hoy depende del PC del equipo).</span></li>
+          </ol>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Después del MVP</h2></div>
+          <ul class="list">
+            <li>Conexiones reales: revisión de Meta y auditoría de TikTok, y pruebas con usuarios.</li>
+            <li>Opciones extra de Instagram (portada, colaboradores, nombre del audio) si hacen falta.</li>
+            <li>Fuera del MVP: b-roll, agente en todas las pantallas, bandeja de comentarios y automatizaciones (pilar Conversar).</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ COSTOS ============ -->
+      <article class="doc" data-page="costos" data-title="Costos" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Costos</h1><p class="tagline t-lg">Estimación para una usuaria (Evelyn) con Instagram y TikTok. La IA es Claude Sonnet 5: $2 por millón de tokens de entrada y $10 por millón de salida. Los tokens están estimados con el texto real que envía Mova.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Costo por cliente</h2><span class="badge t-2xs">Estimación</span></div>
+          <p class="callout"><strong>~$1,50 a $2,10 por cliente al mes</strong> a 1 vídeo al día, más <strong>$45 al mes fijos</strong> para toda la plataforma. La edición cuesta $0 mientras corra en el computador del equipo.</p>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Concepto</th><th>Costo al mes</th></tr></thead>
+            <tbody>
+              <tr><td>Por cliente · IA a 1 vídeo al día</td><td class="num">~$1,50 a $2,10</td></tr>
+              <tr><td>Por cliente · IA a 2 vídeos al día</td><td class="num">~$3 a $4,20</td></tr>
+              <tr><td>Fijos · Vercel Pro + Supabase Pro</td><td class="num">$45</td></tr>
+              <tr><td>Fijos · servidor en la nube para el worker (paso 4 del MVP)</td><td class="num">~$20 a $40</td></tr>
+            </tbody>
+          </table></div>
+          <p class="prose t-sm">La ficha visual de cada vídeo suma ~$0,30 por cliente al mes.</p>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">IA por acción</h2></div>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Acción</th><th>Coste aprox.</th></tr></thead>
+            <tbody>
+              <tr><td>Mensaje en el chat de ideas (con el historial reciente)</td><td class="num">~2 céntimos</td></tr>
+              <tr><td>Copy de un vídeo</td><td class="num">~1 céntimo</td></tr>
+              <tr><td>Análisis del perfil (últimos 20 vídeos)</td><td class="num">~6 céntimos</td></tr>
+              <tr class="total"><td>Por vídeo publicado (2 mensajes de ideas + 2 copys)</td><td class="num">~5 a 7 céntimos</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">IA al mes</h2></div>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Ritmo</th><th>Coste al mes</th></tr></thead>
+            <tbody>
+              <tr><td>3 vídeos por semana (~12 al mes)</td><td class="num">~$0,70</td></tr>
+              <tr><td>1 vídeo al día (~30 al mes)</td><td class="num">~$1,50 a $2,10</td></tr>
+              <tr><td>2 vídeos al día (~60 al mes)</td><td class="num">~$3 a $4,20</td></tr>
+            </tbody>
+          </table></div>
+          <p class="prose">Una recarga de $5 da para unos 3 meses a 1 vídeo al día. Conviene poner un límite de gasto mensual en la consola de Anthropic.</p>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Otros servicios</h2></div>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Servicio</th><th>Coste</th></tr></thead>
+            <tbody>
+              <tr><td>API de Instagram (Meta): conexión, métricas y publicación</td><td class="num">Gratis</td></tr>
+              <tr><td>API de TikTok: conexión, métricas y publicación</td><td class="num">Gratis</td></tr>
+              <tr><td>Vercel (la web). El plan gratuito es solo para uso no comercial</td><td class="num">Gratis · Pro $20/mes con clientes</td></tr>
+              <tr><td>Supabase (base de datos). Gratis hasta 500 MB de datos y 1 GB de archivos</td><td class="num">Gratis · Pro $25/mes</td></tr>
+              <tr><td>Cloudflare R2 (vídeos). 10 GB gratis</td><td class="num">~$0,015 por GB al mes</td></tr>
+              <tr><td>Transcripción: whisper.cpp en el worker. Groq queda como opción si hace falta más precisión o velocidad</td><td class="num">$0 · Groq &lt;1 céntimo por vídeo</td></tr>
+              <tr><td>Renderizado: el worker con ffmpeg y Remotion. Remotion es gratis para equipos de hasta 3 personas</td><td class="num">$0 en el PC · ~$20 a $40/mes en la nube</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Total al mes</h2></div>
+          <div class="table-wrap"><table class="costs t-sm">
+            <thead><tr><th>Escenario (1 vídeo al día por usuario)</th><th>Total al mes</th></tr></thead>
+            <tbody>
+              <tr><td>Prueba con Evelyn: servicios gratis + IA ~$2</td><td class="num">~$2</td></tr>
+              <tr><td>10 clientes: servicios $45 + IA $15 a $21</td><td class="num">~$60 a $66</td></tr>
+              <tr><td>50 clientes: servicios $45 + IA $75 a $105</td><td class="num">~$120 a $150</td></tr>
+            </tbody>
+          </table></div>
+          <ul class="list">
+            <li>Al pasar el worker a la nube, sumar ~$20 a $40 al mes fijos. Con muchos vídeos, Supabase y R2 pueden cobrar almacenamiento extra.</li>
+            <li>Precios a septiembre de 2026. Los de Vercel y Supabase hay que confirmarlos antes de pagar.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ POR DECIDIR ============ -->
+      <article class="doc" data-page="decidir" data-title="Por decidir" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Por decidir</h1><p class="tagline t-lg">Lo que todavía no tiene decisión. Cuando se decide, sale de aquí y pasa a su página.</p></div>
+        <section>
+          <ul class="list">
+            <li><span class="st open">Por decidir</span> <strong>De dónde salen los vídeos de Inspiración.</strong> Opciones en <a href="#ideas">Ideas e Inspiración</a>.</li>
+            <li><span class="st open">Por decidir</span> <strong>Precio de la suscripción</strong> y límite de IA incluido.</li>
+            <li><span class="st open">Por decidir</span> <strong>Correo de contacto</strong> para las páginas de términos y privacidad.</li>
+          </ul>
+        </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
+      </article>
+
+      <!-- ============ ORIGEN ============ -->
+      <article class="doc" data-page="historia" data-title="Origen" hidden>
+        <a class="back t-sm" href="#inicio">← Mova</a>
+        <div class="hero"><h1 class="t-3xl">Origen</h1><p class="tagline t-lg">De dónde viene Mova.</p></div>
+        <section>
+          <div class="section-head"><h2 class="t-xl">Descripción</h2></div>
+          <p class="prose">Mova es una plataforma todo en uno para founder creators. Reúne en un solo lugar todo el proceso: encontrar ideas, crear el contenido, editarlo, programarlo, publicarlo y medir sus resultados. Muestra qué funciona en tu nicho y en tus referentes para darte ideas. Con inteligencia artificial genera ideas, guiones y copys, y edita los vídeos siguiendo tu estilo. Los vídeos se editan en cola, sin procesarlos uno por uno. Con el calendario programas tus publicaciones y Mova las sube a tus redes con su descripción y hashtags. Además, muestra las métricas de lo publicado para saber qué funciona. El objetivo es que dejes de saltar entre herramientas y gestiones todo, de la idea a la publicación, desde un solo sitio.</p>
+        </section>
+        <section>
           <div class="section-head"><h2 class="t-xl">Idea original</h2></div>
           <div class="original">
             <hr class="rule">
             <p>Una plataforma que sea para gestionar contenido, crear contenido, calendarizar contenido, medir metricas y espiar a la competencia y encontrar ideas de contenido segun mi nicho, y competencia. usar ia para la generacion de ideas, copys y la edicion de video segun tu estilo de marca. opcion de edicion de videos en cola. La calendarizacion debe subir los videos a las redes y ademas hay mismo se puede poner la descripcion y hashtags. esta es la idea base.</p>
           </div>
         </section>
+        <nav class="pager t-sm" data-pager aria-label="Otras páginas"></nav>
       </article>
     </div>
   </main>
 </div>
 
 <script>
-  // Marca en la barra lateral la sección visible.
+  // Subpáginas: cada <article data-page> es una página; la dirección (#edicion) dice cuál se ve.
   (function () {
-    var links = Array.prototype.slice.call(document.querySelectorAll(".nav a"));
-    var sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
-    if (!("IntersectionObserver" in window)) return;
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + entry.target.id); });
-      });
-    }, { rootMargin: "-20% 0px -70% 0px" });
-    sections.forEach(function (s) { if (s) observer.observe(s); });
+    var pages = Array.prototype.slice.call(document.querySelectorAll("[data-page]"));
+    var ids = pages.map(function (p) { return p.dataset.page; });
+    var links = Array.prototype.slice.call(document.querySelectorAll("[data-link]"));
+    var crumb = document.querySelector("[data-crumb]");
+    var sep = document.querySelector("[data-crumb-sep]");
+
+    // Anterior y siguiente al pie de cada subpágina
+    document.querySelectorAll("[data-pager]").forEach(function (el) {
+      var i = ids.indexOf(el.closest("[data-page]").dataset.page);
+      var html = "";
+      if (i > 1) html += '<a href="#' + ids[i - 1] + '"><span class="label t-xs">Anterior</span>' + pages[i - 1].dataset.title + "</a>";
+      if (i < ids.length - 1) html += '<a class="next" href="#' + ids[i + 1] + '"><span class="label t-xs">Siguiente</span>' + pages[i + 1].dataset.title + "</a>";
+      el.innerHTML = html;
+    });
+
+    function show() {
+      var id = location.hash.replace("#", "");
+      if (ids.indexOf(id) < 0) id = "inicio";
+      pages.forEach(function (p) { p.hidden = p.dataset.page !== id; });
+      links.forEach(function (a) { a.classList.toggle("active", a.dataset.link === id); });
+      var page = pages[ids.indexOf(id)];
+      crumb.textContent = id === "inicio" ? "" : page.dataset.title;
+      sep.hidden = id === "inicio";
+      document.title = id === "inicio" ? "Mova" : page.dataset.title + " · Mova";
+      window.scrollTo(0, 0);
+    }
+    window.addEventListener("hashchange", show);
+    show();
   })();
 </script>
+
 </body>
 </html>

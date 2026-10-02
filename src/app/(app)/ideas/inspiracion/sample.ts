@@ -1,4 +1,4 @@
-// Datos de prueba del feed de Inspiración mientras se decide de dónde salen los vídeos (ver PRODUCTO.md).
+// Datos de prueba del feed de Inspiración mientras se decide de dónde salen los vídeos (ver docs/mova.html, Ideas e Inspiración).
 // Los vídeos son de Mixkit (licencia gratuita); cuentas, textos y cifras son inventados.
 export type Reference = {
   id: string;

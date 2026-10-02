@@ -1,6 +1,6 @@
 # Mova
 
-**Crea. Mueve. Crece.** — El sistema operativo de contenido para founder creators. Visión, ICP y hoja de ruta en [PRODUCTO.md](PRODUCTO.md).
+**Crea. Mueve. Crece.** — El sistema operativo de contenido para founder creators. Visión, ICP, decisiones y hoja de ruta en [docs/mova.html](docs/mova.html), la fuente de verdad del producto.
 
 Web: https://mova-one-amber.vercel.app
 
