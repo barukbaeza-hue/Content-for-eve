@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/controls";
 import { Notice } from "@/components/ui/notice";
 import type { Line } from "@/lib/subtitles";
 import { saveSubtitles } from "../actions";
@@ -89,10 +90,9 @@ export function SubtitleEditor({ id, url, lines }: { id: string; url: string; li
           </ol>
         )}
 
-        <label className="flex items-start gap-2 text-sm text-fg-2">
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="mt-0.5" />
-          <span>Recordar las correcciones para mis próximos vídeos (por ejemplo, &quot;Moba&quot; → &quot;Mova&quot;)</span>
-        </label>
+        <Checkbox checked={remember} onChange={setRemember}
+          label="Recordar las correcciones para mis próximos vídeos"
+          hint={<>Por ejemplo, &quot;Moba&quot; → &quot;Mova&quot;.</>} />
 
         {error && <Notice tone="danger">{error}</Notice>}
 

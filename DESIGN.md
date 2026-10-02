@@ -9,6 +9,7 @@ Inspirado en el sistema de Linear, en versión monocromática: interfaz sobria, 
 3. **Jerarquía por contraste, no por color.** El máximo contraste (acento) se reserva para la acción principal y el foco.
 4. **Sin sombras.** Capas de superficie + bordes `line`. Los elementos flotantes (menús, diálogos) usan **cristal**: la utilidad `glass`, fondo translúcido con desenfoque del contenido de detrás, borde sutil y sombra suave (inspirado en Google Flow).
 5. **Escritorio primero.** Mova se usa sobre todo en el computador: cada pantalla se diseña primero para escritorio (contenido ancho, arrastrar y soltar, acciones al pasar el ratón) y después se adapta al móvil.
+6. **Nada nativo del navegador.** Casillas, interruptores, desplegables, selectores de hora o fecha, burbujas de ayuda (`title`), alertas y confirmaciones del navegador se ven amateurs. Siempre se usa (o se crea) un componente propio con el estilo del sistema.
 
 ## Tipografía
 
@@ -66,7 +67,9 @@ Claro y oscuro automáticos según el sistema del usuario.
 
 ## Componentes
 
-En `src/components/ui`: `Button` (`primary`, `secondary`, `ghost`, `danger`), `Input`, `Textarea`, `Label`, `Notice`, `EmptyState` y `ConfirmDialog` (diálogo de cristal). En `src/components/shell`: `Nav`, `TabBar`, `Page` y `Logo`.
+En `src/components/ui`: `Button` (`primary`, `secondary`, `ghost`, `danger`), `Input`, `Textarea`, `Label`, `Notice`, `EmptyState` y `ConfirmDialog` (diálogo de cristal, en lugar de `confirm`).
+
+Controles propios (`controls.tsx`), nunca los nativos: `Checkbox` (casilla de 16px que se rellena con el acento), `Switch` (interruptor para activar opciones), `Select` (botón como un campo que abre un menú de cristal) y `Pill` (píldora que se marca, por ejemplo para elegir redes). También `MenuButton` (botón con icono que abre un menú de cristal: filtros, orden), `Pagination` (flechas y números), `Skeleton` (esqueletos de carga con el mismo layout de cada sección), burbujas de ayuda con el atributo `data-tip="…"` (las muestra `Tooltips`, en el layout) y avisos breves con `toast("…")` (en lugar de `alert`). En `src/components/shell`: `Nav`, `TabBar`, `Page` y `Logo`.
 
 Los menús flotantes de cristal (tres puntos, banco del calendario, selectores) usan las clases compartidas de `src/components/ui/menu.ts`: mismo cristal, relleno, filas y separadores. Lo único que cambia entre ellos es el fondo que tienen detrás.
 

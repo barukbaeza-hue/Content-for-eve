@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { Checkbox, Pill, Select, Switch } from "@/components/ui/controls";
 import { Textarea } from "@/components/ui/input";
 import type { CreatorInfo, TikTokSettings } from "@/lib/tiktok";
 import { tiktokCreator, updatePost, type Platform } from "./actions";
@@ -27,24 +28,6 @@ const EMPTY: TikTokSettings = {
   brandOrganic: false,
   brandContent: false,
 };
-
-function Check({ label, checked, disabled, hint, onChange }: {
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  hint?: string;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className={`flex items-start gap-2 text-sm ${disabled ? "text-fg-4" : ""}`}>
-      <input type="checkbox" className="mt-0.5" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
-      <span>
-        {label}
-        {hint && <span className="block text-xs text-fg-3">{hint}</span>}
-      </span>
-    </label>
-  );
-}
 
 // Texto que acompaña al vídeo al publicarse, redes donde sale y, para TikTok, los ajustes que TikTok exige elegir.
 export function PostDialog({ id, caption, platforms, tiktok, duration, onClose }: {
@@ -112,27 +95,32 @@ export function PostDialog({ id, caption, platforms, tiktok, duration, onClose }
           onChange={(e) => setText(e.target.value)}
           placeholder="Escribe el texto de la publicación, con sus hashtags…" />
         <p className="mt-1 text-right text-xs text-fg-4 tabular-nums">{text.length} / 2.200</p>
-        <div className="mt-2 flex gap-4">
+        <div className="mt-3 flex items-center gap-2">
+          <span className="mr-1 text-sm text-fg-3">Publicar en</span>
           {NETWORKS.map((n) => (
-            <label key={n.id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={chosen.includes(n.id)} disabled={saving}
-                onChange={(e) => setChosen((prev) => (e.target.checked ? [...prev, n.id] : prev.filter((p) => p !== n.id)))} />
+            <Pill key={n.id} checked={chosen.includes(n.id)} disabled={saving}
+              onChange={(on) => setChosen((prev) => (on ? [...prev, n.id] : prev.filter((p) => p !== n.id)))}>
               {n.label}
-            </label>
+            </Pill>
           ))}
         </div>
 
         {/* Ajustes de TikTok: los pide TikTok antes de publicar y ninguno viene marcado por defecto */}
         {withTikTok && (
-          <section className="mt-5 space-y-4 border-t border-[var(--glass-line)] pt-4">
-            <div className="flex items-center gap-2">
-              {info?.avatarUrl && (
+          <section className="mt-5 space-y-5 rounded-lg border border-[var(--glass-line)] p-4">
+            <div className="flex items-center gap-2.5">
+              {info?.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={info.avatarUrl} alt="" className="size-6 rounded-full" />
+                <img src={info.avatarUrl} alt="" className="size-7 rounded-full" />
+              ) : (
+                <span className="size-7 rounded-full bg-surface-3" />
               )}
-              <p className="text-sm font-medium">
-                TikTok{info ? ` · se publicará en @${info.username ?? info.nickname}` : ""}
-              </p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">TikTok</p>
+                <p className="truncate text-xs text-fg-3">
+                  {info ? `Se publicará en @${info.username ?? info.nickname}` : "Ajustes que TikTok pide antes de publicar"}
+                </p>
+              </div>
             </div>
 
             {!creator && <p className="text-sm text-fg-3">Cargando tu cuenta de TikTok…</p>}
@@ -146,41 +134,39 @@ export function PostDialog({ id, caption, platforms, tiktok, duration, onClose }
                   </p>
                 )}
 
-                <label className="block space-y-1.5">
-                  <span className="text-sm text-fg-2">Quién puede ver este vídeo</span>
-                  <select value={settings.privacy} onChange={(e) => set({ privacy: e.target.value })} disabled={saving}
-                    className="h-9 w-full rounded-md border border-line bg-surface-1 px-2 text-sm focus:border-line-strong focus:outline-none">
-                    <option value="" disabled>Elige una opción</option>
-                    {info.privacyOptions.map((o) => (
-                      <option key={o} value={o} disabled={o === "SELF_ONLY" && commercial && settings.brandContent}>
-                        {PRIVACY[o] ?? o}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="space-y-1.5">
+                  <p className="text-sm text-fg-2">Quién puede ver este vídeo</p>
+                  <Select label="Quién puede ver este vídeo" value={settings.privacy} disabled={saving}
+                    onChange={(v) => set({ privacy: v })}
+                    options={info.privacyOptions.map((o) => ({
+                      value: o,
+                      label: PRIVACY[o] ?? o,
+                      disabled: o === "SELF_ONLY" && commercial && settings.brandContent,
+                    }))} />
+                </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <p className="text-sm text-fg-2">Permitir a los demás</p>
-                  <div className="flex flex-wrap gap-x-5 gap-y-2">
-                    <Check label="Comentar" checked={settings.allowComment} disabled={info.commentDisabled || saving}
+                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    <Checkbox label="Comentar" checked={settings.allowComment} disabled={info.commentDisabled || saving}
                       onChange={(v) => set({ allowComment: v })} />
-                    <Check label="Dúo" checked={settings.allowDuet} disabled={info.duetDisabled || saving}
+                    <Checkbox label="Dúo" checked={settings.allowDuet} disabled={info.duetDisabled || saving}
                       onChange={(v) => set({ allowDuet: v })} />
-                    <Check label="Stitch" checked={settings.allowStitch} disabled={info.stitchDisabled || saving}
+                    <Checkbox label="Stitch" checked={settings.allowStitch} disabled={info.stitchDisabled || saving}
                       onChange={(v) => set({ allowStitch: v })} />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Check label="Contenido comercial" checked={commercial} disabled={saving}
+                <div className="space-y-3 border-t border-[var(--glass-line)] pt-4">
+                  <Switch label="Contenido comercial" checked={commercial} disabled={saving}
                     hint="Actívalo si el vídeo promociona tu marca, un producto o un servicio."
                     onChange={setCommercial} />
                   {commercial && (
-                    <div className="ml-6 space-y-2">
-                      <Check label="Tu marca" checked={settings.brandOrganic} disabled={saving}
+                    <div className="space-y-2.5">
+                      <Checkbox label="Tu marca" checked={settings.brandOrganic} disabled={saving}
                         hint="Se etiquetará como «Contenido promocional»."
                         onChange={(v) => set({ brandOrganic: v })} />
-                      <Check label="Contenido de marca (patrocinado)" checked={settings.brandContent}
+                      <Checkbox label="Contenido de marca (patrocinado)" checked={settings.brandContent}
                         disabled={saving || settings.privacy === "SELF_ONLY"}
                         hint={settings.privacy === "SELF_ONLY"
                           ? "No disponible si solo tú puedes ver el vídeo."

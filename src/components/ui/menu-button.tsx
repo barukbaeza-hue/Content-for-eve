@@ -34,7 +34,7 @@ export function MenuButton({ icon, label, title, options }: {
 
   return (
     <div ref={box} className="relative h-fit">
-      <button type="button" aria-label={label} aria-expanded={open} title={label} onClick={() => setOpen((o) => !o)}
+      <button type="button" aria-label={label} aria-expanded={open} data-tip={label} onClick={() => setOpen((o) => !o)}
         className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium transition-colors duration-150 ${
           open ? "border-line-strong bg-surface-2 text-fg" : "border-line text-fg-2 hover:border-line-strong hover:text-fg"
         }`}>

@@ -20,11 +20,13 @@ export function BankPicker({ anchor, day, videos, thumb, onPick, onClose }: {
     const escape = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("mousedown", outside);
     document.addEventListener("keydown", escape);
-    window.addEventListener("scroll", onClose, true);
+    // Se cierra si se desplaza la página, no si se desplaza una lista dentro del propio popover
+    const scroll = (e: Event) => !box.current?.contains(e.target as Node) && onClose();
+    window.addEventListener("scroll", scroll, true);
     return () => {
       document.removeEventListener("mousedown", outside);
       document.removeEventListener("keydown", escape);
-      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("scroll", scroll, true);
     };
   }, [onClose]);
 

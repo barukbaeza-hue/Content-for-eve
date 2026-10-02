@@ -297,7 +297,7 @@ export default async function MetricasPage({ searchParams }: PageProps<"/metrica
                       className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   )}
                   {/* Toda la tarjeta abre el vídeo en su red (la primera, si está en las dos) */}
-                  <a href={item.networks[0].permalink} target="_blank" rel="noopener noreferrer" title={item.caption || undefined}
+                  <a href={item.networks[0].permalink} target="_blank" rel="noopener noreferrer" data-tip={item.caption || undefined}
                     aria-label={`Abrir en ${NAMES[item.networks[0].network]}`} className="absolute inset-0" />
                   <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                     {item.networks.map((n) => (

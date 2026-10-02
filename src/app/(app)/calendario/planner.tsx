@@ -206,7 +206,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
           <Thumb url={video.url} />
         </span>
         {movable ? (
-          <button type="button" title="Cambiar la hora"
+          <button type="button" data-tip="Cambiar la hora"
             onClick={(e) => {
               e.stopPropagation();
               setPicking({ id: video.id, anchor: e.currentTarget.getBoundingClientRect() });
@@ -219,7 +219,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         )}
         <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{video.title}</span>
         {movable && (
-          <button type="button" aria-label="Devolver al banco" title="Devolver al banco"
+          <button type="button" aria-label="Devolver al banco" data-tip="Devolver al banco"
             onClick={(e) => {
               e.stopPropagation();
               apply([{ id: video.id, at: null }]);
@@ -346,14 +346,14 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             ) : (
               <ul className="no-scrollbar max-h-[50vh] overflow-y-auto">
                 {bank.map((video) => (
-                  <li key={video.id} data-video={video.id} data-title={video.title} title="Arrastra a un día"
+                  <li key={video.id} data-video={video.id} data-title={video.title} data-tip="Arrastra a un día"
                     className={`${menuItemClasses} group cursor-grab active:cursor-grabbing`}>
                     <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3">
                       <Thumb url={video.url} />
                     </span>
                     <span className="min-w-0 flex-1 truncate">{video.title}</span>
                     <span className="text-xs text-fg-3 tabular-nums group-hover:hidden">{seconds(video.duration)}</span>
-                    <button type="button" aria-label="Programar en el próximo hueco" title="Programar en el próximo hueco"
+                    <button type="button" aria-label="Programar en el próximo hueco" data-tip="Programar en el próximo hueco"
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => placeNext(video.id)}
                       className="hidden text-fg-3 group-hover:block hover:text-fg">

@@ -52,7 +52,7 @@ export function IdeaList({ ideas }: { ideas: Idea[] }) {
                 <StatusSelect id={idea.id} status={idea.status as Status} />
                 <form action={remove}>
                   <input type="hidden" name="id" value={idea.id} />
-                  <button aria-label="Borrar idea" title="Borrar idea"
+                  <button aria-label="Borrar idea" data-tip="Borrar idea"
                     className="flex size-7 items-center justify-center rounded-md text-fg-3 transition-colors duration-150 hover:bg-surface-3 hover:text-fg">
                     <Trash2 className="size-4" strokeWidth={1.75} />
                   </button>

@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/controls";
 import { menuClasses, menuLabelClasses } from "@/components/ui/menu";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, h) => ({ value: pad(h), label: pad(h) }));
+// Minutos de 5 en 5 (y el actual, si no es múltiplo de 5)
+function minutes(current: string) {
+  const list = Array.from({ length: 12 }, (_, i) => pad(i * 5));
+  if (current && !list.includes(current)) list.push(current);
+  return list.sort().map((m) => ({ value: m, label: m }));
+}
 
 // Popover de cristal para cambiar la hora de un vídeo programado: tus horas habituales o una a mano.
 export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
@@ -25,11 +35,13 @@ export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
     const escape = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("mousedown", outside);
     document.addEventListener("keydown", escape);
-    window.addEventListener("scroll", onClose, true);
+    // Se cierra si se desplaza la página, no si se desplaza una lista dentro del propio popover
+    const scroll = (e: Event) => !box.current?.contains(e.target as Node) && onClose();
+    window.addEventListener("scroll", scroll, true);
     return () => {
       document.removeEventListener("mousedown", outside);
       document.removeEventListener("keydown", escape);
-      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("scroll", scroll, true);
     };
   }, [onClose]);
 
@@ -71,12 +83,19 @@ export function TimePicker({ anchor, day, value, presets, onSave, onClose }: {
         ))}
       </div>
       <div className="flex items-center gap-2 px-1 pb-1">
-        <input type="time" value={time} step={300} autoFocus aria-label="Otra hora"
-          onChange={(e) => {
-            setTime(e.target.value);
-            setError(null);
-          }}
-          className="h-8 min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 text-sm tabular-nums focus:border-line-strong focus:outline-none" />
+        {/* Otra hora: hora y minutos con selectores propios */}
+        <div className="grid flex-1 grid-cols-2 gap-1.5">
+          <Select label="Hora" value={time.slice(0, 2)} options={HOURS}
+            onChange={(h) => {
+              setTime(`${h}:${time.slice(3, 5) || "00"}`);
+              setError(null);
+            }} />
+          <Select label="Minutos" value={time.slice(3, 5)} options={minutes(time.slice(3, 5))}
+            onChange={(m) => {
+              setTime(`${time.slice(0, 2) || "12"}:${m}`);
+              setError(null);
+            }} />
+        </div>
         <Button type="submit" size="sm" variant="primary">Guardar</Button>
       </div>
       {error && <p className="px-2.5 pb-1 text-xs text-danger">{error}</p>}

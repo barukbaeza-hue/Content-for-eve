@@ -4,6 +4,8 @@ import { logout } from "@/app/login/actions";
 import { Logo } from "@/components/shell/logo";
 import { Nav, TabBar } from "@/components/shell/nav";
 import { createClient } from "@/lib/supabase/server";
+import { Toaster } from "@/components/ui/toast";
+import { Tooltips } from "@/components/ui/tooltips";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
@@ -29,7 +31,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <span className="hidden min-w-0 flex-1 truncate px-1 text-xs text-fg-3 md:block">
             {data.claims.email}
           </span>
-          <button aria-label="Salir" title="Salir"
+          <button aria-label="Salir" data-tip="Salir"
             className="flex size-7 items-center justify-center rounded-md text-fg-3 transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
             <LogOut className="size-4" strokeWidth={1.75} />
           </button>
@@ -43,6 +45,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </main>
 
       <TabBar />
+      <Tooltips />
+      <Toaster />
     </div>
   );
 }

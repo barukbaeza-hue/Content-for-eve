@@ -132,10 +132,10 @@ function VideoCard({ video }: { video: VideoItem }) {
         {video.editStatus === "edited" && seconds(video.duration) && ` · ${seconds(video.duration)}`}
       </p>
       {video.error && (
-        <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={video.error}>{video.error}</p>
+        <p className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" data-tip={video.error}>{video.error}</p>
       )}
       {video.publications.filter((p) => p.status === "failed").map((p) => (
-        <p key={p.platform} className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" title={p.error ?? undefined}>
+        <p key={p.platform} className="mt-1 line-clamp-2 text-xs text-[rgb(255_255_255/0.6)]" data-tip={p.error ?? undefined}>
           {NETWORK[p.platform]}: {p.error}
         </p>
       ))}

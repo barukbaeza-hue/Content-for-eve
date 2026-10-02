@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "@/components/ui/toast";
 import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
 import type { TikTokSettings } from "@/lib/tiktok";
 import type { Platform } from "./actions";
@@ -45,11 +46,11 @@ async function shareVideo(url: string, title: string) {
       await navigator.share({ url, title });
     } else {
       await navigator.clipboard.writeText(url);
-      alert("Enlace copiado. Caduca en unas horas.");
+      toast("Enlace copiado. Caduca en unas horas.");
     }
   } catch (e) {
     // Cancelar el menú de compartir no es un error
-    if (!(e instanceof DOMException && e.name === "AbortError")) alert("No se pudo compartir el vídeo.");
+    if (!(e instanceof DOMException && e.name === "AbortError")) toast("No se pudo compartir el vídeo.");
   }
 }
 
