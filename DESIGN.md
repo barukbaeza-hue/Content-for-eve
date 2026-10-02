@@ -62,7 +62,7 @@ Claro y oscuro automáticos según el sistema del usuario.
 
 ## Estructura
 
-- **Escritorio:** barra lateral de 240px (contraíble a una franja de 56px solo con iconos, con el activo en un círculo y su nombre en una burbuja; se recuerda en una cookie) sobre `canvas` y el contenido en un panel `surface-1` con borde y `rounded-xl`. Cabecera de página de 44px.
+- **Escritorio:** barra lateral de 240px (contraíble a una franja de 56px: todo mantiene su sitio y tamaño, solo se anima el ancho y los textos se desvanecen; contraída, cada icono muestra su nombre en una burbuja; se recuerda en una cookie) sobre `canvas` y el contenido en un panel `surface-1` con borde y `rounded-xl`. Cabecera de página de 44px.
 - **Móvil:** cabecera superior con el logo y barra de pestañas inferior de 56px.
 
 ## Componentes
