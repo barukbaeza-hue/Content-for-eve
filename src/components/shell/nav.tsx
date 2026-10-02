@@ -12,15 +12,23 @@ const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/marca", label: "Mi marca", icon: Sparkles },
 ];
 
-// Barra lateral en escritorio.
-export function Nav() {
+// Navegación de la barra lateral en escritorio. Contraída, solo iconos (el activo en un círculo) con su nombre en una burbuja.
+export function Nav({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-0.5">
+    <nav className={`flex flex-col ${collapsed ? "items-center gap-1.5" : "gap-0.5"}`}>
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
-        return (
+        return collapsed ? (
+          <Link key={href} href={href} aria-current={active ? "page" : undefined} aria-label={label}
+            data-tip={label} data-tip-side="right"
+            className={`flex size-9 items-center justify-center rounded-full transition-colors duration-150 ${
+              active ? "bg-surface-3 text-fg" : "text-fg-3 hover:bg-surface-2 hover:text-fg"
+            }`}>
+            <Icon className="size-[18px]" strokeWidth={1.75} />
+          </Link>
+        ) : (
           <Link key={href} href={href} aria-current={active ? "page" : undefined}
             className={`flex h-7 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors duration-150 ${
               active ? "bg-surface-3 text-fg" : "text-fg-3 hover:bg-surface-2 hover:text-fg"

@@ -42,3 +42,20 @@ export async function scheduleVideos(items: { id: string; at: string | null }[],
   revalidatePath("/videos");
   return {};
 }
+
+// Ajustes del calendario: cuántos vídeos al día y a qué horas se suele publicar
+export async function saveCalendarSettings(perDay: number, times: string[]): Promise<{ error?: string }> {
+  const clean = [...new Set(times.filter((t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)))].sort().slice(0, 8);
+  if (!clean.length) return { error: "Añade al menos una hora de publicación." };
+  if (![1, 2, 3].includes(perDay)) return { error: "Elige entre 1 y 3 vídeos al día." };
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) return { error: "Sesión caducada. Vuelve a entrar." };
+  const { error } = await supabase
+    .from("brand_profiles")
+    .update({ posts_per_day: perDay, post_times: clean })
+    .eq("user_id", data.claims.sub);
+  if (error) return { error: "No se pudieron guardar los ajustes." };
+  revalidatePath("/calendario");
+  return {};
+}

@@ -218,7 +218,7 @@
 }
 /* Lo que ya pasó (días y horas) en un gris más claro; lo disponible queda en el fondo oscuro */
 .mova-calendar .fc-bg-event.mova-past {
-  background: rgb(128 128 128 / 0.13);
+  background: rgb(128 128 128 / 0.09);
   opacity: 1;
 }
 .mova-calendar .fc-day-today .fc-daygrid-day-number {
@@ -251,4 +251,89 @@
 }
 .mova-calendar .fc-scroller::-webkit-scrollbar {
   display: none;
+}
+
+/* Tarjetas de vídeo del calendario: el fondo lo pone la tarjeta, no FullCalendar */
+.mova-calendar .fc-daygrid-event,
+.mova-calendar .fc-timegrid-event,
+.mova-calendar .fc-daygrid-event:hover,
+.mova-calendar .fc-timegrid-event:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.mova-calendar .mova-card {
+  background: var(--surface-2);
+  transition: background-color 150ms;
+}
+.mova-calendar .mova-card:hover {
+  background: var(--surface-3);
+}
+
+/* Semana: sin cuadrícula; días en píldoras, tarjetas separadas y la hora a la izquierda */
+.mova-calendar .fc-timeGridWeek-view .fc-scrollgrid,
+.mova-calendar .fc-timeGridWeek-view td,
+.mova-calendar .fc-timeGridWeek-view th {
+  border: 0;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell {
+  background: transparent;
+  padding: 0 3px 8px;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell-cushion {
+  display: flex;
+  width: 100%;
+  padding: 0;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot {
+  height: 2.75rem;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label {
+  vertical-align: top;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label-cushion {
+  position: relative;
+  top: -0.5rem;
+  padding-right: 10px;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event-harness {
+  margin: 0 3px;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event {
+  margin: 2px 0;
+}
+.mova-calendar .fc-timeGridWeek-view .fc-timegrid-col-bg .fc-bg-event.mova-past {
+  border-radius: 0;
+}
+/* Tus horas de publicación: huecos sugeridos con borde punteado */
+.mova-calendar .fc-bg-event.mova-slot {
+  background: rgb(128 128 128 / 0.05);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  margin: 2px 3px;
+  opacity: 1;
+}
+/* Línea de "ahora": punteada y con la hora en una píldora */
+.mova-calendar .fc-timegrid-now-indicator-line {
+  border-color: var(--fg-3);
+  border-width: 1px 0 0;
+  border-style: dashed;
+}
+.mova-calendar .fc-timegrid-now-indicator-arrow {
+  border: 0;
+  margin-top: -9px;
+  left: 0;
+  width: 100%;
+}
+.mova-calendar .mova-now {
+  display: inline-flex;
+  height: 18px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--fg);
+  padding: 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--canvas);
+  font-variant-numeric: tabular-nums;
 }
