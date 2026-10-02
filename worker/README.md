@@ -41,3 +41,5 @@ Mientras el worker está encendido, cada 30 s revisa el calendario. Cuando llega
 El estado de cada red se ve en Vídeos ("Publicando…", "Publicado en…", o el error). Si una red falla, el vídeo vuelve al banco para reprogramarlo. **Si el PC está apagado a la hora programada, el vídeo se publica en cuanto se encienda el worker.**
 
 Para TikTok, añade a `worker/.env` las claves `TIKTOK_CLIENT_KEY` y `TIKTOK_CLIENT_SECRET` (las mismas que en Vercel).
+
+Para la música, añade `EPIDEMIC_API_KEY` (Epidemic Sound → Developer Portal → API keys). Sin ella, los vídeos se editan sin música.
