@@ -23,6 +23,7 @@ export type CalendarVideo = {
   url: string;
   duration: number | null;
   platforms: ("instagram" | "tiktok")[];
+  caption: string;
   // Fecha programada o de publicación; null si está en el banco
   at: string | null;
 };
@@ -68,6 +69,13 @@ function freeTime(day: Date, times: string[], list: CalendarVideo[], now: Date) 
   const after = new Date(Math.max(last + 3600 * 1000, soon));
   after.setMinutes(Math.ceil(after.getMinutes() / 15) * 15, 0, 0);
   return sameDay(after, day) ? after : null;
+}
+
+// Separa la descripción de los hashtags para mostrarlos aparte en la tarjeta
+function splitCaption(caption: string) {
+  const tags = caption.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+  const text = caption.replace(/#[\p{L}\p{N}_]+/gu, "").replace(/\s+/g, " ").trim();
+  return { text, tags };
 }
 
 function Thumb({ url }: { url: string }) {
@@ -129,6 +137,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       for (const t of slots) {
         const start = atTime(d, t);
         if (start.getTime() <= now) continue;
+        // Si ya hay un vídeo a esa hora, el hueco no se marca
+        if (list.some((v) => v.at && Math.abs(new Date(v.at).getTime() - start.getTime()) < 30 * 60 * 1000)) continue;
         out.push({
           id: `hueco-${start.toISOString()}`,
           start: start.toISOString(),
@@ -139,7 +149,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       }
     }
     return out;
-  }, [range, view, slots, now]);
+  }, [range, view, slots, now, list]);
 
   const events = useMemo(() => [
     // Todo lo que ya pasó sale en un gris más claro y no admite vídeos
@@ -235,10 +245,13 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <span className={`tabular-nums ${className}`}>{video.status === "published" ? "Publicado" : clock(start)}</span>
     );
 
+  // Redes del vídeo, como pestañas en lo alto de la tarjeta
   const badges = (video: CalendarVideo) => (
     <span className="flex flex-wrap gap-1">
       {video.platforms.map((p) => (
-        <span key={p} className="rounded-full border border-line-strong px-1.5 text-2xs text-fg-3">{p === "instagram" ? "Instagram" : "TikTok"}</span>
+        <span key={p} className="rounded-full bg-surface-3 px-2 py-px text-2xs font-medium text-fg-2">
+          {p === "instagram" ? "Instagram" : "TikTok"}
+        </span>
       ))}
     </span>
   );
@@ -271,17 +284,25 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       );
     }
 
+    // Semana: pestañas de red, vídeo, nombre, hora, descripción y hashtags
+    const { text, tags } = splitCaption(video.caption);
     return (
-      <div className={`mova-card group flex h-full w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg p-2 ${published ? "opacity-60" : ""}`}>
-        <div className="flex min-w-0 items-start gap-2">
-          <span className="aspect-[9/16] w-7 shrink-0 overflow-hidden rounded bg-surface-3"><Thumb url={video.url} /></span>
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-xs font-medium text-fg">{video.title}</p>
-            {timeLabel(video, movable, event.start!, "text-2xs text-fg-3")}
-          </div>
+      <div className={`mova-card group flex h-full w-full min-w-0 flex-col gap-2 overflow-hidden rounded-lg p-2 ${published ? "opacity-60" : ""}`}>
+        <div className="flex items-start justify-between gap-1">
+          {badges(video)}
           {remove}
         </div>
-        {badges(video)}
+        <div className="flex min-w-0 gap-2">
+          <span className="aspect-[9/16] w-11 shrink-0 self-start overflow-hidden rounded-md bg-surface-3"><Thumb url={video.url} /></span>
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="line-clamp-2 text-xs font-medium text-fg">{video.title}</p>
+            {timeLabel(video, movable, event.start!, "block text-2xs text-fg-3")}
+            {text
+              ? <p className="line-clamp-3 text-2xs text-fg-2">{text}</p>
+              : <p className="text-2xs text-fg-4">Sin descripción</p>}
+            {tags.length > 0 && <p className="truncate text-2xs text-fg-3">{tags.join(" ")}</p>}
+          </div>
+        </div>
       </div>
     );
   }
@@ -360,11 +381,12 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
           allDaySlot={false}
           slotMinTime="06:00:00"
           scrollTime="09:00:00"
-          defaultTimedEventDuration="01:00"
+          // La tarjeta ocupa 2 h en la vista: lo justo para el vídeo, la descripción y los hashtags
+          defaultTimedEventDuration="02:00"
           slotDuration="00:30:00"
           slotLabelInterval="01:00"
           slotEventOverlap={false}
-          eventMinHeight={56}
+          eventMinHeight={120}
           dayHeaderContent={renderDayHeader}
           nowIndicatorContent={(arg) => (arg.isAxis ? <span className="mova-now">{clock(arg.date)}</span> : null)}
           slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}

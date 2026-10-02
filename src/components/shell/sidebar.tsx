@@ -37,12 +37,13 @@ export function Sidebar({ email, initialCollapsed }: { email: string; initialCol
 
       <div className="flex items-center gap-0.5 md:flex-col md:items-stretch md:border-t md:border-line md:pt-3">
         <p className={`hidden truncate px-2 pb-1 text-xs whitespace-nowrap text-fg-3 md:block ${sidebarLabel(collapsed)}`}>{email}</p>
+        {/* Solo el icono: abierta o contraída, siempre en el mismo sitio */}
         <button type="button" onClick={toggle} aria-label={collapsed ? "Expandir menú" : "Contraer menú"}
-          data-tip={tip("Expandir menú")} data-tip-side="right" className={`${sidebarItem} ${muted} hidden md:flex`}>
+          data-tip={collapsed ? "Expandir menú" : "Contraer menú"} data-tip-side="right"
+          className={`${sidebarItem.replace("w-full ", "")} ${muted} hidden w-8 md:flex`}>
           {collapsed
             ? <PanelLeftOpen className="size-4 shrink-0" strokeWidth={1.75} />
             : <PanelLeftClose className="size-4 shrink-0" strokeWidth={1.75} />}
-          <span className={sidebarLabel(collapsed)}>Contraer menú</span>
         </button>
         <form action={logout}>
           <button aria-label="Salir" data-tip={tip("Salir")} data-tip-side="right" className={`${sidebarItem} ${muted}`}>

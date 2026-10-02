@@ -26,7 +26,7 @@ export default async function CalendarioPage() {
     // El banco (listos), lo programado y lo publicado en los últimos dos meses
     supabase
       .from("videos")
-      .select("id, title, status, platforms, storage_path, duration_seconds, scheduled_at, published_at, position")
+      .select("id, title, caption, status, platforms, storage_path, duration_seconds, scheduled_at, published_at, position")
       .eq("edit_status", "edited")
       .or(`status.in.(ready,scheduled),published_at.gte.${since}`)
       .order("position")
@@ -44,6 +44,7 @@ export default async function CalendarioPage() {
         url: await signDownload(v.storage_path),
         duration: v.duration_seconds,
         platforms: v.platforms ?? ["instagram", "tiktok"],
+        caption: v.caption ?? "",
         at: v.status === "published" ? v.published_at : v.status === "scheduled" ? v.scheduled_at : null,
       })),
   );

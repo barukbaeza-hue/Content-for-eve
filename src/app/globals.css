@@ -286,7 +286,7 @@
   padding: 0;
 }
 .mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot {
-  height: 2.75rem;
+  height: 3rem;
 }
 .mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label {
   vertical-align: top;
