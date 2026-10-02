@@ -5,8 +5,8 @@ import esLocale from "@fullcalendar/core/locales/es";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { Draggable, type DateClickArg, type DropArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import { useRouter } from "next/navigation";
+import { InstagramIcon, TikTokIcon } from "@/components/ui/brand-icons";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Notice } from "@/components/ui/notice";
@@ -29,7 +29,7 @@ export type CalendarVideo = {
 };
 
 type Change = { id: string; at: string | null };
-type View = "dayGridMonth" | "timeGridWeek";
+type View = "dayGridMonth" | "dayGridWeek";
 
 const noop = () => () => {};
 const VIEW_KEY = "mova.calendario.vista";
@@ -94,14 +94,12 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   const bankRef = useRef<HTMLElement>(null);
   const [view, setView] = useState<View>(() => {
     try {
-      return localStorage.getItem(VIEW_KEY) === "dayGridMonth" ? "dayGridMonth" : "timeGridWeek";
+      return localStorage.getItem(VIEW_KEY) === "dayGridMonth" ? "dayGridMonth" : "dayGridWeek";
     } catch {
-      return "timeGridWeek";
+      return "dayGridWeek";
     }
   });
   const [title, setTitle] = useState("");
-  // Días visibles: para marcar en ellos tus horas de publicación
-  const [range, setRange] = useState<{ start: Date; end: Date } | null>(null);
   const [settingsAt, setSettingsAt] = useState<DOMRect | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [error, setError] = useState<string | null>(null);
@@ -129,32 +127,9 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     return () => clearInterval(timer);
   }, []);
 
-  // Tus horas de publicación de los días visibles, marcadas como huecos sugeridos (solo las que no han pasado)
-  const suggested = useMemo(() => {
-    if (!range || view !== "timeGridWeek") return [];
-    const out: { id: string; start: string; end: string; display: "background"; classNames: string[] }[] = [];
-    for (let d = new Date(range.start); d < range.end; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
-      for (const t of slots) {
-        const start = atTime(d, t);
-        if (start.getTime() <= now) continue;
-        // Si ya hay un vídeo a esa hora, el hueco no se marca
-        if (list.some((v) => v.at && Math.abs(new Date(v.at).getTime() - start.getTime()) < 30 * 60 * 1000)) continue;
-        out.push({
-          id: `hueco-${start.toISOString()}`,
-          start: start.toISOString(),
-          end: new Date(start.getTime() + 30 * 60 * 1000).toISOString(),
-          display: "background",
-          classNames: ["mova-slot"],
-        });
-      }
-    }
-    return out;
-  }, [range, view, slots, now, list]);
-
   const events = useMemo(() => [
     // Todo lo que ya pasó sale en un gris más claro y no admite vídeos
     { id: "pasado", start: "2000-01-01", end: new Date(now).toISOString(), display: "background", classNames: ["mova-past"] },
-    ...suggested,
     ...list.filter((v) => v.at).map((v) => ({
       id: v.id,
       title: v.title,
@@ -162,7 +137,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       editable: v.status === "scheduled" && new Date(v.at!).getTime() > now,
       extendedProps: { video: v },
     })),
-  ], [list, now, suggested]);
+  ], [list, now]);
 
   // Los vídeos del banco se pueden arrastrar al calendario
   useEffect(() => {
@@ -245,17 +220,6 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <span className={`tabular-nums ${className}`}>{video.status === "published" ? "Publicado" : clock(start)}</span>
     );
 
-  // Redes del vídeo, como pestañas en lo alto de la tarjeta
-  const badges = (video: CalendarVideo) => (
-    <span className="flex flex-wrap gap-1">
-      {video.platforms.map((p) => (
-        <span key={p} className="rounded-full bg-surface-3 px-2 py-px text-2xs font-medium text-fg-2">
-          {p === "instagram" ? "Instagram" : "TikTok"}
-        </span>
-      ))}
-    </span>
-  );
-
   // Cada vídeo es una tarjeta: miniatura, nombre, hora (clic para cambiarla), redes y × para devolverlo al banco
   function renderEvent({ event, view: current }: EventContentArg) {
     const video = event.extendedProps.video as CalendarVideo | undefined;
@@ -284,25 +248,34 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       );
     }
 
-    // Semana: pestañas de red, vídeo, nombre, hora, descripción y hashtags
+    // Semana: hora, vídeo grande, hashtags, nombre y descripción, y las redes en círculos
     const { text, tags } = splitCaption(video.caption);
     return (
-      <div className={`mova-card group flex h-full w-full min-w-0 flex-col gap-2 overflow-hidden rounded-lg p-2 ${published ? "opacity-60" : ""}`}>
-        <div className="flex items-start justify-between gap-1">
-          {badges(video)}
+      <div className={`mova-card group flex w-full min-w-0 flex-col gap-2.5 rounded-xl p-2.5 ${published ? "opacity-60" : ""}`}>
+        <div className="flex items-center justify-between gap-1">
+          {timeLabel(video, movable, event.start!, "text-sm font-medium text-fg")}
           {remove}
         </div>
-        <div className="flex min-w-0 gap-2">
-          <span className="aspect-[9/16] w-11 shrink-0 self-start overflow-hidden rounded-md bg-surface-3"><Thumb url={video.url} /></span>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="line-clamp-2 text-xs font-medium text-fg">{video.title}</p>
-            {timeLabel(video, movable, event.start!, "block text-2xs text-fg-3")}
-            {text
-              ? <p className="line-clamp-3 text-2xs text-fg-2">{text}</p>
-              : <p className="text-2xs text-fg-4">Sin descripción</p>}
-            {tags.length > 0 && <p className="truncate text-2xs text-fg-3">{tags.join(" ")}</p>}
-          </div>
-        </div>
+        <span className="block aspect-[4/5] w-full overflow-hidden rounded-lg bg-surface-3"><Thumb url={video.url} /></span>
+        {tags.length > 0 && (
+          <span className="flex flex-wrap gap-1">
+            {tags.slice(0, 4).map((t) => (
+              <span key={t} className="max-w-full truncate rounded-full bg-surface-3 px-2 py-0.5 text-2xs text-fg-2">{t}</span>
+            ))}
+          </span>
+        )}
+        <p className="line-clamp-4 text-xs whitespace-normal">
+          <span className="font-medium text-fg">{video.title}.</span>{" "}
+          <span className="text-fg-3">{text || "Sin descripción."}</span>
+        </p>
+        <span className="flex gap-1.5">
+          {video.platforms.map((p) => (
+            <span key={p} aria-label={p === "instagram" ? "Instagram" : "TikTok"} data-tip={p === "instagram" ? "Instagram" : "TikTok"}
+              className="flex size-7 items-center justify-center rounded-full bg-surface-3 text-fg-2">
+              {p === "instagram" ? <InstagramIcon className="size-3.5" /> : <TikTokIcon className="size-3.5" />}
+            </span>
+          ))}
+        </span>
       </div>
     );
   }
@@ -345,7 +318,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         </div>
         <div className="flex items-center gap-2">
         <div className="flex gap-1 rounded-lg border border-line p-0.5">
-          {([["timeGridWeek", "Semana"], ["dayGridMonth", "Mes"]] as const).map(([v, label]) => (
+          {([["dayGridWeek", "Semana"], ["dayGridMonth", "Mes"]] as const).map(([v, label]) => (
             <button key={v} type="button" onClick={() => changeView(v)}
               className={`flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
                 view === v ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
@@ -369,37 +342,24 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <div className="mova-calendar min-h-[560px] flex-1">
         <FullCalendar
           ref={calendar}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, interactionPlugin]}
           initialView={view}
           locale={esLocale}
           firstDay={1}
           headerToolbar={false}
-          height="100%"
-          nowIndicator
-          dayMaxEvents={4}
+          // En la semana, cada día crece con sus tarjetas; el mes ocupa la pantalla
+          height={view === "dayGridWeek" ? "auto" : "100%"}
+          dayMaxEvents={view === "dayGridMonth" ? 4 : false}
           fixedWeekCount={false}
-          allDaySlot={false}
-          slotMinTime="06:00:00"
-          scrollTime="09:00:00"
-          // La tarjeta ocupa 2 h en la vista: lo justo para el vídeo, la descripción y los hashtags
-          defaultTimedEventDuration="02:00"
-          slotDuration="00:30:00"
-          slotLabelInterval="01:00"
-          slotEventOverlap={false}
-          eventMinHeight={120}
+          eventOrder="start"
           dayHeaderContent={renderDayHeader}
-          nowIndicatorContent={(arg) => (arg.isAxis ? <span className="mova-now">{clock(arg.date)}</span> : null)}
-          slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
           events={events}
           eventContent={renderEvent}
           eventDisplay="block"
           editable
           eventDurationEditable={false}
           droppable
-          datesSet={(arg: DatesSetArg) => {
-            setTitle(arg.view.title);
-            setRange({ start: arg.start, end: arg.end });
-          }}
+          datesSet={(arg: DatesSetArg) => setTitle(arg.view.title)}
           // No se programa en el pasado
           // En el mes vale cualquier día que no haya terminado; en la semana, solo horas futuras
           eventAllow={(span) => (span.allDay ? span.end : span.start) > new Date()}

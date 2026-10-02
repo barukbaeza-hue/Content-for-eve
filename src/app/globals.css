@@ -270,70 +270,39 @@
   background: var(--surface-3);
 }
 
-/* Semana: sin cuadrícula; días en píldoras, tarjetas separadas y la hora a la izquierda */
-.mova-calendar .fc-timeGridWeek-view .fc-scrollgrid,
-.mova-calendar .fc-timeGridWeek-view td,
-.mova-calendar .fc-timeGridWeek-view th {
+/* Semana: columnas por día sin cuadrícula; días en píldoras y tarjetas apiladas por hora */
+.mova-calendar .fc-dayGridWeek-view .fc-scrollgrid,
+.mova-calendar .fc-dayGridWeek-view td,
+.mova-calendar .fc-dayGridWeek-view th {
   border: 0;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell {
+.mova-calendar .fc-dayGridWeek-view .fc-col-header-cell {
   background: transparent;
-  padding: 0 3px 8px;
+  padding: 0 4px 10px;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell-cushion {
+.mova-calendar .fc-dayGridWeek-view .fc-col-header-cell-cushion {
   display: flex;
   width: 100%;
   padding: 0;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot {
-  height: 3rem;
+.mova-calendar .fc-dayGridWeek-view .fc-daygrid-day-frame {
+  min-height: 60vh;
+  padding: 0 4px;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label {
-  vertical-align: top;
+.mova-calendar .fc-dayGridWeek-view .fc-daygrid-day-top {
+  display: none;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label-cushion {
-  position: relative;
-  top: -0.5rem;
-  padding-right: 10px;
+.mova-calendar .fc-dayGridWeek-view .fc-daygrid-event-harness {
+  margin-bottom: 8px;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event-harness {
-  margin: 0 3px;
+.mova-calendar .fc-dayGridWeek-view .fc-daygrid-event {
+  margin: 0;
+  white-space: normal;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event {
-  margin: 2px 0;
+.mova-calendar .fc-dayGridWeek-view .fc-bg-event.mova-past {
+  border-radius: 10px;
 }
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-col-bg .fc-bg-event.mova-past {
-  border-radius: 0;
-}
-/* Tus horas de publicación: huecos sugeridos con borde punteado */
-.mova-calendar .fc-bg-event.mova-slot {
-  background: rgb(128 128 128 / 0.05);
-  border: 1px dashed var(--line-strong);
-  border-radius: 8px;
-  margin: 2px 3px;
-  opacity: 1;
-}
-/* Línea de "ahora": punteada y con la hora en una píldora */
-.mova-calendar .fc-timegrid-now-indicator-line {
-  border-color: var(--fg-3);
-  border-width: 1px 0 0;
-  border-style: dashed;
-}
-.mova-calendar .fc-timegrid-now-indicator-arrow {
-  border: 0;
-  margin-top: -9px;
-  left: 0;
-  width: 100%;
-}
-.mova-calendar .mova-now {
-  display: inline-flex;
-  height: 18px;
-  align-items: center;
-  border-radius: 999px;
-  background: var(--fg);
-  padding: 0 6px;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--canvas);
-  font-variant-numeric: tabular-nums;
+.mova-calendar .fc-dayGridWeek-view .fc-day-past .fc-daygrid-day-frame {
+  background: rgb(128 128 128 / 0.07);
+  border-radius: 10px;
 }
