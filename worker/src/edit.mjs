@@ -6,11 +6,16 @@ import { ROOT, config } from "./config.mjs";
 import { alignWords, detectSilences, framingPlan, keepSegments, remapWords, snapToOnsets, totalDuration } from "./cuts.mjs";
 import { download, remove, supabase, upload } from "./storage.mjs";
 import { applyCorrections, whisperPrompt } from "./dictionary.mjs";
+import { musicEnabled, pickTrack } from "./music.mjs";
 import { buildAss } from "./subtitles.mjs";
 import { run, tools } from "./tools.mjs";
 
 // Volumen objetivo de Instagram y TikTok
 const TARGET_LUFS = -14;
+// La música va ~13 dB por debajo de la voz y, además, baja sola mientras hablas
+const MUSIC_LUFS = -27;
+
+const musicGain = (lufs) => round(Math.min(10, Math.max(-30, MUSIC_LUFS - lufs)));
 
 /** @param {Record<string, any>} video fila de public.videos */
 export async function editVideo(video, log = console.log) {
@@ -65,11 +70,28 @@ export async function editVideo(video, log = console.log) {
     const pieces = extras.zoom_alterno ? framingPlan(segments, words) : segments.map((s) => ({ ...s, zoom: 1 }));
     const title = extras.titulo ?? null;
 
+    // Música de fondo (Epidemic Sound). Se quita con estilo.musica = false; si falla, el vídeo sale sin música
+    const editedDuration = totalDuration(segments);
+    let music = null;
+    if (musicEnabled() && extras.musica !== false) {
+      try {
+        log("Buscando música en Epidemic Sound…");
+        const file = path.join(dir, "musica.mp3");
+        const term = typeof extras.musica === "string" ? extras.musica : undefined;
+        const track = await pickTrack({ userId: video.user_id, videoId: video.id, term, duration: editedDuration, file });
+        music = { file, start: track.start, gainDb: musicGain(await loudness(file)), info: track.info };
+        log(`  «${track.info.titulo}» de ${track.info.artistas.join(", ") || "Epidemic Sound"}`);
+      } catch (e) {
+        log(`Aviso: sin música (${e.message})`);
+      }
+      step("música");
+    }
+
     log(`Montando el vídeo (${segments.length} tramos, ${pieces.length} planos, ${editedWords.length} palabras de subtítulos)…`);
     const output = path.join(dir, "editado.mp4");
     // Copia sin subtítulos en la misma pasada: permite corregirlos luego sin reeditar todo el vídeo
     const clean = path.join(dir, "limpio.mp4");
-    await render({ raw, audio: audio.file, pieces, words: editedWords, title, width, height, output, clean, dir });
+    await render({ raw, audio: audio.file, music, duration: editedDuration, pieces, words: editedWords, title, width, height, output, clean, dir });
     step("montaje");
 
     const key = `videos/${video.user_id}/${video.id}/editado.mp4`;
@@ -84,7 +106,6 @@ export async function editVideo(video, log = console.log) {
       await copyFile(output, path.join(folder, `${safeName(video.title)}-${video.id.slice(0, 8)}.mp4`));
     }
 
-    const editedDuration = totalDuration(segments);
     const text = words.map((w) => w.text).join(" ").replace(/\s+([.,;:!?])/g, "$1");
     const { error } = await supabase
       .from("videos")
@@ -108,6 +129,7 @@ export async function editVideo(video, log = console.log) {
             pausas: detection.silences.length,
             planos: pieces.length,
             subtitulos: true,
+            musica: music?.info ?? null,
             audio: audio.info,
             indicaciones: video.edit_instructions ?? null,
           },
@@ -269,19 +291,24 @@ const AAC = ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"];
 
 // Corta los planos (con zoom alterno si se pidió), quema los subtítulos y deja el formato de Reels
 // (H.264, AAC estéreo 48 kHz). En la misma pasada sale la copia sin subtítulos.
-async function render({ raw, audio, pieces, words, title, width, height, output, clean, dir }) {
+async function render({ raw, audio, music, duration, pieces, words, title, width, height, output, clean, dir }) {
   const outWidth = Math.min(1080, width) - (Math.min(1080, width) % 2);
   const outHeight = Math.round((height * outWidth) / width / 2) * 2;
   await prepareSubtitles(words, title, outWidth, outHeight, dir);
 
   // Con muchos tramos el filtro no cabe en la línea de comandos de Windows: va en un archivo.
   // ffmpeg corre dentro de la carpeta temporal para que la ruta de los subtítulos sea simple.
-  await writeFile(path.join(dir, "filtro.txt"), buildGraph(pieces, outWidth, outHeight));
+  await writeFile(
+    path.join(dir, "filtro.txt"),
+    buildGraph(pieces, outWidth, outHeight, music && { start: music.start, gainDb: music.gainDb, duration }),
+  );
   await run(
     tools.ffmpeg,
     [
       // Decodificación por hardware si el equipo la tiene (acelera los originales HEVC del iPhone)
       "-y", "-hide_banner", "-hwaccel", "auto", "-i", raw, "-i", audio,
+      // La canción se repite si es más corta que el vídeo
+      ...(music ? ["-stream_loop", "-1", "-i", music.file] : []),
       "-/filter_complex", "filtro.txt",
       "-map", "[vo]", "-map", "[ao]", ...H264, "-crf", "21", ...AAC, output,
       "-map", "[vc2]", "-map", "[ac2]", ...H264, "-crf", "20", ...AAC, clean,
@@ -290,8 +317,11 @@ async function render({ raw, audio, pieces, words, title, width, height, output,
   );
 }
 
-/** Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos, copia sin subtítulos y audio de Reels. */
-export function buildGraph(pieces, outWidth, outHeight) {
+/**
+ * Grafo de filtros de ffmpeg: planos con zoom alterno, subtítulos, copia sin subtítulos y audio de Reels.
+ * Con `music`, la canción (entrada 2) entra desde su mejor parte, con fundidos, y baja sola cuando hablas.
+ */
+export function buildGraph(pieces, outWidth, outHeight, music = null) {
   const parts = pieces.map((p, i) => {
     // Plano cerrado: recorta el centro (algo por encima, donde está la cara) y lo vuelve a escalar
     const zoom = p.zoom > 1 ? `crop=iw/${p.zoom}:ih/${p.zoom}:(iw-iw/${p.zoom})/2:(ih-ih/${p.zoom})*0.35,` : "";
@@ -306,7 +336,21 @@ export function buildGraph(pieces, outWidth, outHeight) {
     `${inputs}concat=n=${pieces.length}:v=1:a=1[vc][ac];` +
     `[vc]fps=30,format=yuv420p,split=2[vs][vc2];` +
     `[vs]subtitles=subtitulos.ass:fontsdir=fonts,format=yuv420p[vo];` +
-    `[ac]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[ao][ac2]`
+    (music ? musicMix(music) : `[ac]${STEREO},asplit=2[ao][ac2]`)
+  );
+}
+
+const STEREO = "aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo";
+
+// Voz + música: la voz controla un compresor sobre la música (ducking), luego se mezclan y un limitador evita picos
+function musicMix({ start, gainDb, duration }) {
+  const fadeOut = Math.max(0, duration - 1.5).toFixed(2);
+  return (
+    `[ac]${STEREO},asplit=2[voz][guia];` +
+    `[2:a]atrim=start=${start.toFixed(2)},asetpts=PTS-STARTPTS,${STEREO},volume=${gainDb}dB,` +
+    `afade=t=in:d=0.8,afade=t=out:st=${fadeOut}:d=1.5,atrim=end=${duration.toFixed(2)}[mus];` +
+    `[mus][guia]sidechaincompress=threshold=0.02:ratio=6:attack=40:release=500[fondo];` +
+    `[voz][fondo]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=0,asplit=2[ao][ac2]`
   );
 }
 

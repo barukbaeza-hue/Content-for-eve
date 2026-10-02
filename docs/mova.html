@@ -563,7 +563,7 @@
               <tr><td>Cortar silencios con ffmpeg, ajustando los tiempos de Whisper a los silencios reales</td><td><span class="st done">Hecho</span></td></tr>
               <tr><td>Subtítulos palabra a palabra quemados en el vídeo, y corrección de subtítulos desde Mova</td><td><span class="st done">Hecho</span></td></tr>
               <tr><td>Zoom alterno entre planos y título, solo si se piden</td><td><span class="st done">Hecho</span></td></tr>
-              <tr><td>Música de Epidemic Sound, con volumen bajo mientras hablas</td><td><span class="st doing">Siguiente</span></td></tr>
+              <tr><td>Música de Epidemic Sound: canción instrumental desde su mejor parte, con fundidos, que baja sola mientras hablas, sin repetir las de los últimos 15 vídeos, y aviso a Epidemic al publicar</td><td><span class="st doing">Hecho, falta probar con la clave</span></td></tr>
               <tr><td>Efectos con Remotion: títulos, zooms y recursos visuales</td><td><span class="st doing">Siguiente</span></td></tr>
               <tr><td>Plan de edición con Claude: cortes, tomas repetidas, indicaciones y estilo aprendido</td><td><span class="st doing">Siguiente</span></td></tr>
               <tr><td>B-roll (imágenes de apoyo)</td><td><span class="st open">Después del MVP</span></td></tr>
@@ -588,7 +588,8 @@
             <li><strong>Cómo funciona:</strong> la IA de Mova describe la música que pide el vídeo (ánimo, energía, ritmo) según el guion y el tono; se busca en Epidemic con búsqueda semántica; el worker descarga la canción, la ajusta a la duración y la mezcla con el volumen bajo mientras hablas.</li>
             <li><strong>Sin cuenta del founder:</strong> la música se usa dentro de Mova; el founder no necesita suscripción a Epidemic.</li>
             <li><strong>Al publicar:</strong> Mova avisa a Epidemic del uso (Instagram o TikTok) y registra el vídeo publicado como licenciado («safelisting»), para que no reciba reclamaciones. La licencia del vídeo es para siempre.</li>
-            <li><strong>Memoria:</strong> Mova guarda qué canción usó cada vídeo, para no repetirla varios días seguidos.</li>
+            <li><strong>Memoria:</strong> Mova guarda qué canción usó cada vídeo (en su ficha) y no repite las de los últimos 15 vídeos.</li>
+            <li><strong>Mientras la IA no elija:</strong> se busca un fondo tranquilo e instrumental, sin voz, para no competir con lo que dices. Se puede quitar la música de un vídeo.</li>
             <li><strong>Acceso:</strong> cuenta de desarrollador de Mova creada, con el plan Free (50 descargas, 100 escuchas y 50 versiones). Sirve para construir y probar. Para clientes hay que pasar a un plan de pago con Epidemic (contactar con ventas), que incluye más uso y el safelisting. Si sale caro, la alternativa con el mismo modelo es Soundstripe.</li>
             <li>Opciones descartadas: música generada con IA (ElevenLabs, ~$0,30 por minuto y sin biblioteca propia) y Pixabay Music (no permite usarla como biblioteca dentro de un producto y algunas canciones reciben reclamaciones).</li>
           </ul>
@@ -837,7 +838,7 @@
         <section>
           <div class="section-head"><h2 class="t-xl">Falta para el MVP, en este orden</h2></div>
           <ol class="pillars">
-            <li><span class="n t-sm">1</span><span><strong>Música de Epidemic Sound</strong> en la edición (cuenta Free creada para construir y probar).</span></li>
+            <li><span class="n t-sm">1</span><span><strong>Música de Epidemic Sound</strong> en la edición. Programada; falta poner la clave en el worker y probarla con un vídeo real.</span></li>
             <li><span class="n t-sm">2</span><span><strong>Efectos con Remotion:</strong> títulos, zooms y recursos visuales, por indicación o por estilo aprendido. Gratis para equipos de hasta 3 personas.</span></li>
             <li><span class="n t-sm">3</span><span><strong>IA que orquesta todo + servidor MCP:</strong> guiones, copys automáticos, perfil de marca, plan de edición, indicaciones y títulos; y el MCP para el agente del founder.</span></li>
             <li><span class="n t-sm">4</span><span><strong>Servidor en la nube</strong> para editar y publicar (hoy depende del PC del equipo).</span></li>

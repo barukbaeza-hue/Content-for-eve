@@ -28,6 +28,8 @@ export const config = {
     clientKey: process.env.TIKTOK_CLIENT_KEY?.trim() || "",
     clientSecret: process.env.TIKTOK_CLIENT_SECRET?.trim() || "",
   },
+  // Epidemic Sound: música de los vídeos. Sin clave, los vídeos se editan sin música
+  epidemicKey: process.env.EPIDEMIC_API_KEY?.trim() || "",
   instagramGraph: `https://graph.instagram.com/${process.env.INSTAGRAM_GRAPH_VERSION?.trim() || "v23.0"}`,
   publishSeconds: Number(process.env.PUBLISH_SECONDS) || 30,
   // En el PC del equipo guarda una copia del vídeo editado en worker/salida para revisarlo

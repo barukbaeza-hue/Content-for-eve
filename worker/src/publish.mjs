@@ -4,6 +4,7 @@ import { mkdtemp, open, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { config } from "./config.mjs";
+import { reportUsage } from "./music.mjs";
 import { download, signedUrl, supabase } from "./storage.mjs";
 
 const MAX_ATTEMPTS = 3;
@@ -256,6 +257,12 @@ async function processVideo(video, log) {
     try {
       const result = await STEPS[pub.platform](pub, video, account, log);
       if (result) await save({ ...result, error: null });
+      // La licencia de Epidemic Sound pide avisar en qué red se publicó la canción
+      if (result?.status === "published") {
+        await reportUsage(video.user_id, video.card?.edicion?.musica?.id, pub.platform).catch((e) =>
+          log(`Aviso: no se pudo avisar a Epidemic Sound del uso de la música (${e.message})`),
+        );
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       const attempts = pub.attempts + 1;
@@ -278,7 +285,7 @@ async function processVideo(video, log) {
 export async function publishDue(log) {
   const { data: videos, error } = await supabase
     .from("videos")
-    .select("id, user_id, title, caption, platforms, tiktok_settings, storage_path, scheduled_at")
+    .select("id, user_id, title, caption, platforms, tiktok_settings, storage_path, scheduled_at, card")
     .eq("status", "scheduled")
     .eq("edit_status", "edited")
     .lte("scheduled_at", new Date().toISOString())
