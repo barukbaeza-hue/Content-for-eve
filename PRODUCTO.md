@@ -207,7 +207,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
 | 2c · Inspiración | Idear | Feed de competencia y tendencias con chat lateral para sacar ideas, unido al chat de ideas nuevas. Método de obtención por definir | |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (ver Edición automática), ficha de cada vídeo, copys automáticos | |
-| 4 · Publicación | Publicar | Calendario desde el banco (mes con FullCalendar; semana por horas como Later, Buffer o Postiz) y publicación automática en Instagram y TikTok desde el worker, a la hora programada. TikTok entra en la primera versión porque es la red principal de Evelyn; publica en privado hasta que TikTok apruebe la app | En curso |
+| 4 · Publicación | Publicar | Calendario desde el banco (semana por horas y mes, como Later, Buffer o Postiz, con componentes propios) y publicación automática en Instagram y TikTok desde el worker, a la hora programada. TikTok entra en la primera versión porque es la red principal de Evelyn; publica en privado hasta que TikTok apruebe la app | En curso |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
 | 6 · Comunidad | Conversar | Bandeja de comentarios, respuestas sugeridas, automatizaciones tipo ManyChat (primero en Instagram) | |
 | 7 · Resultados | Aprender | Métricas por vídeo que vuelven a la memoria | |
@@ -218,7 +218,7 @@ Decisión: primero se termina el producto mínimo y después se hacen las conexi
 
 **Hecho**
 - Vídeos: subida, edición automática (audio, silencios, subtítulos), corrección de subtítulos, nombre, menú y lightbox.
-- Calendario: mes (FullCalendar) y semana con una fila por hora que crece con sus tarjetas, banco, arrastrar, cambiar la hora y lo pasado en gris.
+- Calendario: semana con una fila por hora que crece con sus tarjetas y mes por días (componentes propios, sin FullCalendar), banco, arrastrar, cambiar la hora y lo pasado en gris.
 - Métricas: Instagram y TikTok, resumen por periodo, filtro, orden y paginación.
 - Publicación: el worker publica en Instagram y TikTok (pendiente de probar con cuentas reales).
 

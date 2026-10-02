@@ -1,19 +1,15 @@
 "use client";
 
-import type { EventContentArg, EventDropArg } from "@fullcalendar/core";
-import esLocale from "@fullcalendar/core/locales/es";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin, { Draggable, type DateClickArg, type DropArg } from "@fullcalendar/interaction";
-import FullCalendar from "@fullcalendar/react";
 import { useRouter } from "next/navigation";
 import { InstagramIcon, TikTokIcon } from "@/components/ui/brand-icons";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Settings2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { Notice } from "@/components/ui/notice";
 import { menuClasses, menuItemClasses, menuSeparatorClasses } from "@/components/ui/menu";
 import { scheduleVideos } from "./actions";
 import { BankPicker } from "./bank-picker";
 import { SettingsPopover } from "./settings-popover";
+import { MonthGrid } from "./month-grid";
 import { TimePicker } from "./time-picker";
 import { DRAG_TYPE, WeekGrid } from "./week-grid";
 
@@ -30,7 +26,7 @@ export type CalendarVideo = {
 };
 
 type Change = { id: string; at: string | null };
-type View = "dayGridMonth" | "timeGridWeek";
+type View = "month" | "week";
 
 const noop = () => () => {};
 const VIEW_KEY = "mova.calendario.vista";
@@ -61,7 +57,7 @@ function shortMonth(date: Date) {
 }
 
 function rangeTitle(view: View, anchor: Date) {
-  if (view === "dayGridMonth") return anchor.toLocaleDateString("es", { month: "long", year: "numeric" });
+  if (view === "month") return anchor.toLocaleDateString("es", { month: "long", year: "numeric" });
   const a = weekStart(anchor);
   const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6);
   return a.getMonth() === b.getMonth()
@@ -106,18 +102,16 @@ function Thumb({ url }: { url: string }) {
   );
 }
 
-// Calendario sobre FullCalendar (vista de mes y de semana, arrastrar y soltar) con el banco de vídeos flotando encima.
+// Calendario de publicación (semana por horas y mes, arrastrar y soltar) con el banco de vídeos flotando encima.
 export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; perDay: number; times: string[] }) {
   // El calendario depende de la hora y la zona horaria del navegador: se dibuja solo en el cliente
   const mounted = useSyncExternalStore(noop, () => true, () => false);
   const router = useRouter();
-  const calendar = useRef<FullCalendar>(null);
-  const bankRef = useRef<HTMLElement>(null);
   const [view, setView] = useState<View>(() => {
     try {
-      return localStorage.getItem(VIEW_KEY) === "dayGridMonth" ? "dayGridMonth" : "timeGridWeek";
+      return ["month", "dayGridMonth"].includes(localStorage.getItem(VIEW_KEY) ?? "") ? "month" : "week";
     } catch {
-      return "timeGridWeek";
+      return "week";
     }
   });
   const [anchor, setAnchor] = useState(() => new Date());
@@ -148,35 +142,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     return () => clearInterval(timer);
   }, []);
 
-  const events = useMemo(() => [
-    // Todo lo que ya pasó sale en un gris más claro y no admite vídeos
-    { id: "pasado", start: "2000-01-01", end: new Date(now).toISOString(), display: "background", classNames: ["mova-past"] },
-    ...list.filter((v) => v.at).map((v) => ({
-      id: v.id,
-      title: v.title,
-      start: v.at!,
-      editable: v.status === "scheduled" && new Date(v.at!).getTime() > now,
-      extendedProps: { video: v },
-    })),
-  ], [list, now]);
-
-  // Mes: los vídeos del banco se arrastran con FullCalendar. Semana: arrastrar y soltar del navegador (ver WeekGrid).
-  useEffect(() => {
-    if (!mounted || !bankRef.current || view !== "dayGridMonth") return;
-    const draggable = new Draggable(bankRef.current, {
-      itemSelector: "[data-video]",
-      eventData: (el) => ({ id: el.dataset.video, title: el.dataset.title, create: false }),
-    });
-    return () => draggable.destroy();
-  }, [mounted, bankOpen, view]);
-
-  // El mes de FullCalendar sigue a la fecha elegida en la cabecera
-  useEffect(() => {
-    if (view === "dayGridMonth") calendar.current?.getApi().gotoDate(anchor);
-  }, [anchor, view]);
-
   function go(step: -1 | 1) {
-    setAnchor((a) => view === "dayGridMonth"
+    setAnchor((a) => view === "month"
       ? new Date(a.getFullYear(), a.getMonth() + step, 1)
       : new Date(a.getFullYear(), a.getMonth(), a.getDate() + step * 7));
   }
@@ -213,7 +180,18 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     });
   }
 
-  // En el mes se elige la primera hora libre del día; en la semana, la hora donde se suelta
+  // Mes: un vídeo ya programado se mueve de día con su misma hora; uno del banco va a la primera hora libre del día
+  function dropDay(id: string, day: Date) {
+    const old = list.find((v) => v.id === id)?.at;
+    if (!old) return place(id, day, true);
+    const at = new Date(old);
+    if (sameDay(at, day)) return;
+    at.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
+    if (at.getTime() <= currentTime()) return setError("Esa hora ya pasó. Cambia la hora del vídeo y vuelve a intentarlo.");
+    apply([{ id, at: at.toISOString() }]);
+  }
+
+  // Desde el + o el botón del banco: a una hora concreta, o a la primera hora libre del día
   function place(id: string, date: Date, allDay: boolean) {
     const now = new Date();
     if (!allDay) {
@@ -244,11 +222,6 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     } catch {}
   }
 
-  const insideBank = (x: number, y: number) => {
-    const r = bankRef.current?.getBoundingClientRect();
-    return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-  };
-
   // Hora del vídeo: clic para cambiarla (si aún no se ha publicado)
   const timeLabel = (video: CalendarVideo, movable: boolean, start: Date, className = "") =>
     movable ? (
@@ -275,15 +248,21 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     </button>
   );
 
+  const dragStart = (video: CalendarVideo) => (e: React.DragEvent) => {
+    e.dataTransfer.setData(DRAG_TYPE, video.id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   // Mes: fila compacta con miniatura, hora (clic para cambiarla), nombre y × para devolverlo al banco
-  function renderEvent({ event }: EventContentArg) {
-    const video = event.extendedProps.video as CalendarVideo | undefined;
-    if (!video) return null; // fondo de lo pasado
-    const movable = event.startEditable;
+  function monthCard(video: CalendarVideo) {
+    const movable = video.status === "scheduled" && new Date(video.at!).getTime() > now;
     return (
-      <div className={`mova-card group flex w-full min-w-0 items-center gap-1.5 rounded-md p-1 ${video.status === "published" ? "opacity-60" : ""}`}>
+      <div draggable={movable} onDragStart={dragStart(video)}
+        className={`group flex w-full min-w-0 items-center gap-1.5 rounded-md bg-surface-2 p-1 transition-colors duration-150 hover:bg-surface-3 ${
+          movable ? "cursor-grab active:cursor-grabbing" : ""
+        } ${video.status === "published" ? "opacity-60" : ""}`}>
         <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3"><Thumb url={video.url} /></span>
-        {timeLabel(video, movable, event.start!, "shrink-0 text-xs font-medium")}
+        {timeLabel(video, movable, new Date(video.at!), "shrink-0 text-xs font-medium")}
         <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{video.title}</span>
         {movable && removeButton(video)}
       </div>
@@ -296,12 +275,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     const movable = video.status === "scheduled" && new Date(video.at!).getTime() > now;
     const { text, tags } = splitCaption(video.caption);
     return (
-      <div draggable={movable}
-        onDragStart={(e) => {
-          e.dataTransfer.setData(DRAG_TYPE, video.id);
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        className={`mova-card group flex w-full min-w-0 flex-col gap-2 rounded-lg p-2 ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${
+      <div draggable={movable} onDragStart={dragStart(video)}
+        className={`group flex w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-2 p-2 transition-colors duration-150 hover:bg-surface-3 ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${
           video.status === "published" ? "opacity-60" : ""
         }`}>
         <div className="flex items-center justify-between gap-1">
@@ -370,7 +345,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
         </div>
         <div className="flex items-center gap-2">
         <div className="flex gap-1 rounded-lg border border-line p-0.5">
-          {([["timeGridWeek", "Semana"], ["dayGridMonth", "Mes"]] as const).map(([v, label]) => (
+          {([["week", "Semana"], ["month", "Mes"]] as const).map(([v, label]) => (
             <button key={v} type="button" onClick={() => changeView(v)}
               className={`flex h-7 items-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ${
                 view === v ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg"
@@ -391,67 +366,20 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
       {error && <Notice tone="danger">{error}</Notice>}
 
-      {view === "timeGridWeek" ? (
-        <div className="relative min-h-[560px] flex-1">
+      <div className="relative min-h-[560px] flex-1">
+        {view === "week" ? (
           <WeekGrid start={weekStart(anchor)} videos={list} now={now} dayHeader={dayPill} card={weekCard}
             onDrop={dropAt}
             onAdd={(hour, rect) => setAdding({ day: new Date(hour.getFullYear(), hour.getMonth(), hour.getDate()), time: hour, anchor: rect })} />
-        </div>
-      ) : (
-      <div className="mova-calendar min-h-[560px] flex-1">
-        <FullCalendar
-          ref={calendar}
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          initialDate={anchor}
-          locale={esLocale}
-          firstDay={1}
-          headerToolbar={false}
-          height="100%"
-          dayMaxEvents={4}
-          fixedWeekCount={false}
-          eventOrder="start"
-          dayHeaderContent={({ date }) => <span className="text-xs font-medium capitalize text-fg-3">{weekday(date)}</span>}
-          events={events}
-          eventContent={renderEvent}
-          eventDisplay="block"
-          editable
-          eventDurationEditable={false}
-          droppable
-          // No se programa en días que ya terminaron
-          eventAllow={(span) => span.end > new Date()}
-          dropAccept="[data-video]"
-          eventDrop={(info: EventDropArg) => {
-            if (info.event.start! <= new Date()) return info.revert();
-            // En el mes, al cambiar de día se mantiene la hora
-            apply([{ id: info.event.id, at: info.event.start!.toISOString() }]);
-          }}
-          eventDragStop={(info) => {
-            // Soltar un vídeo programado sobre el banco lo devuelve al banco
-            if (insideBank(info.jsEvent.clientX, info.jsEvent.clientY)) apply([{ id: info.event.id, at: null }]);
-          }}
-          drop={(info: DropArg) => {
-            const id = info.draggedEl.dataset.video;
-            if (id) place(id, info.date, info.allDay);
-          }}
-          dateClick={(info: DateClickArg) => {
-            const day = new Date(info.date.getFullYear(), info.date.getMonth(), info.date.getDate());
-            const today = new Date();
-            if (day < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return;
-            if (!info.allDay && info.date <= today) return;
-            setAdding({
-              day,
-              time: info.allDay ? null : info.date,
-              anchor: new DOMRect(info.jsEvent.clientX, info.jsEvent.clientY, 0, 0),
-            });
-          }}
-        />
+        ) : (
+          <MonthGrid month={anchor} videos={list} now={now} card={monthCard} onDrop={dropDay}
+            onAdd={(day, rect) => setAdding({ day, time: null, anchor: rect })} />
+        )}
       </div>
-      )}
 
       {/* Banco flotante: mismo menú de cristal que los tres puntos de los vídeos (clases compartidas) */}
-      <aside ref={bankRef} className={`${menuClasses} fixed right-6 bottom-6 z-30 w-64`}
-        // Semana: soltar una tarjeta sobre el banco la devuelve al banco
+      <aside className={`${menuClasses} fixed right-6 bottom-6 z-30 w-64`}
+        // Soltar una tarjeta sobre el banco la devuelve al banco
         onDragOver={(e) => e.dataTransfer.types.includes(DRAG_TYPE) && e.preventDefault()}
         onDrop={(e) => {
           const id = e.dataTransfer.getData(DRAG_TYPE);
@@ -476,13 +404,9 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             ) : (
               <ul className="no-scrollbar max-h-[50vh] overflow-y-auto">
                 {bank.map((video) => (
-                  <li key={video.id} data-video={video.id} data-title={video.title}
-                    data-tip={view === "dayGridMonth" ? "Arrastra a un día" : "Arrastra a una hora"}
-                    draggable={view === "timeGridWeek"}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(DRAG_TYPE, video.id);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
+                  <li key={video.id} data-video={video.id}
+                    data-tip={view === "month" ? "Arrastra a un día" : "Arrastra a una hora"}
+                    draggable onDragStart={dragStart(video)}
                     className={`${menuItemClasses} group cursor-grab active:cursor-grabbing`}>
                     <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3">
                       <Thumb url={video.url} />
