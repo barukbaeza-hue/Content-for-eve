@@ -269,37 +269,3 @@
 .mova-calendar .mova-card:hover {
   background: var(--surface-3);
 }
-
-/* Semana: cuadrícula por horas con líneas; días en píldoras y tarjetas que ocupan su bloque */
-.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell {
-  background: transparent;
-  padding: 0 4px 8px;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-col-header-cell-cushion {
-  display: flex;
-  width: 100%;
-  padding: 0;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot {
-  height: 88px;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label {
-  vertical-align: top;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-slot-label-cushion {
-  display: block;
-  padding: 4px 10px 0 6px;
-  font-variant-numeric: tabular-nums;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-col:not(.fc-day-past) {
-  cursor: pointer;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event {
-  margin: 2px 3px;
-}
-.mova-calendar .fc-timeGridWeek-view .fc-timegrid-event-harness-inset .fc-timegrid-event {
-  box-shadow: none;
-}
-.mova-calendar .fc-timegrid-now-indicator-line {
-  border-width: 1px 0 0;
-}

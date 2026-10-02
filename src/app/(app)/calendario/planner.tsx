@@ -1,9 +1,8 @@
 "use client";
 
-import type { DatesSetArg, EventContentArg, EventDropArg } from "@fullcalendar/core";
+import type { EventContentArg, EventDropArg } from "@fullcalendar/core";
 import esLocale from "@fullcalendar/core/locales/es";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin, { Draggable, type DateClickArg, type DropArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { useRouter } from "next/navigation";
@@ -16,6 +15,7 @@ import { scheduleVideos } from "./actions";
 import { BankPicker } from "./bank-picker";
 import { SettingsPopover } from "./settings-popover";
 import { TimePicker } from "./time-picker";
+import { DRAG_TYPE, WeekGrid } from "./week-grid";
 
 export type CalendarVideo = {
   id: string;
@@ -47,6 +47,26 @@ function atTime(day: Date, time: string) {
 
 function clock(date: Date) {
   return date.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+// Fuera del componente para leer la hora solo al soltar, no al dibujar
+const currentTime = () => Date.now();
+
+function weekStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
+}
+
+function shortMonth(date: Date) {
+  return date.toLocaleDateString("es", { month: "short" }).replace(".", "");
+}
+
+function rangeTitle(view: View, anchor: Date) {
+  if (view === "dayGridMonth") return anchor.toLocaleDateString("es", { month: "long", year: "numeric" });
+  const a = weekStart(anchor);
+  const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6);
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()} – ${b.getDate()} ${shortMonth(b)} ${b.getFullYear()}`
+    : `${a.getDate()} ${shortMonth(a)} – ${b.getDate()} ${shortMonth(b)} ${b.getFullYear()}`;
 }
 
 function seconds(n: number | null) {
@@ -100,7 +120,7 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       return "timeGridWeek";
     }
   });
-  const [title, setTitle] = useState("");
+  const [anchor, setAnchor] = useState(() => new Date());
   const [settingsAt, setSettingsAt] = useState<DOMRect | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [error, setError] = useState<string | null>(null);
@@ -140,15 +160,39 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
     })),
   ], [list, now]);
 
-  // Los vídeos del banco se pueden arrastrar al calendario
+  // Mes: los vídeos del banco se arrastran con FullCalendar. Semana: arrastrar y soltar del navegador (ver WeekGrid).
   useEffect(() => {
-    if (!mounted || !bankRef.current) return;
+    if (!mounted || !bankRef.current || view !== "dayGridMonth") return;
     const draggable = new Draggable(bankRef.current, {
       itemSelector: "[data-video]",
       eventData: (el) => ({ id: el.dataset.video, title: el.dataset.title, create: false }),
     });
     return () => draggable.destroy();
-  }, [mounted, bankOpen]);
+  }, [mounted, bankOpen, view]);
+
+  // El mes de FullCalendar sigue a la fecha elegida en la cabecera
+  useEffect(() => {
+    if (view === "dayGridMonth") calendar.current?.getApi().gotoDate(anchor);
+  }, [anchor, view]);
+
+  function go(step: -1 | 1) {
+    setAnchor((a) => view === "dayGridMonth"
+      ? new Date(a.getFullYear(), a.getMonth() + step, 1)
+      : new Date(a.getFullYear(), a.getMonth(), a.getDate() + step * 7));
+  }
+
+  // Semana: al soltar en una hora se mantienen los minutos que ya tenía el vídeo (o en punto si viene del banco).
+  // En la hora en curso, si esos minutos ya pasaron, a los próximos 5 minutos.
+  function dropAt(id: string, hour: Date) {
+    const old = list.find((v) => v.id === id)?.at;
+    const at = new Date(hour);
+    if (old) at.setMinutes(new Date(old).getMinutes());
+    const soon = currentTime() + 5 * 60 * 1000;
+    if (at.getTime() < soon) at.setTime(Math.ceil(soon / (5 * 60 * 1000)) * 5 * 60 * 1000);
+    if (at.getTime() >= hour.getTime() + 3600 * 1000) return setError("Esa hora ya pasó.");
+    if (old && new Date(old).getTime() === at.getTime()) return;
+    apply([{ id, at: at.toISOString() }]);
+  }
 
   function apply(changes: Change[]) {
     if (!changes.length) return;
@@ -195,7 +239,6 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
   function changeView(next: View) {
     setView(next);
-    calendar.current?.getApi().changeView(next);
     try {
       localStorage.setItem(VIEW_KEY, next);
     } catch {}
@@ -221,55 +264,63 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <span className={`tabular-nums ${className}`}>{video.status === "published" ? "Publicado" : clock(start)}</span>
     );
 
-  // Cada vídeo es una tarjeta: miniatura, nombre, hora (clic para cambiarla), redes y × para devolverlo al banco
-  function renderEvent({ event, view: current }: EventContentArg) {
+  const removeButton = (video: CalendarVideo) => (
+    <button type="button" aria-label="Devolver al banco" data-tip="Devolver al banco"
+      onClick={(e) => {
+        e.stopPropagation();
+        apply([{ id: video.id, at: null }]);
+      }}
+      className="hidden size-5 shrink-0 items-center justify-center rounded text-fg-3 group-hover:flex hover:bg-surface-1 hover:text-fg">
+      <X className="size-3.5" strokeWidth={2} />
+    </button>
+  );
+
+  // Mes: fila compacta con miniatura, hora (clic para cambiarla), nombre y × para devolverlo al banco
+  function renderEvent({ event }: EventContentArg) {
     const video = event.extendedProps.video as CalendarVideo | undefined;
-    if (!video) return null; // fondos: lo pasado y las horas sugeridas
+    if (!video) return null; // fondo de lo pasado
     const movable = event.startEditable;
-    const published = video.status === "published";
-    const remove = movable && (
-      <button type="button" aria-label="Devolver al banco" data-tip="Devolver al banco"
-        onClick={(e) => {
-          e.stopPropagation();
-          apply([{ id: video.id, at: null }]);
-        }}
-        className="hidden size-5 shrink-0 items-center justify-center rounded text-fg-3 group-hover:flex hover:bg-surface-1 hover:text-fg">
-        <X className="size-3.5" strokeWidth={2} />
-      </button>
+    return (
+      <div className={`mova-card group flex w-full min-w-0 items-center gap-1.5 rounded-md p-1 ${video.status === "published" ? "opacity-60" : ""}`}>
+        <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3"><Thumb url={video.url} /></span>
+        {timeLabel(video, movable, event.start!, "shrink-0 text-xs font-medium")}
+        <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{video.title}</span>
+        {movable && removeButton(video)}
+      </div>
     );
+  }
 
-    if (current.type === "dayGridMonth") {
-      return (
-        <div className={`mova-card group flex w-full min-w-0 items-center gap-1.5 rounded-md p-1 ${published ? "opacity-60" : ""}`}>
-          <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3"><Thumb url={video.url} /></span>
-          {timeLabel(video, movable, event.start!, "shrink-0 text-xs font-medium")}
-          <span className="min-w-0 flex-1 truncate text-xs text-fg-2">{video.title}</span>
-          {remove}
-        </div>
-      );
-    }
-
-    // Semana: la tarjeta ocupa su bloque de horas; hora, vídeo, hashtags, nombre y descripción, y las redes en círculos
+  // Semana: tarjeta completa con hora, vídeo, hashtags, nombre y descripción, y las redes en círculos.
+  // Se arrastra a otra hora o al banco.
+  function weekCard(video: CalendarVideo) {
+    const movable = video.status === "scheduled" && new Date(video.at!).getTime() > now;
     const { text, tags } = splitCaption(video.caption);
     return (
-      <div className={`mova-card group flex size-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg p-2 ${published ? "opacity-60" : ""}`}>
+      <div draggable={movable}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_TYPE, video.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        className={`mova-card group flex w-full min-w-0 flex-col gap-2 rounded-lg p-2 ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${
+          video.status === "published" ? "opacity-60" : ""
+        }`}>
         <div className="flex items-center justify-between gap-1">
-          {timeLabel(video, movable, event.start!, "text-xs font-medium text-fg")}
-          {remove}
+          {timeLabel(video, movable, new Date(video.at!), "text-xs font-medium text-fg")}
+          {movable && removeButton(video)}
         </div>
-        <span className="block min-h-8 flex-1 overflow-hidden rounded-md bg-surface-3"><Thumb url={video.url} /></span>
+        <span className="block aspect-[4/5] w-full overflow-hidden rounded-md bg-surface-3"><Thumb url={video.url} /></span>
         {tags.length > 0 && (
-          <span className="flex gap-1 overflow-hidden">
+          <span className="flex flex-wrap gap-1">
             {tags.slice(0, 3).map((t) => (
-              <span key={t} className="max-w-full shrink-0 truncate rounded-full bg-surface-3 px-1.5 py-px text-2xs text-fg-2">{t}</span>
+              <span key={t} className="max-w-full truncate rounded-full bg-surface-3 px-1.5 py-px text-2xs text-fg-2">{t}</span>
             ))}
           </span>
         )}
-        <p className="line-clamp-2 shrink-0 text-xs whitespace-normal">
+        <p className="line-clamp-3 text-xs">
           <span className="font-medium text-fg">{video.title}.</span>{" "}
           <span className="text-fg-3">{text || "Sin descripción."}</span>
         </p>
-        <span className="flex shrink-0 gap-1">
+        <span className="flex gap-1">
           {video.platforms.map((p) => (
             <span key={p} aria-label={p === "instagram" ? "Instagram" : "TikTok"} data-tip={p === "instagram" ? "Instagram" : "TikTok"}
               className="flex size-6 items-center justify-center rounded-full bg-surface-3 text-fg-2">
@@ -282,12 +333,12 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
   }
 
   // Encabezado de cada día: píldora con el día y la fecha; hoy, invertida
-  function renderDayHeader({ date, isToday, view: current }: { date: Date; isToday: boolean; view: { type: string } }) {
-    const weekday = date.toLocaleDateString("es", { weekday: "short" }).replace(".", "");
-    if (current.type === "dayGridMonth") return <span className="text-xs font-medium capitalize text-fg-3">{weekday}</span>;
+  const weekday = (date: Date) => date.toLocaleDateString("es", { weekday: "short" }).replace(".", "");
+
+  function dayPill(date: Date, isToday: boolean) {
     return (
       <span className={`flex w-full flex-col items-center rounded-lg py-1.5 ${isToday ? "bg-fg text-canvas" : "bg-surface-2 text-fg"}`}>
-        <span className={`text-2xs font-medium uppercase ${isToday ? "" : "text-fg-3"}`}>{weekday}</span>
+        <span className={`text-2xs font-medium uppercase ${isToday ? "" : "text-fg-3"}`}>{weekday(date)}</span>
         <span className="text-sm font-medium tabular-nums">{date.getDate()}</span>
       </span>
     );
@@ -302,20 +353,20 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-lg border border-line p-0.5">
-            <button type="button" aria-label="Anterior" onClick={() => calendar.current?.getApi().prev()}
+            <button type="button" aria-label="Anterior" onClick={() => go(-1)}
               className="flex size-7 items-center justify-center rounded-md text-fg-3 hover:bg-surface-2 hover:text-fg">
               <ChevronLeft className="size-4" strokeWidth={1.75} />
             </button>
-            <button type="button" onClick={() => calendar.current?.getApi().today()}
+            <button type="button" onClick={() => setAnchor(new Date())}
               className="h-7 rounded-md px-2.5 text-sm font-medium text-fg-2 hover:bg-surface-2 hover:text-fg">
               Hoy
             </button>
-            <button type="button" aria-label="Siguiente" onClick={() => calendar.current?.getApi().next()}
+            <button type="button" aria-label="Siguiente" onClick={() => go(1)}
               className="flex size-7 items-center justify-center rounded-md text-fg-3 hover:bg-surface-2 hover:text-fg">
               <ChevronRight className="size-4" strokeWidth={1.75} />
             </button>
           </div>
-          <h2 className="text-md font-medium first-letter:uppercase">{title}</h2>
+          <h2 className="text-md font-medium first-letter:uppercase">{rangeTitle(view, anchor)}</h2>
         </div>
         <div className="flex items-center gap-2">
         <div className="flex gap-1 rounded-lg border border-line p-0.5">
@@ -340,37 +391,35 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
 
       {error && <Notice tone="danger">{error}</Notice>}
 
+      {view === "timeGridWeek" ? (
+        <div className="relative min-h-[560px] flex-1">
+          <WeekGrid start={weekStart(anchor)} videos={list} now={now} dayHeader={dayPill} card={weekCard}
+            onDrop={dropAt}
+            onAdd={(hour, rect) => setAdding({ day: new Date(hour.getFullYear(), hour.getMonth(), hour.getDate()), time: hour, anchor: rect })} />
+        </div>
+      ) : (
       <div className="mova-calendar min-h-[560px] flex-1">
         <FullCalendar
           ref={calendar}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView={view}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          initialDate={anchor}
           locale={esLocale}
           firstDay={1}
           headerToolbar={false}
           height="100%"
           dayMaxEvents={4}
-          // Semana: cuadrícula por horas (líneas cada hora); cada vídeo ocupa un bloque de 2 h para que quepa su tarjeta
-          allDaySlot={false}
-          slotDuration="01:00:00"
-          snapDuration="00:15:00"
-          slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-          scrollTime="08:00:00"
-          defaultTimedEventDuration="02:00:00"
-          nowIndicator
           fixedWeekCount={false}
           eventOrder="start"
-          dayHeaderContent={renderDayHeader}
+          dayHeaderContent={({ date }) => <span className="text-xs font-medium capitalize text-fg-3">{weekday(date)}</span>}
           events={events}
           eventContent={renderEvent}
           eventDisplay="block"
           editable
           eventDurationEditable={false}
           droppable
-          datesSet={(arg: DatesSetArg) => setTitle(arg.view.title)}
-          // No se programa en el pasado
-          // En el mes vale cualquier día que no haya terminado; en la semana, solo horas futuras
-          eventAllow={(span) => (span.allDay ? span.end : span.start) > new Date()}
+          // No se programa en días que ya terminaron
+          eventAllow={(span) => span.end > new Date()}
           dropAccept="[data-video]"
           eventDrop={(info: EventDropArg) => {
             if (info.event.start! <= new Date()) return info.revert();
@@ -398,9 +447,16 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
           }}
         />
       </div>
+      )}
 
       {/* Banco flotante: mismo menú de cristal que los tres puntos de los vídeos (clases compartidas) */}
-      <aside ref={bankRef} className={`${menuClasses} fixed right-6 bottom-6 z-30 w-64`}>
+      <aside ref={bankRef} className={`${menuClasses} fixed right-6 bottom-6 z-30 w-64`}
+        // Semana: soltar una tarjeta sobre el banco la devuelve al banco
+        onDragOver={(e) => e.dataTransfer.types.includes(DRAG_TYPE) && e.preventDefault()}
+        onDrop={(e) => {
+          const id = e.dataTransfer.getData(DRAG_TYPE);
+          if (id && list.some((v) => v.id === id && v.at)) apply([{ id, at: null }]);
+        }}>
         <button type="button" onClick={() => setBankOpen((o) => !o)} aria-expanded={bankOpen}
           className={`${menuItemClasses.replace("h-9 ", "")} py-1.5`}>
           <span className="min-w-0 flex-1">
@@ -420,7 +476,13 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
             ) : (
               <ul className="no-scrollbar max-h-[50vh] overflow-y-auto">
                 {bank.map((video) => (
-                  <li key={video.id} data-video={video.id} data-title={video.title} data-tip="Arrastra a un día"
+                  <li key={video.id} data-video={video.id} data-title={video.title}
+                    data-tip={view === "dayGridMonth" ? "Arrastra a un día" : "Arrastra a una hora"}
+                    draggable={view === "timeGridWeek"}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(DRAG_TYPE, video.id);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
                     className={`${menuItemClasses} group cursor-grab active:cursor-grabbing`}>
                     <span className="aspect-[9/16] h-6 shrink-0 overflow-hidden rounded-sm bg-surface-3">
                       <Thumb url={video.url} />
@@ -449,7 +511,8 @@ export function Planner({ videos, perDay, times }: { videos: CalendarVideo[]; pe
           onClose={() => setAdding(null)}
           onPick={(id) => {
             setAdding(null);
-            place(id, adding.time ?? adding.day, !adding.time);
+            if (adding.time) dropAt(id, adding.time);
+            else place(id, adding.day, true);
           }} />
       )}
       {picked && picking && (

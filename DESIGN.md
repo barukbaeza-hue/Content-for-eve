@@ -73,4 +73,4 @@ Controles propios (`controls.tsx`), nunca los nativos: `Checkbox` (casilla de 16
 
 Los menús flotantes de cristal (tres puntos, banco del calendario, selectores) usan las clases compartidas de `src/components/ui/menu.ts`: mismo cristal, relleno, filas y separadores. Lo único que cambia entre ellos es el fondo que tienen detrás.
 
-El calendario de publicación usa **FullCalendar** (vistas de mes y semana, arrastrar y soltar), con sus colores sacados de los tokens en `globals.css` (`.mova-calendar`). No se reinventan componentes que ya existen y están probados.
+El calendario de publicación copia lo que ya funciona en Later, Buffer, Metricool y Postiz. El **mes** usa **FullCalendar**, con sus colores sacados de los tokens en `globals.css` (`.mova-calendar`). La **semana** es una cuadrícula propia (`week-grid.tsx`) con una fila por hora y una columna por día, como en esas herramientas: cada fila crece con las tarjetas que tiene (hora, vídeo, hashtags, nombre y descripción, redes), las horas vacías quedan bajas, al pasar por una hora libre aparece un +, lo pasado sale en gris y la línea roja marca la hora actual. Se arrastra entre horas y desde o hacia el banco.
