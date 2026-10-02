@@ -89,7 +89,8 @@ Decidido. Se empieza de cero: Scribe se hizo con ffmpeg y no funcionó bien. Cad
 
 - **Estilo del founder:** Mova aprende de sus vídeos cómo edita (ritmo de cortes, estilo de subtítulos, zooms, tipo de música y duración) y qué estilo le da mejores métricas. Los vídeos nuevos siguen ese estilo.
 - **Memoria del founder:** usa el guion, su tono y las fichas de sus vídeos anteriores, por ejemplo para no repetir la misma música varios días seguidos.
-- **Indicaciones (prompt):** el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat.
+- **Indicaciones (prompt):** el founder puede escribir cómo quiere la edición, para un vídeo, para un lote o como preferencia fija ("más dinámico", "música tranquila", "sin zooms"). También se lo puede pedir al agente en el chat o desde su propio agente por MCP.
+- **Un solo orquestador, el de Mova:** la IA propia de Mova (Claude) siempre arma el plan de edición y el worker lo ejecuta. Las órdenes le llegan por tres caminos: automático (estilo guardado, sin que nadie pida nada), el founder en Mova (indicaciones) o el agente del founder por MCP. El agente externo solo manda; el de Mova hace. Así la calidad es la misma venga de donde venga la orden.
 - **Prioridad:** primero las indicaciones, después el estilo aprendido y, si no hay nada, el estilo por defecto de Mova.
 
 ### Estilo de subtítulos
@@ -171,6 +172,16 @@ Con la ficha, el agente puede avisar si repites ropa o lugar, cruzar lo visual y
   - **Automático:** actúa sin preguntar, pero solo con reglas que tú creaste, como la respuesta automática a "INFO".
 - **Es transparente.** Todo lo que hace queda registrado y se puede deshacer. Nunca publica ni responde nada que no hayas autorizado.
 
+### Agentes propios del founder (MCP)
+
+Decidido: Mova tiene **IA propia** y además un **servidor MCP** para que el founder conecte su propio agente (Claude, ChatGPT u otro). Mova vende la infraestructura ya hecha; el agente del founder es un canal más, no reemplaza la IA de Mova.
+
+- **IA propia de Mova (siempre):** orquesta lo automático y lo que se pide desde Mova: plan de edición, copys, títulos, perfil de marca y el chat de Ideas para quien no tiene agente. Es necesaria porque lo automático pasa en segundo plano, sin ninguna conversación abierta, y el agente del founder solo actúa cuando él le escribe.
+- **Agente del founder por MCP (opcional):** manda órdenes y lee datos; no ejecuta por su cuenta. Herramientas previstas: ver vídeos y banco, programar y desprogramar, leer métricas, crear y guardar ideas y guiones, leer la marca, pedir una edición con indicaciones (la ejecuta el orquestador de Mova) y publicar con confirmación.
+- **Por qué no solo MCP:** muchos creadores no van a conectar un agente; ChatGPT solo permite acciones de escritura por MCP en planes Business y Enterprise (Plus y Pro, solo lectura); y la calidad (el guion en su voz, la edición) no puede depender del agente de cada uno. El chat de Ideas cuesta 1 o 2 céntimos por mensaje: el ahorro de no tener IA propia sería pequeño.
+- **Seguridad:** OAuth y permisos por acción, confirmación antes de publicar y defensa contra instrucciones escondidas en contenido ajeno (por ejemplo, la descripción de un vídeo de Inspiración).
+- **Precio:** suscripción por la infraestructura, con la IA de Mova incluida hasta un límite.
+
 ### 2. El banco de vídeos
 
 - Los vídeos editados y con copy entran en un **banco**, una cola de vídeos listos para publicar.
@@ -227,7 +238,7 @@ Decisión: primero se termina el producto mínimo y después se hacen las conexi
 2. Ajustes del calendario: horas de publicación y vídeos al día.
 3. Música libre de derechos en la edición.
 4. Efectos con Remotion (títulos, zooms y otros recursos visuales, por prompt o por estilo aprendido). Licencia: gratis para equipos de hasta 3 personas; con más, licencia de empresa.
-5. IA con Anthropic: ideas y guiones, copys automáticos, perfil de marca, indicaciones de edición y títulos.
+5. IA con Anthropic, que orquesta todo: ideas y guiones, copys automáticos, perfil de marca, plan de edición e indicaciones, y títulos. Y el servidor MCP para que el founder conecte su propio agente (manda órdenes al orquestador de Mova).
 6. Servidor en la nube para editar y publicar (hoy depende del PC del equipo).
 
 **Después del MVP:** conexiones reales, revisión de TikTok y Meta, y pruebas con usuarios. Fuera del MVP: b-roll, bandeja de comentarios y agente.
