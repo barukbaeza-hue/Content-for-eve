@@ -205,7 +205,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables y guion breve | Hecho |
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Tu historia y tu visión" (hecho) | Siguiente |
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
-| 2c · Inspiración | Idear | Feed de competencia y tendencias estilo TikTok con el chat abajo (el agente tiene el vídeo como contexto y sus ideas se guardan como cualquier otra). Diseño hecho con datos de prueba; método de obtención por definir | En curso |
+| 2c · Inspiración | Idear | En el ordenador, Inspiración y el chat van en la misma página: rejilla de vídeos con el chat abajo; al abrir un vídeo se ve en el visor estilo TikTok y el chat lo toma como contexto. En el móvil, Chat, Inspiración y Guardadas son pestañas. Las ideas se guardan como cualquier otra. Diseño hecho con datos de prueba; método de obtención por definir | En curso |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (ver Edición automática), ficha de cada vídeo, copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco (semana por horas y mes, como Later, Buffer o Postiz, con componentes propios) y publicación automática en Instagram y TikTok desde el worker, a la hora programada. TikTok entra en la primera versión porque es la red principal de Evelyn; publica en privado hasta que TikTok apruebe la app | En curso |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |

@@ -4,10 +4,11 @@ import { Page } from "@/components/shell/page";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
-import { Chat } from "./chat";
 import { ResetButton } from "./reset-button";
+import { SAMPLE_FEED } from "./inspiracion/sample";
 import { IdeasTabs } from "./tabs";
 import type { ChatMessage } from "./types";
+import { Workspace } from "./workspace";
 
 export default async function IdeasPage() {
   const supabase = await createClient();
@@ -41,8 +42,7 @@ export default async function IdeasPage() {
           <IdeasTabs savedCount={count ?? 0} />
         </>
       }>
-      {/* La key reinicia el chat cuando se borra la conversación. */}
-      <Chat key={history[0]?.id ?? "vacio"} initialMessages={history} />
+      <Workspace items={SAMPLE_FEED} initialMessages={history} />
     </Page>
   );
 }
