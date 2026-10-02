@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 // Burbujas de ayuda propias (nunca el `title` del navegador). Cualquier elemento con `data-tip="…"`
 // muestra su burbuja de cristal al pasar el ratón; este componente va una sola vez en el layout.
 export function Tooltips() {
-  const [tip, setTip] = useState<{ text: string; x: number; y: number; side: "top" | "bottom" | "right" } | null>(null);
+  const [tip, setTip] = useState<{ text: string; x: number; y: number; side: "top" | "bottom" | "right" | "left" } | null>(null);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -30,6 +30,10 @@ export function Tooltips() {
           setTip({ text, x: r.right + 8, y: r.top + r.height / 2, side: "right" });
           return;
         }
+        if (el.getAttribute("data-tip-side") === "left") {
+          setTip({ text, x: r.left - 8, y: r.top + r.height / 2, side: "left" });
+          return;
+        }
         const below = r.top < 48;
         setTip({ text, x: r.left + r.width / 2, y: below ? r.bottom + 6 : r.top - 6, side: below ? "bottom" : "top" });
       }, 450);
@@ -49,7 +53,7 @@ export function Tooltips() {
   return createPortal(
     <div role="tooltip" style={{ left: tip.x, top: tip.y }}
       className={`glass pointer-events-none fixed z-[60] max-w-xs rounded-md px-2 py-1 text-xs text-fg ${
-        tip.side === "right" ? "-translate-y-1/2" : tip.side === "top" ? "-translate-x-1/2 -translate-y-full" : "-translate-x-1/2"
+        tip.side === "right" ? "-translate-y-1/2" : tip.side === "left" ? "-translate-x-full -translate-y-1/2" : tip.side === "top" ? "-translate-x-1/2 -translate-y-full" : "-translate-x-1/2"
       }`}>
       {tip.text}
     </div>,

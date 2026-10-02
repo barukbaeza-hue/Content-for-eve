@@ -7,6 +7,7 @@ export function IdeasTabs({ savedCount }: { savedCount: number }) {
   const pathname = usePathname();
   const tabs = [
     { href: "/ideas", label: "Chat" },
+    { href: "/ideas/inspiracion", label: "Inspiración" },
     { href: "/ideas/guardadas", label: "Guardadas", count: savedCount },
   ];
 

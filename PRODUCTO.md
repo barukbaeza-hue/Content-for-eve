@@ -58,7 +58,7 @@ El método técnico para conseguir el contenido de las redes está por definir.
 
 **Cómo se usa:**
 - Tocas un vídeo y se abre el reproductor.
-- Al lado se abre un chat con el agente, que tiene ese vídeo como contexto. Le puedes preguntar por qué funciona, o pedirle que lo adapte a tu marca y te dé el guion.
+- Abajo hay un chat con el agente, que tiene ese vídeo como contexto. Le puedes preguntar por qué funciona, o pedirle que lo adapte a tu marca y te dé el guion.
 - Las ideas que salen de ahí se guardan como cualquier otra.
 
 **Métodos candidatos** (hay que investigarlos y decidir; lo ideal es combinar varios):
@@ -191,7 +191,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 |---|---|---|
 | Onboarding y perfil | Conectar Instagram y TikTok; Mova crea el perfil a partir de los vídeos | App de Meta, app de TikTok, IA |
 | Ideas y guiones | Chat con IA, ideas y guion en tu voz | Clave de Anthropic |
-| Feed de inspiración | Vídeos de tu nicho y tus referentes, con chat al lado para sacar ideas | Método por decidir (ver Inspiración) |
+| Feed de inspiración | Vídeos de tu nicho y tus referentes, con chat abajo para sacar ideas | Método por decidir (ver Inspiración) |
 | Banco de vídeos | Subida por lotes, copy con IA, cola con días de contenido | Clave de Anthropic |
 | Edición automática | Cortes, audio limpio, subtítulos animados, zooms y música, en cola | Worker con Whisper, ffmpeg, DeepFilterNet y Remotion; Cloudflare R2 |
 | Calendario y publicación | Programar la semana y publicar solo en Instagram y TikTok | Apps de Meta y TikTok |
@@ -205,7 +205,7 @@ Todo menos **automatizaciones** y **comunidad** (pilar Conversar), que van despu
 | 1 · Ideas | Idear | Chat con IA (Claude Sonnet 5) con ideas guardables y guion breve | Hecho |
 | 2 · Mi marca automática | Conocer | Conectar Instagram y TikTok por API oficial, analizar vídeos propios, perfil de voz. Sección "Tu historia y tu visión" (hecho) | Siguiente |
 | 2b · Guiones | Idear | Guion completo en la voz del founder a partir de una idea, editable | |
-| 2c · Inspiración | Idear | Feed de competencia y tendencias con chat lateral para sacar ideas, unido al chat de ideas nuevas. Método de obtención por definir | |
+| 2c · Inspiración | Idear | Feed de competencia y tendencias estilo TikTok con el chat abajo (el agente tiene el vídeo como contexto y sus ideas se guardan como cualquier otra). Diseño hecho con datos de prueba; método de obtención por definir | En curso |
 | 3 · Banco y edición | Editar | Subida por lotes, edición automática en cola (ver Edición automática), ficha de cada vídeo, copys automáticos | |
 | 4 · Publicación | Publicar | Calendario desde el banco (semana por horas y mes, como Later, Buffer o Postiz, con componentes propios) y publicación automática en Instagram y TikTok desde el worker, a la hora programada. TikTok entra en la primera versión porque es la red principal de Evelyn; publica en privado hasta que TikTok apruebe la app | En curso |
 | 5 · Agente | Todos | Chat con contexto en todas las pantallas que ejecuta acciones, y proactividad | |
