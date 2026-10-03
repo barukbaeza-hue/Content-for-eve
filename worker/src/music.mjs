@@ -55,12 +55,19 @@ async function recentTracks(userId, videoId) {
  */
 export async function pickTrack({ userId, videoId, term = DEFAULT_TERM, duration, file }) {
   const used = await recentTracks(userId, videoId);
-  const params = new URLSearchParams({ term, vocalType: "NONE", sort: "relevance", order: "desc", limit: "20" });
+  // isPreviewOnly: canciones que nuestro plan no permite descargar. Con la clave de la API solo se descargan
+  // las de las colecciones activadas en el portal de Epidemic; si la búsqueda no da ninguna, se elige de ellas.
+  const downloadable = (list) => list.filter((t) => !t.isPreviewOnly && t.hasVocals !== true && t.vocalType !== "LEAD");
+  const params = new URLSearchParams({ term, vocalType: "NONE", sort: "relevance", order: "desc", limit: "60" });
   const { tracks = [] } = await epidemic(`/tracks/search?${params}`, userId);
-  // isPreviewOnly: canciones del catálogo de pago que nuestro plan no permite descargar
-  const candidates = tracks.filter((t) => !t.isPreviewOnly && !used.has(t.id));
-  const track = candidates[0] ?? tracks.find((t) => !t.isPreviewOnly);
-  if (!track) throw new Error("Epidemic Sound no devolvió canciones descargables para esta búsqueda");
+  let pool = downloadable(tracks);
+  if (!pool.length) pool = downloadable(await collectionTracks(userId));
+  const track = pool.find((t) => !used.has(t.id)) ?? pool[0];
+  if (!track) {
+    throw new Error(
+      `ninguna canción descargable (búsqueda: ${tracks.length}, todas de vista previa). Activa colecciones en el portal de Epidemic Sound`,
+    );
+  }
 
   const seconds = Math.min(60, Math.max(5, Math.round(duration)));
   const [highlight, download] = await Promise.all([
@@ -82,6 +89,18 @@ export async function pickTrack({ userId, videoId, term = DEFAULT_TERM, duration
       desde: start,
     },
   };
+}
+
+/** Canciones de las colecciones activadas en el portal de Epidemic (las que nuestro plan puede descargar). */
+async function collectionTracks(userId) {
+  const { collections = [] } = await epidemic("/collections?limit=50", userId);
+  const tracks = [];
+  for (const c of collections) {
+    const list = c.tracks?.length ? c.tracks : (await epidemic(`/collections/${c.id}`, userId).catch(() => null))?.tracks ?? [];
+    tracks.push(...list);
+  }
+  // Orden variado para no usar siempre la primera canción de la primera colección
+  return tracks.sort(() => Math.random() - 0.5);
 }
 
 /** Avisa a Epidemic de que el vídeo con esa canción se publicó en una red (lo pide su licencia). */
