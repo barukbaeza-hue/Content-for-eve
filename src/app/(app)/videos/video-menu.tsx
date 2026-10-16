@@ -1,6 +1,6 @@
 "use client";
 
-import { Captions, Download, MoreHorizontal, Pencil, Send, Share2, Trash2, type LucideIcon } from "lucide-react";
+import { Clapperboard, Download, MoreHorizontal, Pencil, Send, Share2, Trash2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -81,8 +81,8 @@ export function VideoActions({ id, title, url, downloadUrl, canEditSubtitles, ca
       </Item>
       {canEditSubtitles && (
         <Link href={`/videos/${id}`} className={menuItemClasses} role="menuitem">
-          <Captions className="size-4 text-fg-3" strokeWidth={1.75} />
-          Editar subtítulos
+          <Clapperboard className="size-4 text-fg-3" strokeWidth={1.75} />
+          Abrir en el Studio
         </Link>
       )}
       {url && (

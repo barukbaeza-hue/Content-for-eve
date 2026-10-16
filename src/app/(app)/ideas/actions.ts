@@ -2,18 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { AiError, chat } from "@/lib/ai";
+import { aiErrorMessage } from "@/lib/ai-errors";
 import { PROFILE_FIELDS, STATUSES, type Status } from "@/lib/content";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatIdea, ChatMessage } from "./types";
-
-const AI_ERRORS: Record<AiError["reason"], string> = {
-  "sin-clave": "La IA aún no está configurada. Falta la clave de Anthropic en Vercel.",
-  "clave-invalida": "La clave de Anthropic no es válida. Revísala en Vercel.",
-  "sin-saldo": "Se acabó el saldo de la IA. Recarga créditos en la consola de Anthropic.",
-  saturada: "La IA está saturada ahora mismo. Prueba de nuevo en un minuto.",
-  limite: "Demasiadas peticiones seguidas. Espera un minuto y vuelve a intentarlo.",
-  fallo: "La IA no pudo responder esta vez. Inténtalo de nuevo.",
-};
 
 // Mensajes anteriores que se envían como contexto: suficiente para seguir el hilo sin disparar el coste.
 const HISTORY_LIMIT = 20;
@@ -48,8 +40,7 @@ export async function sendMessage(text: string): Promise<SendResult> {
     answer = await chat(brand, [...history, { role: "user", content, ideas: [] }], (saved ?? []).map((s) => s.title));
   } catch (error) {
     if (error instanceof AiError) {
-      const code = error.code && error.reason === "fallo" ? ` (código: ${error.code})` : "";
-      return { error: AI_ERRORS[error.reason] + code };
+      return { error: aiErrorMessage(error) };
     }
     throw error;
   }

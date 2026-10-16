@@ -317,7 +317,7 @@
     <div class="panel">
       <header class="panel-header t-sm">
         <span class="crumbs"><a href="#inicio">Mova</a><span class="sep" data-crumb-sep hidden>/</span><span data-crumb style="font-weight: var(--medium)"></span></span>
-        <span class="meta t-xs">Actualizado · 2 oct 2026</span>
+        <span class="meta t-xs">Actualizado · 16 oct 2026</span>
       </header>
 
       <!-- ============ INICIO ============ -->
@@ -390,6 +390,7 @@
             <li><strong>Qué quieren:</strong> una marca personal que les dé alcance y confianza, sin que les coma el día.</li>
             <li><strong>Por qué ellos y no los creadores freelance:</strong> pagan más y abandonan menos; casi nadie resuelve el vídeo corto para fundadores (las herramientas se centran en LinkedIn); y sus vídeos, hablando a cámara, son ideales para editar de forma automática y en cola.</li>
             <li>Evelyn es la primera usuaria de prueba. Su red principal es TikTok.</li>
+            <li><strong>Competencia directa:</strong> Huemy (tryhuemy.com, Chile), editor de vídeo por chat que aprende el estilo de edición del creador (largo de cortes, subtítulos, volumen de música) como parámetros. En acceso anticipado, desde US$19 al mes. Según su founder, edita casi 3 veces más rápido y gasta menos tokens.</li>
           </ul>
         </section>
 
@@ -578,6 +579,20 @@
             <li>Limpia el audio: quita ruido y nivela el volumen.</li>
             <li>Subtítulos animados y zooms suaves en momentos clave.</li>
             <li>Música libre de derechos incluida en el vídeo: biblioteca propia de Mova, elegida según el tono y con volumen bajo mientras hablas. La API de Instagram no permite usar su biblioteca de canciones.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Studio</h2><span class="st doing">Primera versión hecha</span></div>
+          <p class="lead">Donde el founder ajusta lo que Mova editó, al estilo de CapCut pero sin su complejidad: los founders hablan a cámara y editan poco, así que no es un editor multipista completo.</p>
+          <ul class="list">
+            <li><strong>Asistente</strong> (izquierda): el chat con la IA de Mova, con el vídeo como contexto. Cada cambio se ve al instante en la vista previa y se puede deshacer. Hoy cambia subtítulos (corregir, quitar muletillas, acortar) y el título.</li>
+            <li><strong>Vista previa</strong> (centro): la copia sin subtítulos con los subtítulos y el título dibujados encima en vivo, tal como quedarán. Nada se renderiza hasta guardar.</li>
+            <li><strong>Panel de edición</strong> (derecha): título, música usada y cada línea de subtítulos editable. Desde arriba, «Descripción y redes».</li>
+            <li><strong>Timeline</strong> (abajo): regla, pistas de vídeo (los tramos que quedaron), subtítulos y música, cabezal que se arrastra y zoom.</li>
+            <li><strong>Guardar:</strong> el worker vuelve a poner subtítulos y título sobre la copia sin subtítulos, en segundos y sin reeditar el vídeo. Las correcciones de palabras se recuerdan para los próximos vídeos.</li>
+            <li><strong>Eficiencia de la IA:</strong> el asistente solo recibe las líneas numeradas, el título y el vocabulario de la marca (sin tiempos ni la transcripción completa) y devuelve solo lo que cambia, con esfuerzo bajo.</li>
+            <li><strong>Siguiente:</strong> cortar y recuperar tramos, cambiar la música y su volumen, zooms y efectos. La vista previa pasará a Remotion Player para mostrar los efectos en vivo con el mismo diseño que el vídeo final.</li>
           </ul>
         </section>
 
@@ -828,7 +843,8 @@
             <li><span class="st done">Hecho</span> Base: web, login con Google y correo, sistema de diseño y Mi marca.</li>
             <li><span class="st done">Hecho</span> Mi marca automática: conectar Instagram y TikTok y crear el perfil a partir de los vídeos de Instagram.</li>
             <li><span class="st done">Hecho</span> Ideas: chat con IA, ideas guardables con guion breve.</li>
-            <li><span class="st done">Hecho</span> Vídeos: subida por lotes, edición automática (audio, silencios, subtítulos), corrección de subtítulos, nombre, menú y lightbox.</li>
+            <li><span class="st done">Hecho</span> Vídeos: subida por lotes, edición automática (audio, silencios, subtítulos), nombre, menú y lightbox.</li>
+            <li><span class="st doing">Primera versión</span> Studio: asistente, vista previa en vivo, panel de edición y timeline (subtítulos y título).</li>
             <li><span class="st done">Hecho</span> Calendario: semana por horas y mes, banco, arrastrar, cambiar la hora, lo pasado en gris y ajustes.</li>
             <li><span class="st done">Hecho</span> Publicación en Instagram y TikTok desde el worker, con los ajustes que exige TikTok. Falta probarla con cuentas reales.</li>
             <li><span class="st done">Hecho</span> Métricas de Instagram y TikTok juntas.</li>
@@ -839,7 +855,7 @@
           <div class="section-head"><h2 class="t-xl">Falta para el MVP, en este orden</h2></div>
           <ol class="pillars">
             <li><span class="n t-sm">1</span><span><strong>Música de Epidemic Sound</strong> en la edición. Programada; falta poner la clave en el worker y probarla con un vídeo real.</span></li>
-            <li><span class="n t-sm">2</span><span><strong>Efectos con Remotion:</strong> títulos, zooms y recursos visuales, por indicación o por estilo aprendido. Gratis para equipos de hasta 3 personas.</span></li>
+            <li><span class="n t-sm">2</span><span><strong>Efectos con Remotion y Studio completo:</strong> títulos, zooms y recursos visuales, por indicación o por estilo aprendido; el Studio pasa a Remotion Player y suma cortes, música y efectos. Remotion es gratis para equipos de hasta 3 personas.</span></li>
             <li><span class="n t-sm">3</span><span><strong>IA que orquesta todo + servidor MCP:</strong> guiones, copys automáticos, perfil de marca, plan de edición, indicaciones y títulos; y el MCP para el agente del founder.</span></li>
             <li><span class="n t-sm">4</span><span><strong>Servidor en la nube</strong> para editar y publicar (hoy depende del PC del equipo).</span></li>
           </ol>

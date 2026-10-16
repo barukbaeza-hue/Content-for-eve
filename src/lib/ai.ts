@@ -186,3 +186,78 @@ export async function analyzeProfile(videos: SocialVideo[]): Promise<ProfileDraf
     throw toAiError(error);
   }
 }
+
+// ---------- Studio: el asistente de edición ----------
+
+const StudioSchema = z.object({
+  reply: z.string().describe("Qué cambiaste o qué propones, en una o dos frases, en el tono del founder."),
+  lines: z
+    .array(
+      z.object({
+        n: z.number().int().describe("Número de la línea de subtítulos que cambias (empieza en 1)."),
+        text: z.string().describe("Texto nuevo completo de esa línea."),
+      }),
+    )
+    .describe("Solo las líneas que cambian. Vacío si no tocas los subtítulos."),
+  title: z
+    .object({ change: z.boolean(), text: z.string().describe("Título nuevo; vacío para quitarlo.") })
+    .describe("change = true solo si cambias o quitas el título."),
+});
+
+export type StudioTurn = { role: "user" | "assistant"; content: string };
+export type StudioEdit = { reply: string; lines: { index: number; text: string }[]; title: string | null | undefined };
+
+/**
+ * Convierte lo que pide el founder en cambios concretos sobre su vídeo.
+ * Para gastar pocos tokens solo viajan las líneas numeradas, el título y el vocabulario de la marca:
+ * ni tiempos ni la transcripción completa, y esfuerzo bajo (es una tarea acotada).
+ */
+export async function studioEdit(
+  video: { lines: string[]; title: string | null; vocabulary: string[] },
+  history: StudioTurn[],
+  request: string,
+): Promise<StudioEdit> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new AiError("sin-clave");
+  const client = new Anthropic({ apiKey });
+
+  const system = [
+    "Eres el editor de vídeo de Mova dentro del Studio. El founder te pide cambios sobre un vídeo corto ya editado.",
+    "Hoy puedes cambiar el texto de los subtítulos (corregir palabras, quitar muletillas, acortar) y el título que aparece arriba al empezar.",
+    "Mantén el sentido y la forma de hablar del founder. No inventes contenido que no dijo.",
+    "Si pide algo que aún no puedes hacer (cortar partes, cambiar la música, zooms, efectos), díselo en una frase y no cambies nada.",
+    video.vocabulary.length ? `Palabras de su marca, escritas así: ${video.vocabulary.join(", ")}.` : "",
+  ].filter(Boolean).join("\n");
+
+  const state = [
+    `Título: ${video.title ? `"${video.title}"` : "(sin título)"}`,
+    "Subtítulos:",
+    ...video.lines.map((text, i) => `${i + 1}| ${text}`),
+  ].join("\n");
+
+  try {
+    const response = await client.messages.parse({
+      model: MODEL,
+      max_tokens: 8000,
+      system,
+      messages: [
+        ...history.slice(-8).map((t) => ({ role: t.role, content: t.content })),
+        { role: "user", content: `${state}\n\nPetición: ${request}` },
+      ],
+      output_config: { effort: "low", format: zodOutputFormat(StudioSchema) },
+    });
+    if (response.stop_reason === "refusal") throw new AiError("fallo", "rechazo");
+    const output = response.parsed_output;
+    if (!output) throw new AiError("fallo", "vacio");
+    return {
+      reply: output.reply,
+      lines: output.lines
+        .filter((l) => l.n >= 1 && l.n <= video.lines.length)
+        .map((l) => ({ index: l.n - 1, text: l.text.trim() })),
+      title: output.title.change ? output.title.text.trim() || null : undefined,
+    };
+  } catch (error) {
+    console.error("Error de Claude (Studio):", error);
+    throw toAiError(error);
+  }
+}
