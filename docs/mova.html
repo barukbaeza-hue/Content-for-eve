@@ -787,9 +787,9 @@
             <li><strong>Enviar lo mínimo:</strong> texto numerado en vez de transcripciones con tiempos, y solo el contexto que la tarea necesita.</li>
             <li><strong>Responder solo con cambios:</strong> la IA devuelve las operaciones que cambian (línea 3, título, corte del tramo 5), nunca el plan o el texto completo otra vez. <span class="st done">Hecho en el Studio</span></li>
             <li><strong>Caché de prompt:</strong> lo que se repite en cada llamada (instrucciones, perfil de la marca, historial) se cachea y desde la segunda vez cuesta ~10 %. <span class="st done">Hecho en el chat de Ideas</span></li>
-            <li><strong>Esfuerzo bajo e historial corto</strong> en tareas acotadas (copys, títulos, cambios en el Studio). <span class="st done">Hecho</span></li>
+            <li><strong>Esfuerzo bajo e historial corto</strong> solo en tareas simples (títulos, cambios en el Studio). En guiones e ideas no se baja sin medir antes que la calidad se mantiene. <span class="st done">Hecho</span></li>
             <li><strong>Lotes con 50 % de descuento</strong> (Batch API) para lo que no corre prisa en la cola: fichas de vídeo, copys de un lote o el análisis del perfil.</li>
-            <li><strong>Modelo según la tarea:</strong> uno pequeño y barato para lo simple (corregir subtítulos, elegir la búsqueda de música, títulos) y Claude Sonnet para guiones, ideas y el plan de edición. Se mide la calidad antes de cambiar cada tarea de modelo.</li>
+            <li>Ninguna de estas reglas empeora el resultado: la IA recibe lo que necesita y responde igual. El esfuerzo bajo solo se usa en tareas simples, donde no se nota.</li>
           </ul>
         </section>
 
@@ -978,6 +978,7 @@
           <ul class="list">
             <li><span class="st open">Por decidir</span> <strong>De dónde salen los vídeos de Inspiración.</strong> Opciones en <a href="#ideas">Ideas e Inspiración</a>.</li>
             <li><span class="st open">Por decidir</span> <strong>Precio de la suscripción</strong> y límite de IA incluido.</li>
+            <li><span class="st open">Por decidir</span> <strong>Qué modelo usa cada tarea de IA.</strong> Hoy todo usa Claude Sonnet 5. Opción: uno más barato para lo simple (corregir subtítulos, títulos, búsqueda de música) y Sonnet para guiones, ideas y el plan de edición. Antes de decidir, se comparan los resultados con vídeos reales.</li>
             <li><span class="st open">Por decidir</span> <strong>Correo de contacto</strong> para las páginas de términos y privacidad.</li>
           </ul>
         </section>
