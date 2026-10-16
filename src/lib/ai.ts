@@ -109,6 +109,8 @@ export async function chat(
     const response = await client.messages.parse({
       model: MODEL,
       max_tokens: 16000,
+      // Caché automática: el perfil y el historial se repiten en cada mensaje y desde el segundo se cobran a ~10 %
+      cache_control: { type: "ephemeral" },
       system: systemPrompt(brand, saved),
       messages: history.map(toApiMessage),
       // Esfuerzo bajo: tarea creativa sencilla; mantiene el coste en ~1-2 céntimos por mensaje.

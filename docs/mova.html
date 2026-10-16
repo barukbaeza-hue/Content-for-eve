@@ -780,6 +780,29 @@
           </ul>
         </section>
         <section>
+          <div class="section-head"><h2 class="t-xl">Eficiencia de tokens</h2><span class="badge t-2xs">Decidido</span></div>
+          <p class="lead">La propuesta de Mova es la <strong>calidad y los vídeos en cola</strong>, no ser el más rápido. Aun así, tiene que ser razonablemente rápido y gastar pocos tokens. Reglas para toda la IA de Mova:</p>
+          <ul class="list">
+            <li><strong>El estilo es un perfil de parámetros, no una conversación:</strong> los vídeos del founder se analizan una vez y se guardan como números (largo de cortes, tolerancia a pausas, estilo de subtítulos, volumen de la música). Cada edición usa esos parámetros sin llamar a la IA; la IA solo entra cuando hay indicaciones o algo cambia. Es lo que hace Huemy.</li>
+            <li><strong>Enviar lo mínimo:</strong> texto numerado en vez de transcripciones con tiempos, y solo el contexto que la tarea necesita.</li>
+            <li><strong>Responder solo con cambios:</strong> la IA devuelve las operaciones que cambian (línea 3, título, corte del tramo 5), nunca el plan o el texto completo otra vez. <span class="st done">Hecho en el Studio</span></li>
+            <li><strong>Caché de prompt:</strong> lo que se repite en cada llamada (instrucciones, perfil de la marca, historial) se cachea y desde la segunda vez cuesta ~10 %. <span class="st done">Hecho en el chat de Ideas</span></li>
+            <li><strong>Esfuerzo bajo e historial corto</strong> en tareas acotadas (copys, títulos, cambios en el Studio). <span class="st done">Hecho</span></li>
+            <li><strong>Lotes con 50 % de descuento</strong> (Batch API) para lo que no corre prisa en la cola: fichas de vídeo, copys de un lote o el análisis del perfil.</li>
+            <li><strong>Modelo según la tarea:</strong> uno pequeño y barato para lo simple (corregir subtítulos, elegir la búsqueda de música, títulos) y Claude Sonnet para guiones, ideas y el plan de edición. Se mide la calidad antes de cambiar cada tarea de modelo.</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-head"><h2 class="t-xl">Velocidad</h2><span class="badge t-2xs">Decidido</span></div>
+          <ul class="list">
+            <li>Objetivo: <strong>medianamente rápido</strong>. Hoy la edición tarda ~2 veces lo que dura el vídeo en el PC del equipo; en la nube, ~1 vez o menos.</li>
+            <li>En el Studio nada se renderiza hasta guardar: la vista previa dibuja los cambios en vivo, y al guardar solo se vuelven a poner subtítulos y título sobre la copia limpia, en segundos.</li>
+            <li>La edición automática usa el perfil de parámetros, así que no espera a la IA salvo que haya indicaciones.</li>
+          </ul>
+        </section>
+
+        <section>
           <div class="section-head"><h2 class="t-xl">Precio</h2><span class="st open">Por decidir</span></div>
           <p class="prose">Suscripción por la infraestructura, con la IA de Mova incluida hasta un límite. Falta fijar el precio y el límite.</p>
         </section>
